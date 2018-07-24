@@ -21,9 +21,9 @@ To make a copy of this project on your local machine, please clone the repositor
 git clone https://github.com/openimis/database_ms_sqlserver
 ```
 
-Restore the openIMIS database backup file (from [backup]() folder) to your SQL Server using SSMS.
+Restore the openIMIS database backup file (from [backup](./backup/) folder) to your SQL Server using SSMS.
 
-For documentation purposes we included the plain text scripts in the [scripts]() folder  
+For documentation purposes we included the plain text scripts in the [scripts](./scripts/) folder  
 
 ## Deployment
 

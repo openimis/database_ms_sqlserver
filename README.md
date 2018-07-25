@@ -15,15 +15,19 @@ In order to use and develop the openIMIS database on your local machine, you fir
 
 ### Installing
 
-To make a copy of this project on your local machine, please clone the repository.
+To make a copy of this project on your local machine, please follow the next steps:
+
+* clone the repository.
 
 ```
 git clone https://github.com/openimis/database_ms_sqlserver
 ```
 
-Restore the openIMIS database backup file (from [backup](./backup/) folder) to your SQL Server using SSMS.
+* Restore the openIMIS database backup file (from [backup](./backup/) folder) to your SQL Server using SSMS.
 
-For documentation purposes we included the plain text scripts in the [scripts](./scripts/) folder  
+* Execute the SETUP-IMIS stored procedure.
+
+For documentation purposes only, we included the plain text scripts in the [scripts](./scripts/) folder.
 
 ## Deployment
 
@@ -48,7 +52,10 @@ See also the list of [contributors](https://github.com/your/project/contributors
 
 ## License
 
+Copyright (c) Swiss Agency for Development and Cooperation (SDC)
+
 This project is licensed under the GNU AGPL v3 License - see the [LICENSE.md](LICENSE.md) file for details.
+
 
 <!--## Acknowledgments
 

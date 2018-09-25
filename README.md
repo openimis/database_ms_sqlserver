@@ -23,7 +23,7 @@ To make a copy of this project on your local machine, please follow the next ste
 git clone https://github.com/openimis/database_ms_sqlserver
 ```
 
-* Restore the openIMIS database backup file (from [Empty databases](./Empty databases/) folder) to your SQL Server using SSMS.
+* Restore the openIMIS database backup file (from [Empty databases](./Empty%20databases/) folder) to your SQL Server using SSMS.
 
 * Execute the SETUP-IMIS stored procedure.
 
@@ -31,7 +31,7 @@ For documentation purposes only, we included the plain text scripts in the [Scri
 
 ### Upgrading
 
-In order to upgrade from the [previous version of openIMIS database](https://github.com/openimis/master-version/tree/master/Database/Empty%20databases), you must execute the migration script from [Migration script](./Migration script/) folder.
+In order to upgrade from the [previous version of openIMIS database](https://github.com/openimis/master-version/tree/master/Database/Empty%20databases), you must execute the migration script from [Migration script](./Migration%20script/) folder.
 
 ## Deployment
 

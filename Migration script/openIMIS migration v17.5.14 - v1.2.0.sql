@@ -19715,12 +19715,2192 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 
 GO
 
-
-
-
-
 Exec sp_msforeachtable 'SET QUOTED_IDENTIFIER ON; ALTER INDEX ALL ON ? REBUILD'
 GO
+
+/****** Object:  StoredProcedure [dbo].[uspProcessSingleClaimStep2]    Script Date: 07/09/2018 11:20:26 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[uspProcessSingleClaimStep2]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[uspProcessSingleClaimStep2]
+GO
+
+/****** Object:  StoredProcedure [dbo].[uspProcessSingleClaimStep1]    Script Date: 07/09/2018 11:20:26 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[uspProcessSingleClaimStep1]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[uspProcessSingleClaimStep1]
+GO
+
+/****** Object:  StoredProcedure [dbo].[uspProcessSingleClaimStep1]    Script Date: 07/09/2018 11:19:58 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+CREATE PROCEDURE [dbo].[uspProcessSingleClaimStep1]
+	
+	@AuditUser as int = 0,
+	@ClaimID as int,
+	@InsureeID as int, 
+	@HFCareType as char(1),
+	@RowID as int = 0,
+	@AdultChild as nvarchar(1),
+	@RtnStatus as int = 0 OUTPUT
+	
+		
+	/*
+	Rejection reasons:
+	0 = NOT REJECTED
+	1 = Item/Service not in Registers
+	2 = Item/Service not in HF Pricelist 
+	3 = Item/Service not in Covering Product
+	4 = Item/Service Limitation Fail
+	5 = Item/Service Frequency Fail
+	6 = Item/Service DUPLICATED
+	7 = CHFID Not valid / Family Not Valid 
+	8 = ICD Code not in current ICD list 
+	9 = Target date provision invalid
+	10= Care type not consistant with Facility 
+	11=
+	12=
+	*/
+	
+AS
+BEGIN
+	DECLARE @RtnItemsPassed as int 
+	DECLARE @RtnServicesPassed as int 
+	DECLARE @RtnItemsRejected as int 
+	DECLARE @RtnServicesRejected as int 
+
+	DECLARE @oReturnValue as int 
+	SET @oReturnValue = 0 
+	SET @RtnStatus = 0  
+	DECLARE @HFID as int  
+	DECLARE @FamilyID as int  
+	DECLARE @TargetDate as Date 
+	DECLARE @ClaimItemID as int 
+	DECLARE @ClaimServiceID as int 
+	DECLARE @ItemID as int
+	DECLARE @ServiceID as int
+	DECLARE @ProdItemID as int
+	DECLARE @ProdServiceID as int
+	DECLARE @ItemPatCat as int 
+	DECLARE @ItemPrice as decimal(18,2)
+	DECLARE @ServicePrice as decimal(18,2)
+	DECLARE @ServicePatCat as int 
+	DECLARE @Gender as nvarchar(1)
+	DECLARE @Adult as bit
+	DECLARE @DOB as date
+	DECLARE @PatientMask as int
+	DECLARE @CareType as Char
+	DECLARE @PriceAsked as decimal(18,2)
+	DECLARE @PriceApproved as decimal(18,2)
+	DECLARE @PriceAdjusted as decimal(18,2)
+	DECLARE @PriceValuated as decimal(18,2)
+	DECLARE @PriceOrigin as Char
+	DECLARE @ClaimPrice as Decimal(18,2)
+	DECLARE @ProductID as int   
+	DECLARE @PolicyID as int 
+	DECLARE @ProdItemID_C as int 
+	DECLARE @ProdItemID_F as int 
+	DECLARE @ProdServiceID_C as int 
+	DECLARE @ProdServiceID_F as int 
+	DECLARE @CoSharingPerc as decimal(18,2)
+	DECLARE @FixedLimit as decimal(18,2)
+	DECLARE @ProdAmountOwnF as decimal(18,2)
+	DECLARE @ProdAmountOwnC as decimal(18,2)
+	DECLARE @ProdCareType as Char
+		
+		
+	DECLARE @LimitationType as Char(1)
+	DECLARE @LimitationValue as decimal(18,2)	
+	
+	DECLARE @VisitType as CHAR(1)
+
+	SELECT @VisitType = ISNULL(VisitType,'O') from tblClaim where ClaimId = @ClaimID and ValidityTo IS NULL
+
+	BEGIN TRY
+	
+	--***** PREPARE PHASE *****
+	
+	SELECT @FamilyID = tblFamilies.FamilyID FROM tblFamilies INNER JOIN tblInsuree ON tblFamilies.FamilyID = tblInsuree.FamilyID  WHERE tblFamilies.ValidityTo IS NULL AND tblInsuree.InsureeID = @InsureeID AND tblInsuree.ValidityTo IS NULL 
+
+	IF ISNULL(@FamilyID,0)=0 
+	BEGIN
+		UPDATE tblClaimServices SET tblClaimServices.RejectionReason = 7 WHERE ClaimID = @ClaimID AND tblClaimServices.RejectionReason = 0 
+		UPDATE tblClaimItems SET tblClaimItems.RejectionReason = 7 WHERE ClaimID = @ClaimID AND tblClaimItems.RejectionReason = 0 
+		GOTO UPDATECLAIMDETAILS 
+	END	
+	
+	SELECT @TargetDate = ISNULL(TblClaim.DateTo,TblClaim.DateFrom) FROM TblClaim WHERE ClaimID = @ClaimID 
+	IF @TargetDate IS NULL 
+	BEGIN
+		UPDATE tblClaimServices SET tblClaimServices.RejectionReason = 9 WHERE ClaimID = @ClaimID AND tblClaimServices.RejectionReason = 0 
+		UPDATE tblClaimItems SET tblClaimItems.RejectionReason = 9 WHERE ClaimID = @ClaimID  AND tblClaimItems.RejectionReason = 0 
+		GOTO UPDATECLAIMDETAILS 
+	END	
+		
+		  
+	SET @PatientMask = 0 
+	SELECT @Gender = Gender FROm tblInsuree WHERE InsureeID = @InsureeID 
+	IF @Gender = 'M' OR @Gender = 'O'
+		SET @PatientMask = @PatientMask + 1 
+	ELSE
+		SET @PatientMask = @PatientMask + 2 
+	
+	SELECT @DOB = DOB FROM tblInsuree WHERE InsureeID = @InsureeID 
+	IF @AdultChild = 'A' 
+		SET @PatientMask = @PatientMask + 4 
+	ELSE
+		SET @PatientMask = @PatientMask + 8 
+		
+	/*PREPARE HISTORIC TABLE WITh RELEVANT ITEMS AND SERVICES*/
+
+	DECLARE  @DTBL_ITEMS TABLE (
+							[ItemID] [int] NOT NULL,
+							[ItemCode] [nvarchar](6) NOT NULL,
+							[ItemType] [char](1) NOT NULL,
+							[ItemPrice] [decimal](18, 2) NOT NULL,
+							[ItemCareType] [char](1) NOT NULL,
+							[ItemFrequency] [smallint] NULL,
+							[ItemPatCat] [tinyint] NOT NULL
+							)
+
+	INSERT INTO @DTBL_ITEMS (ItemID , ItemCode, ItemType , ItemPrice, ItemCaretype ,ItemFrequency, ItemPatCat) 
+	SELECT ItemID , ItemCode, ItemType , ItemPrice, ItemCaretype ,ItemFrequency, ItemPatCat FROM 
+	(SELECT  ROW_NUMBER() OVER(PARTITION BY ItemId ORDER BY ValidityFrom DESC)RNo,AllItems.* FROM
+	(
+	SELECT Sub1.* FROM
+	(
+	SELECT ItemID , ItemCode, ItemType , ItemPrice, ItemCaretype ,ItemFrequency, ItemPatCat , ValidityFrom, ValidityTo, LegacyID from tblitems Where (ValidityTo IS NULL) OR ((NOT ValidityTo IS NULL) AND (LegacyID IS NULL))
+	UNION ALL
+	SELECT  LegacyID as ItemID , ItemCode, ItemType , ItemPrice, ItemCaretype ,ItemFrequency, ItemPatCat , ValidityFrom,ValidityTo, LegacyID  FROM tblItems Where  (NOT ValidityTo IS NULL) AND (NOT LegacyID IS NULL)
+	
+	) Sub1
+	INNER JOIN 
+	(
+	SELECT        tblClaimItems.ItemID
+	FROM            tblClaimItems 
+	WHERE        (tblClaimItems.ValidityTo IS NULL) AND tblClaimItems.ClaimID = @ClaimID
+	) Sub2 ON Sub1.ItemID = Sub2.ItemID 
+	)  AllItems 
+	WHERE CONVERT(date,ValidityFrom,103) <= @TargetDate 
+	)Result
+	WHERE Rno = 1 AND ((ValidityTo IS NULL) OR (NOT ValidityTo IS NULL AND NOT LegacyID IS NULL ))  	
+
+	DECLARE  @DTBL_SERVICES TABLE (
+							[ServiceID] [int] NOT NULL,
+							[ServCode] [nvarchar](6) NOT NULL,
+							[ServType] [char](1) NOT NULL,
+							[ServLevel] [char](1) NOT NULL,
+							[ServPrice] [decimal](18, 2) NOT NULL,
+							[ServCareType] [char](1) NOT NULL,
+							[ServFrequency] [smallint] NULL,
+							[ServPatCat] [tinyint] NOT NULL,
+							[ServCategory] [char](1) NULL
+							)
+
+	INSERT INTO @DTBL_SERVICES (ServiceID , ServCode, ServType , ServLevel, ServPrice, ServCaretype ,ServFrequency, ServPatCat, ServCategory ) 
+	SELECT ServiceID , ServCode, ServType , ServLevel ,ServPrice, ServCaretype ,ServFrequency, ServPatCat,ServCategory FROM 
+	(SELECT  ROW_NUMBER() OVER(PARTITION BY ServiceId ORDER BY ValidityFrom DESC)RNo,AllServices.* FROM
+	(
+	SELECT Sub1.* FROM
+	(
+	SELECT ServiceID , ServCode, ServType , ServLevel  ,ServPrice, ServCaretype ,ServFrequency, ServPatCat , ServCategory ,ValidityFrom, ValidityTo, LegacyID from tblServices WHere (ValidityTo IS NULL) OR ((NOT ValidityTo IS NULL) AND (LegacyID IS NULL))
+	UNION ALL
+	SELECT  LegacyID as ServiceID , ServCode, ServType , ServLevel  ,ServPrice, ServCaretype ,ServFrequency, ServPatCat , ServCategory , ValidityFrom, ValidityTo, LegacyID FROM tblServices Where  (NOT ValidityTo IS NULL) AND (NOT LegacyID IS NULL)
+	) Sub1
+	INNER JOIN 
+	(
+	SELECT        tblClaimServices.ServiceID 
+	FROM            tblClaim INNER JOIN
+							 tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID
+	WHERE        (tblClaimServices.ValidityTo IS NULL) AND tblClaim.ClaimID = @ClaimID
+	) Sub2 ON Sub1.ServiceID = Sub2.ServiceID 
+	)  AllServices 
+	WHERE CONVERT(date,ValidityFrom,103) <= @TargetDate
+	)Result
+	WHERE Rno = 1 AND ((ValidityTo IS NULL) OR (NOT ValidityTo IS NULL AND NOT LegacyID IS NULL ))   
+
+	--***** CHECK 1 ***** --> UPDATE to REJECTED for Items/Services not in registers   REJECTION REASON = 1
+	
+	UPDATE tblClaimItems SET tblClaimItems.RejectionReason = 1     
+	FROM         tblClaim INNER JOIN
+                      tblClaimItems ON tblClaim.ClaimID = tblClaimItems.ClaimID 
+                      WHERE tblClaim.ClaimID = @ClaimID AND tblClaimItems.ValidityTo IS NULL AND tblClaimItems.RejectionReason = 0 AND tblClaimItems.ItemID NOT IN 
+                      (
+                      SELECT     ItemID FROM @DTBL_ITEMS
+                      )
+                      
+	UPDATE tblClaimServices SET tblClaimServices.RejectionReason = 1     
+	FROM         tblClaim INNER JOIN
+                      tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID 
+                      WHERE tblClaim.ClaimID = @ClaimID AND tblClaimServices.ValidityTo IS NULL AND tblClaimServices.RejectionReason = 0  AND tblClaimServices.ServiceID  NOT IN 
+                      (
+                      SELECT     ServiceID FROM @DTBL_SERVICES  
+                      )
+	
+	--***** CHECK 2 ***** --> UPDATE to REJECTED for Items/Services not in Pricelists  REJECTION REASON = 2
+	SELECT @HFID = HFID from tblClaim WHERE ClaimID = @ClaimID 
+	
+	UPDATE tblClaimItems SET tblClaimItems.RejectionReason = 2
+	FROM dbo.tblClaimItems 
+	LEFT OUTER JOIN 
+	(SELECT     tblPLItemsDetail.ItemID
+	FROM         tblHF INNER JOIN
+						  tblPLItems ON tblHF.PLItemID = tblPLItems.PLItemID INNER JOIN
+						  tblPLItemsDetail ON tblPLItems.PLItemID = tblPLItemsDetail.PLItemID
+	WHERE     (tblHF.HfID = @HFID) AND (tblPLItems.ValidityTo IS NULL) AND (tblPLItemsDetail.ValidityTo IS NULL)) PLItems 
+	ON tblClaimItems.ItemID = PLItems.ItemID 
+	WHERE tblClaimItems.ClaimID = @ClaimID AND tblClaimItems.RejectionReason = 0 AND tblClaimItems.ValidityTo IS NULL AND PLItems.ItemID IS NULL
+	
+	UPDATE tblClaimServices SET tblClaimServices.RejectionReason = 2 
+	FROM dbo.tblClaimServices 
+	LEFT OUTER JOIN 
+	(SELECT     tblPLServicesDetail.ServiceID 
+	FROM         tblHF INNER JOIN
+						  tblPLServicesDetail ON tblHF.PLServiceID = tblPLServicesDetail.PLServiceID
+	WHERE     (tblHF.HfID = @HFID) AND (tblPLServicesDetail.ValidityTo IS NULL) AND (tblPLServicesDetail.ValidityTo IS NULL)) PLServices 
+	ON tblClaimServices.ServiceID = PLServices.ServiceID  
+	WHERE tblClaimServices.ClaimID = @ClaimID AND  tblClaimServices.RejectionReason = 0  AND tblClaimServices.ValidityTo IS NULL AND PLServices.ServiceID  IS NULL
+	
+	
+	-- ** !!!!! ITEMS LOOPING !!!!! ** 
+	
+	--now loop through all (remaining) items and determine what is the matching product within valid policies using the rule least cost sharing for Insuree 
+	-- at this stage we only check if any valid product itemline is found --> will not yet assign the line. 
+	
+	DECLARE CLAIMITEMLOOP CURSOR LOCAL FORWARD_ONLY FOR SELECT     tblClaimItems.ClaimItemID, tblClaimItems.PriceAsked, PriceApproved, Items.ItemPrice, Items.ItemCareType, Items.ItemPatCat, Items.ItemID
+														FROM         tblClaimItems INNER JOIN
+																			  @DTBL_ITEMS Items ON tblClaimItems.ItemID = Items.ItemID 
+														WHERE     (tblClaimItems.ClaimID = @ClaimID) AND (tblClaimItems.ValidityTo IS NULL) AND (tblClaimItems.RejectionReason = 0) ORDER BY tblClaimItems.ClaimItemID ASC
+	OPEN CLAIMITEMLOOP
+	FETCH NEXT FROM CLAIMITEMLOOP INTO @ClaimItemID, @PriceAsked, @PriceApproved, @ItemPrice ,@CareType, @ItemPatCat,@ItemID
+	WHILE @@FETCH_STATUS = 0 
+	BEGIN
+		SET @ProdItemID_C = 0 
+		SET @ProdItemID_F = 0 
+		
+		IF ISNULL(@PriceAsked,0) > ISNULL(@PriceApproved,0)
+			SET @ClaimPrice = @PriceAsked
+		ELSE
+			SET @ClaimPrice = @PriceApproved
+		
+		-- **** START CHECK 4 --> Item/Service Limitation Fail (4)*****
+		IF (@ItemPatCat  & @PatientMask) <> @PatientMask 	
+		BEGIN
+			--inconsistant patient type check 
+			UPDATE tblClaimItems SET RejectionReason = 4 WHERE ClaimItemID   = @ClaimItemID 
+			GOTO NextItem
+		END
+		-- **** END CHECK 4 *****	
+		
+		---- **** START CHECK 10 --> Item Care type / HF caretype Fail (10)*****
+		--IF (@CareType = 'I' AND @HFCareType = 'O') OR (@CareType = 'O' AND @HFCareType = 'I')	
+		--BEGIN
+		--	--inconsistant patient type check 
+		--	UPDATE tblClaimItems SET RejectionReason = 10 WHERE ClaimItemID   = @ClaimItemID 
+		--	GOTO NextItem
+		--END
+		---- **** END CHECK 10 *****	
+		
+		-- **** START ASSIGNING PROD ID to ClaimITEMS *****	
+		IF @AdultChild = 'A'
+		BEGIN
+			--Try to find co-sharing product with the least co-sharing --> better for insuree
+			
+			IF @VisitType = 'O' 
+			BEGIN
+				SELECT TOP 1 @ProdItemID_C = tblProductItems.ProdItemID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductItems.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductItems.ItemID = @ItemID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationType = 'C'
+									  ORDER BY LimitAdult DESC
+
+				SELECT TOP 1 @ProdItemID_F = tblProductItems.ProdItemID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductItems.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductItems.ItemID = @ItemID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationType = 'F'
+									  ORDER BY (CASE LimitAdult WHEN 0 THEN 1000000000000 ELSE LimitAdult END) DESC
+			END
+
+			IF @VisitType = 'E' 
+			BEGIN
+				SELECT TOP 1 @ProdItemID_C = tblProductItems.ProdItemID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductItems.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductItems.ItemID = @ItemID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationTypeE = 'C'
+									  ORDER BY LimitAdultE DESC
+			
+				SELECT TOP 1 @ProdItemID_F = tblProductItems.ProdItemID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductItems.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductItems.ItemID = @ItemID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationTypeE = 'F'
+									  ORDER BY (CASE LimitAdultE WHEN 0 THEN 1000000000000 ELSE LimitAdultE END) DESC
+			END
+
+
+			IF @VisitType = 'R' 
+			BEGIN
+				SELECT TOP 1 @ProdItemID_C = tblProductItems.ProdItemID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductItems.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductItems.ItemID = @ItemID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationTypeR = 'C'
+									  ORDER BY LimitAdultR DESC
+				
+				SELECT TOP 1 @ProdItemID_F = tblProductItems.ProdItemID
+					FROM         tblFamilies INNER JOIN
+										  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+										  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+										  tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID
+					WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductItems.ValidityTo IS NULL) AND 
+										  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductItems.ItemID = @ItemID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+										  AND LimitationTypeR = 'F'
+										  ORDER BY (CASE LimitAdultR WHEN 0 THEN 1000000000000 ELSE LimitAdultR END) DESC
+			END
+
+		END
+		ELSE
+		BEGIN
+			IF @VisitType = 'O' 
+			BEGIN
+				SELECT TOP 1 @ProdItemID_C = tblProductItems.ProdItemID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductItems.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductItems.ItemID = @ItemID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationType = 'C'
+									  ORDER BY LimitChild DESC
+			
+				SELECT TOP 1 @ProdItemID_F = tblProductItems.ProdItemID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductItems.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductItems.ItemID = @ItemID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationType = 'F'
+									  ORDER BY (CASE LimitChild WHEN 0 THEN 1000000000000 ELSE LimitChild END) DESC		
+			END
+			IF @VisitType = 'E' 
+			BEGIN
+				SELECT TOP 1 @ProdItemID_C = tblProductItems.ProdItemID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductItems.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductItems.ItemID = @ItemID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationTypeE = 'C'
+									  ORDER BY LimitChildE DESC
+			
+				SELECT TOP 1 @ProdItemID_F = tblProductItems.ProdItemID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductItems.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductItems.ItemID = @ItemID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationTypeE = 'F'
+									  ORDER BY (CASE LimitChildE WHEN 0 THEN 1000000000000 ELSE LimitChildE END) DESC	
+			END
+
+			IF @VisitType = 'R' 
+			BEGIN
+				SELECT TOP 1 @ProdItemID_C = tblProductItems.ProdItemID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductItems.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductItems.ItemID = @ItemID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationTypeR = 'C'
+									  ORDER BY LimitChildR DESC
+			
+				SELECT TOP 1 @ProdItemID_F = tblProductItems.ProdItemID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductItems.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductItems.ItemID = @ItemID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationTypeR = 'F'
+									  ORDER BY (CASE LimitChildR WHEN 0 THEN 1000000000000 ELSE LimitChildR END) DESC	
+			END
+
+		END
+
+
+
+		IF ISNULL(@ProdItemID_C,0) = 0 AND ISNULL(@ProdItemID_F,0) = 0 
+		BEGIN
+			-- No suitable product is found for this specific claim item 
+			UPDATE tblClaimItems SET RejectionReason = 3 WHERE ClaimItemID = @ClaimItemID
+			GOTO NextItem
+		END
+		ELSE
+		BEGIN
+			IF ISNULL(@ProdItemID_F,0) <> 0
+			BEGIN
+				IF @VisitType = 'O'
+				BEGIN
+					IF @AdultChild = 'A'
+						SELECT @FixedLimit = ISNULL(LimitAdult,0) FROM tblProductItems WHERE ProdItemID  = @ProdItemID_F  
+					ELSE
+						SELECT @FixedLimit = ISNULL(LimitChild,0) FROM tblProductItems WHERE ProdItemID  = @ProdItemID_F  
+				END
+				IF @VisitType = 'E'
+				BEGIN
+					IF @AdultChild = 'A'
+						SELECT @FixedLimit = ISNULL(LimitAdultE,0) FROM tblProductItems WHERE ProdItemID  = @ProdItemID_F  
+					ELSE
+						SELECT @FixedLimit = ISNULL(LimitChildE,0) FROM tblProductItems WHERE ProdItemID  = @ProdItemID_F  
+				END
+				IF @VisitType = 'R'
+				BEGIN
+					IF @AdultChild = 'A'
+						SELECT @FixedLimit = ISNULL(LimitAdultR,0) FROM tblProductItems WHERE ProdItemID  = @ProdItemID_F  
+					ELSE
+						SELECT @FixedLimit = ISNULL(LimitChildR,0) FROM tblProductItems WHERE ProdItemID  = @ProdItemID_F  
+				END
+				
+			END	
+			IF ISNULL(@ProdItemID_C,0) <> 0
+			BEGIN
+
+				IF @VisitType = 'O'
+				BEGIN
+					IF @AdultChild = 'A'
+						SELECT @CoSharingPerc = ISNULL(LimitAdult,0) FROM tblProductItems WHERE ProdItemID  = @ProdItemID_C  
+					ELSE
+						SELECT @CoSharingPerc = ISNULL(LimitChild,0) FROM tblProductItems WHERE ProdItemID  = @ProdItemID_C  
+				END
+				IF @VisitType = 'E'
+				BEGIN
+					IF @AdultChild = 'A'
+						SELECT @CoSharingPerc = ISNULL(LimitAdultE,0) FROM tblProductItems WHERE ProdItemID  = @ProdItemID_C  
+					ELSE
+						SELECT @CoSharingPerc = ISNULL(LimitChildE,0) FROM tblProductItems WHERE ProdItemID  = @ProdItemID_C  
+				END
+				IF @VisitType = 'R'
+				BEGIN
+					IF @AdultChild = 'A'
+						SELECT @CoSharingPerc = ISNULL(LimitAdultR,0) FROM tblProductItems WHERE ProdItemID  = @ProdItemID_C  
+					ELSE
+						SELECT @CoSharingPerc = ISNULL(LimitChildR,0) FROM tblProductItems WHERE ProdItemID  = @ProdItemID_C  
+				END
+
+				
+			END
+		END
+		
+		IF ISNULL(@ProdItemID_C,0) <> 0 AND ISNULL(@ProdItemID_F,0) <> 0 
+		BEGIN
+			--Need to check which product would be the best to choose CO-sharing or FIXED
+			IF @FixedLimit = 0 OR @FixedLimit > @ClaimPrice 
+			BEGIN --no limit or higher than claimed amount
+				SET @ProdItemID = @ProdItemID_F
+				SET @ProdItemID_C = 0 
+			END
+			ELSE  
+			BEGIN
+				SET @ProdAmountOwnF =  @ClaimPrice - @FixedLimit
+				IF (100 - @CoSharingPerc) > 0 
+				BEGIN
+					--Insuree pays own part on co-sharing 
+					SET @ProdAmountOwnF =  @ClaimPrice - @FixedLimit
+					SET @ProdAmountOwnC = ((100 - @CoSharingPerc)/100) * @ClaimPrice 
+					IF @ProdAmountOwnC > @ProdAmountOwnF 
+					BEGIN
+						SET @ProdItemID = @ProdItemID_F  
+						SET @ProdItemID_C = 0 
+					END
+					ELSE
+					BEGIN 
+						SET @ProdItemID = @ProdItemID_C  	
+						SET @ProdItemID_F = 0
+					END
+				END
+				ELSE
+				BEGIN
+					SET @ProdItemID = @ProdItemID_C  
+					SET @ProdItemID_F = 0
+				END
+			END
+		END
+		ELSE
+		BEGIN
+			IF ISNULL(@ProdItemID_C,0) <> 0
+			BEGIN
+				-- Only Co-sharing 
+				SET @ProdItemID = @ProdItemID_C
+				SET @ProdItemID_F = 0 
+			END
+			ELSE
+			BEGIN
+				-- Only Fixed
+				SET @ProdItemID = @ProdItemID_F 
+				SET @ProdItemID_C = 0
+			END 
+		END
+		
+		
+		SELECT @ProductID = tblProduct.ProdID FROM tblProduct INNER JOIN tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID WHERE tblProduct.ValidityTo IS NULL AND tblProductItems.ProdItemID = @ProdItemID 
+		SELECT TOP 1 @PolicyID = tblPolicy.PolicyID 
+			FROM         tblFamilies INNER JOIN
+								  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+								  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+								  tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID
+			WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductItems.ValidityTo IS NULL) AND 
+								  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductItems.ProdItemID = @ProdItemID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+								  
+		-- **** END ASSIGNING PROD ID to CLAIM *****	
+		
+		-- **** START DETERMINE PRICE ITEM **** 
+		SELECT @PriceOrigin = PriceOrigin FROM tblProductItems WHERE ProdItemID = @ProdItemID 
+		
+		IF @ProdItemID_C <> 0 
+		BEGIN
+			SET @LimitationType = 'C'
+			SET @LimitationValue = @CoSharingPerc 		
+		END
+		ELSE
+		BEGIN
+			--FIXED LIMIT
+			SET @LimitationType = 'F'
+			SET @LimitationValue =@FixedLimit 
+		END
+		
+		UPDATE tblClaimItems SET ProdID = @ProductID, PolicyID = @PolicyID , PriceAdjusted = @PriceAdjusted , PriceOrigin = @PriceOrigin, Limitation = @LimitationType , LimitationValue = @LimitationValue  WHERE ClaimItemID = @ClaimItemID 
+		
+		NextItem:
+		FETCH NEXT FROM CLAIMITEMLOOP INTO @ClaimItemID, @PriceAsked, @PriceApproved, @ItemPrice ,@CareType, @ItemPatCat,@ItemID
+	END
+	CLOSE CLAIMITEMLOOP
+	DEALLOCATE CLAIMITEMLOOP
+	
+	-- ** !!!!! ITEMS LOOPING !!!!! ** 
+	
+	--now loop through all (remaining) Services and determine what is the matching product within valid policies using the rule least cost sharing for Insuree 
+	-- at this stage we only check if any valid product Serviceline is found --> will not yet assign the line. 
+	
+	DECLARE CLAIMSERVICELOOP CURSOR LOCAL FORWARD_ONLY FOR SELECT     tblClaimServices.ClaimServiceID, tblClaimServices.PriceAsked, PriceApproved, Serv.ServPrice, Serv.ServCareType, Serv.ServPatCat, Serv.ServiceID
+														FROM         tblClaimServices INNER JOIN
+																			  @DTBL_SERVICES Serv
+																			   ON tblClaimServices.ServiceID = Serv.ServiceID
+														WHERE     (tblClaimServices.ClaimID = @ClaimID) AND (tblClaimServices.ValidityTo IS NULL) AND (tblClaimServices.RejectionReason = 0) ORDER BY tblClaimServices.ClaimServiceID ASC
+	OPEN CLAIMSERVICELOOP
+	FETCH NEXT FROM CLAIMSERVICELOOP INTO @ClaimServiceID, @PriceAsked, @PriceApproved, @ServicePrice ,@CareType, @ServicePatCat,@ServiceID
+	WHILE @@FETCH_STATUS = 0 
+	BEGIN
+		SET @ProdServiceID_C = 0 
+		SET @ProdServiceID_F = 0 
+		
+		IF ISNULL(@PriceAsked,0) > ISNULL(@PriceApproved,0)
+			SET @ClaimPrice = @PriceAsked
+		ELSE
+			SET @ClaimPrice = @PriceApproved
+		
+		-- **** START CHECK 4 --> Service/Service Limitation Fail (4)*****
+		IF (@ServicePatCat  & @PatientMask) <> @PatientMask 	
+		BEGIN
+			--inconsistant patient type check 
+			UPDATE tblClaimServices SET RejectionReason = 4 WHERE ClaimServiceID   = @ClaimServiceID 
+			GOTO NextService
+		END
+		-- **** END CHECK 4 *****	
+		
+		-- **** START CHECK 10 --> Service Care type / HF caretype Fail (10)*****
+		--IF (@CareType = 'I' AND @HFCareType = 'O') OR (@CareType = 'O' AND @HFCareType = 'I')	
+		--BEGIN
+		--	--inconsistant patient type check 
+		--	UPDATE tblClaimServices SET RejectionReason = 10 WHERE ClaimServiceID   = @ClaimServiceID 
+		--	GOTO NextService
+		--END
+		-- **** END CHECK 10 *****	
+		
+		-- **** START ASSIGNING PROD ID to ClaimServiceS *****	
+		IF @AdultChild = 'A'
+		BEGIN
+			--Try to find co-sharing product with the least co-sharing --> better for insuree
+			
+			IF @VisitType = 'O'
+			BEGIN
+				SELECT TOP 1 @ProdServiceID_C = tblProductServices.ProdServiceID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductServices.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductServices.ServiceID = @ServiceID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationType = 'C'
+									  ORDER BY LimitAdult DESC
+			
+				SELECT TOP 1 @ProdServiceID_F = tblProductServices.ProdServiceID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductServices.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductServices.ServiceID = @ServiceID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationType = 'F'
+									  ORDER BY (CASE LimitAdult WHEN 0 THEN 1000000000000 ELSE LimitAdult END) DESC
+			END
+
+			IF @VisitType = 'E'
+			BEGIN
+				SELECT TOP 1 @ProdServiceID_C = tblProductServices.ProdServiceID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductServices.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductServices.ServiceID = @ServiceID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationTypeE = 'C'
+									  ORDER BY LimitAdultE DESC
+			
+				SELECT TOP 1 @ProdServiceID_F = tblProductServices.ProdServiceID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductServices.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductServices.ServiceID = @ServiceID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationTypeE = 'F'
+									  ORDER BY (CASE LimitAdultE WHEN 0 THEN 1000000000000 ELSE LimitAdultE END) DESC
+			END
+			
+			
+			IF @VisitType = 'R'
+			BEGIN
+				SELECT TOP 1 @ProdServiceID_C = tblProductServices.ProdServiceID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductServices.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductServices.ServiceID = @ServiceID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationTypeR = 'C'
+									  ORDER BY LimitAdultR DESC
+			
+				SELECT TOP 1 @ProdServiceID_F = tblProductServices.ProdServiceID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductServices.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductServices.ServiceID = @ServiceID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationTypeR = 'F'
+									  ORDER BY (CASE LimitAdultR WHEN 0 THEN 1000000000000 ELSE LimitAdultR END) DESC
+			END
+			
+		END
+		ELSE
+		BEGIN
+			
+			IF @VisitType = 'O'
+			BEGIN
+				SELECT TOP 1 @ProdServiceID_C = tblProductServices.ProdServiceID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductServices.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductServices.ServiceID = @ServiceID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationType = 'C'
+									  ORDER BY LimitChild DESC
+			
+				SELECT TOP 1 @ProdServiceID_F = tblProductServices.ProdServiceID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductServices.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductServices.ServiceID = @ServiceID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationType = 'F'
+									  ORDER BY (CASE LimitChild WHEN 0 THEN 1000000000000 ELSE LimitChild END) DESC		
+			END
+			IF @VisitType = 'E'
+			BEGIN
+				SELECT TOP 1 @ProdServiceID_C = tblProductServices.ProdServiceID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductServices.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductServices.ServiceID = @ServiceID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationTypeE = 'C'
+									  ORDER BY LimitChildE DESC
+			
+				SELECT TOP 1 @ProdServiceID_F = tblProductServices.ProdServiceID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductServices.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductServices.ServiceID = @ServiceID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationTypeE = 'F'
+									  ORDER BY (CASE LimitChildE WHEN 0 THEN 1000000000000 ELSE LimitChildE END) DESC		
+			END
+
+
+			IF @VisitType = 'R'
+			BEGIN
+				SELECT TOP 1 @ProdServiceID_C = tblProductServices.ProdServiceID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductServices.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductServices.ServiceID = @ServiceID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationTypeR = 'C'
+									  ORDER BY LimitChildR DESC
+			
+				SELECT TOP 1 @ProdServiceID_F = tblProductServices.ProdServiceID
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductServices.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductServices.ServiceID = @ServiceID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+									  AND LimitationTypeR = 'F'
+									  ORDER BY (CASE LimitChildR WHEN 0 THEN 1000000000000 ELSE LimitChildR END) DESC		
+			END
+
+		END
+		
+		
+		
+		IF ISNULL(@ProdServiceID_C,0) = 0 AND ISNULL(@ProdServiceID_F,0) = 0 
+		BEGIN
+			-- No suitable product is found for this specific claim Service 
+			UPDATE tblClaimServices SET RejectionReason = 3 WHERE ClaimServiceID = @ClaimServiceID
+			GOTO NextService
+		END
+		ELSE
+		BEGIN
+			IF ISNULL(@ProdServiceID_F,0) <> 0
+			BEGIN
+				IF @VisitType = 'O'
+				BEGIN
+					IF @AdultChild = 'A'
+						SELECT @FixedLimit = ISNULL(LimitAdult,0) FROM tblProductServices WHERE ProdServiceID  = @ProdServiceID_F  
+					ELSE
+						SELECT @FixedLimit = ISNULL(LimitChild,0) FROM tblProductServices WHERE ProdServiceID  = @ProdServiceID_F   
+				END 
+				IF @VisitType = 'E'
+				BEGIN
+					IF @AdultChild = 'A'
+						SELECT @FixedLimit = ISNULL(LimitAdultE,0) FROM tblProductServices WHERE ProdServiceID  = @ProdServiceID_F  
+					ELSE
+						SELECT @FixedLimit = ISNULL(LimitChildE,0) FROM tblProductServices WHERE ProdServiceID  = @ProdServiceID_F   
+				END
+				IF @VisitType = 'R'
+				BEGIN
+					IF @AdultChild = 'A'
+						SELECT @FixedLimit = ISNULL(LimitAdultR,0) FROM tblProductServices WHERE ProdServiceID  = @ProdServiceID_F  
+					ELSE
+						SELECT @FixedLimit = ISNULL(LimitChildR,0) FROM tblProductServices WHERE ProdServiceID  = @ProdServiceID_F   
+				END
+			END	
+			IF ISNULL(@ProdServiceID_C,0) <> 0
+			BEGIN
+				IF @Visittype = 'O'
+				BEGIN
+					IF @AdultChild = 'A'
+						SELECT @CoSharingPerc = ISNULL(LimitAdult,100) FROM tblProductServices WHERE ProdServiceID  = @ProdServiceID_C  
+					ELSE
+						SELECT @CoSharingPerc = ISNULL(LimitChild,100) FROM tblProductServices WHERE ProdServiceID  = @ProdServiceID_C 
+				END
+				IF @Visittype = 'E'
+				BEGIN
+					IF @AdultChild = 'A'
+						SELECT @CoSharingPerc = ISNULL(LimitAdultE,100) FROM tblProductServices WHERE ProdServiceID  = @ProdServiceID_C  
+					ELSE
+						SELECT @CoSharingPerc = ISNULL(LimitChildE,100) FROM tblProductServices WHERE ProdServiceID  = @ProdServiceID_C 
+				END 
+				IF @Visittype = 'R'
+				BEGIN
+					IF @AdultChild = 'A'
+						SELECT @CoSharingPerc = ISNULL(LimitAdultR,100) FROM tblProductServices WHERE ProdServiceID  = @ProdServiceID_C  
+					ELSE
+						SELECT @CoSharingPerc = ISNULL(LimitChildR,100) FROM tblProductServices WHERE ProdServiceID  = @ProdServiceID_C 
+				END
+			END
+
+		END
+		
+		IF ISNULL(@ProdServiceID_C,0) <> 0 AND ISNULL(@ProdServiceID_F,0) <> 0 
+		BEGIN
+			--Need to check which product would be the best to choose CO-sharing or FIXED
+			IF @FixedLimit = 0 OR @FixedLimit > @ClaimPrice 
+			BEGIN --no limit or higher than claimed amount
+				SET @ProdServiceID = @ProdServiceID_F
+				SET @ProdServiceID_C = 0 
+			END
+			ELSE
+			BEGIN
+				SET @ProdAmountOwnF =  @ClaimPrice - ISNULL(@FixedLimit,0)
+				IF (100 - @CoSharingPerc) > 0 
+				BEGIN
+					--Insuree pays own part on co-sharing 
+					SET @ProdAmountOwnF =  @ClaimPrice - @FixedLimit
+					SET @ProdAmountOwnC = ((100 - @CoSharingPerc)/100) * @ClaimPrice 
+					IF @ProdAmountOwnC > @ProdAmountOwnF 
+					BEGIN
+						SET @ProdServiceID = @ProdServiceID_F  
+						SET @ProdServiceID_C = 0 
+					END
+					ELSE
+					BEGIN 
+						SET @ProdServiceID = @ProdServiceID_C  	
+						SET @ProdServiceID_F = 0
+					END
+				END
+				ELSE
+				BEGIN
+					SET @ProdServiceID = @ProdServiceID_C  
+					SET @ProdServiceID_F = 0
+				END
+			END
+		END
+		ELSE
+		BEGIN
+			IF ISNULL(@ProdServiceID_C,0) <> 0
+			BEGIN
+				-- Only Co-sharing 
+				SET @ProdServiceID = @ProdServiceID_C
+				SET @ProdServiceID_F = 0 
+			END
+			ELSE
+			BEGIN
+				-- Only Fixed
+				SET @ProdServiceID = @ProdServiceID_F 
+				SET @ProdServiceID_C = 0
+			END 
+		END
+		
+		SELECT @ProductID = tblProduct.ProdID FROM tblProduct INNER JOIN tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID WHERE tblProduct.ValidityTo IS NULL AND tblProductServices.ProdServiceID = @ProdServiceID 
+		SELECT TOP 1 @PolicyID = tblPolicy.PolicyID 
+			FROM         tblFamilies INNER JOIN
+								  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+								  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+								  tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID
+			WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductServices.ValidityTo IS NULL) AND 
+								  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductServices.ProdServiceID = @ProdServiceID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL)
+								  
+		-- **** END ASSIGNING PROD ID to CLAIM *****	
+		
+		-- **** START DETERMINE PRICE Service **** 
+		SELECT @PriceOrigin = PriceOrigin FROM tblProductServices WHERE ProdServiceID = @ProdServiceID 
+		
+		IF @ProdServiceID_C <> 0 
+		BEGIN
+			SET @LimitationType = 'C'
+			SET @LimitationValue = @CoSharingPerc 		
+		END
+		ELSE
+		BEGIN
+			--FIXED LIMIT
+			SET @LimitationType = 'F'
+			SET @LimitationValue =@FixedLimit 
+		END
+		
+		UPDATE tblClaimServices SET ProdID = @ProductID, PolicyID = @PolicyID, PriceOrigin = @PriceOrigin, Limitation = @LimitationType , LimitationValue = @LimitationValue WHERE ClaimServiceID = @ClaimServiceID 
+		
+		NextService:
+		FETCH NEXT FROM CLAIMSERVICELOOP INTO @ClaimServiceID, @PriceAsked, @PriceApproved, @ServicePrice ,@CareType, @ServicePatCat,@ServiceID
+	END
+	CLOSE CLAIMSERVICELOOP
+	DEALLOCATE CLAIMSERVICELOOP
+	
+	
+	
+	
+	
+UPDATECLAIMDETAILS:
+	UPDATE tblClaimItems SET ClaimItemStatus = 2 WHERE ClaimID = @ClaimID AND RejectionReason <> 0 
+	UPDATE tblClaimServices SET ClaimServiceStatus = 2 WHERE ClaimID = @ClaimID AND RejectionReason <> 0 
+	
+	SELECT @RtnItemsPassed = ISNULL(COUNT(ClaimItemID),0) FROM dbo.tblClaimItems WHERE ClaimID = @ClaimID AND ClaimItemStatus = 1 AND ValidityTo IS NULL
+	SELECT @RtnServicesPassed  = ISNULL(COUNT(ClaimServiceID),0) FROM dbo.tblClaimServices  WHERE ClaimID = @ClaimID AND ClaimServiceStatus = 1  AND ValidityTo IS NULL
+	
+	IF @RtnItemsPassed <> 0  OR @RtnServicesPassed <> 0  --UPDATE CLAIM TO PASSED !! (default is not yet passed before checking procedure 
+	BEGIN
+		SET @RtnStatus = 1 
+	END
+	ELSE
+	BEGIN
+		UPDATE tblClaim SET ClaimStatus = 1 WHERE ClaimID = @ClaimID --> set rejected as all items ands services did not pass ! 
+		SET @RtnStatus = 2 
+	END
+	
+	
+	
+FINISH:
+	RETURN @oReturnValue
+	
+	END TRY
+	
+	BEGIN CATCH
+		SELECT 'Unexpected error encountered'
+		SET @oReturnValue = 1 
+		RETURN @oReturnValue
+		
+	END CATCH
+END
+
+
+
+
+
+
+
+GO
+
+/****** Object:  StoredProcedure [dbo].[uspProcessSingleClaimStep2]    Script Date: 07/09/2018 11:19:58 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+CREATE PROCEDURE [dbo].[uspProcessSingleClaimStep2]
+	
+	@AuditUser as int = 0,
+	@ClaimID as int,
+	@InsureeID as int,
+	@HFLevel as Char(1),   --check later with Jiri --> will not be used anymore
+	@RowID as int = 0,
+	@AdultChild as Char(1),
+	@Hospitalization as BIT,
+	@IsProcess as BIT = 1,
+	@RtnStatus as int = 0 OUTPUT
+	
+		
+	/*
+	Rejection reasons:
+	0 = NOT REJECTED
+	1 = Item/Service not in Registers
+	2 = Item/Service not in HF Pricelist 
+	3 = Item/Service not in Covering Product
+	4 = Item/Service Limitation Fail
+	5 = Item/Service Frequency Fail
+	6 = Item/Service DUPLICATD
+	7 = CHFID Not valid / Family Not Valid 
+	8 = ICD Code not in current ICD list 
+	9 = Target date provision invalid
+	10= Care type not consistant with Facility 
+	11=
+	12=
+	*/
+	
+AS
+BEGIN
+	
+	DECLARE @oReturnValue as int
+	SET @oReturnValue = 0 
+		
+	DECLARE @ProductID as int   
+	DECLARE @PolicyID as int 
+	DECLARE @Ceiling as decimal(18,2)
+	DECLARE @Deductable as decimal(18,2)
+	DECLARE @PrevDeducted as Decimal(18,2)
+	DECLARE @Deducted as decimal(18,2)
+	DECLARE @PrevRemunerated as decimal(18,2)
+	DECLARE @Remunerated as decimal(18,2)
+	
+	DECLARE @DeductableType as Char(1)
+	DECLARE @CeilingType as Char(1)
+	
+	DECLARE @ClaimItemID as int 
+	DECLARE @ClaimServiceID as int
+	DECLARE @PriceAsked as decimal(18,2)
+	DECLARE @PriceApproved as decimal(18,2)
+	DECLARE @PriceAdjusted as decimal(18,2)
+	DECLARE @PLPrice as decimal(18,2)
+	DECLARE @PriceOrigin as Char(1)
+	DECLARE @Limitation as Char(1)
+	DECLARE @Limitationvalue as Decimal(18,2)
+	DECLARE @ItemQty as decimal(18,2)
+	DECLARE @ServiceQty as decimal(18,2)
+	DECLARE @QtyProvided as decimal(18,2) 
+	DECLARE @QtyApproved as decimal(18,2)
+	DECLARE @SetPriceValuated as decimal(18,2)
+	DECLARE @SetPriceAdjusted as decimal(18,2)
+	DECLARE @SetPriceRemunerated as decimal(18,2)
+	DECLARE @SetPriceDeducted as decimal(18,2)	
+	DECLARE @ExceedCeilingAmount as decimal(18,2)
+	
+	DECLARE @ExceedCeilingAmountCategory as decimal(18,2)
+	
+
+	DECLARE @WorkValue as decimal(18,2)
+	--declare all ceilings and deductables from the cursor on product
+	DECLARE @DedInsuree as decimal(18,2) 
+	DECLARE @DedOPInsuree as decimal(18,2) 
+	DECLARE @DedIPInsuree as decimal(18,2) 
+	DECLARE @MaxInsuree as decimal(18,2)  
+	DECLARE @MaxOPInsuree as decimal(18,2) 
+	DECLARE @MaxIPInsuree as decimal(18,2) 
+	DECLARE @DedTreatment as decimal(18,2)  
+	DECLARE @DedOPTreatment as decimal(18,2)  
+	DECLARE @DedIPTreatment as decimal(18,2)  
+	DECLARE @MaxIPTreatment as decimal(18,2) 
+	DECLARE @MaxTreatment as decimal(18,2) 
+	DECLARE @MaxOPTreatment as decimal(18,2) 
+	DECLARE @DedPolicy as decimal(18,2) 
+	DECLARE @DedOPPolicy as decimal(18,2) 
+	DECLARE @DedIPPolicy as decimal(18,2) 
+	DECLARE @MaxPolicy as decimal(18,2) 
+	DECLARE @MaxOPPolicy as decimal(18,2) 
+	DECLARE @MaxIPPolicy as decimal(18,2) 
+	
+	DECLARE @CeilingConsult as Decimal(18,2) = 0 
+	DECLARE @CeilingSurgery as Decimal(18,2) = 0 
+	DECLARE @CeilingHospitalization as Decimal(18,2) = 0 
+	DECLARE @CeilingDelivery as Decimal(18,2) = 0 
+	DECLARE @CeilingAntenatal as decimal(18,2) =0 
+
+	DECLARE @PrevRemuneratedConsult as decimal(18,2) = 0 
+	DECLARE @PrevRemuneratedSurgery as decimal(18,2) = 0 
+	DECLARE @PrevRemuneratedHospitalization as decimal(18,2) = 0 
+	DECLARE @PrevRemuneratedDelivery as decimal(18,2) = 0 
+	DECLARE @PrevRemuneratedAntenatal as decimal(18,2) = 0 
+
+	DECLARE @RemuneratedConsult as decimal(18,2) = 0 
+	DECLARE @RemuneratedSurgery as decimal(18,2) = 0 
+	DECLARE @RemuneratedHospitalization as decimal(18,2) = 0 
+	DECLARE @RemuneratedDelivery as decimal(18,2) = 0 
+	DECLARE @RemuneratedAntenatal as decimal(18,2) = 0
+
+	DECLARE @Treshold as INT
+	DECLARE @MaxPolicyExtraMember decimal(18,2) = 0 
+	DECLARE @MaxPolicyExtraMemberIP decimal(18,2) = 0 
+	DECLARE @MaxPolicyExtraMemberOP decimal(18,2) = 0 
+	DECLARE @MaxCeilingPolicy decimal (18,2) = 0 
+	DECLARE @MaxCeilingPolicyIP decimal (18,2) = 0 
+	DECLARE @MaxCeilingPolicyOP decimal (18,2) = 0 
+	
+	DECLARE @ServCategory as CHAR
+	DECLARE @ClaimDateFrom as datetime
+	DECLARE @ClaimDateTo as datetime
+	
+
+	DECLARE @RelativePrices as int = 0 
+	DECLARE @PolicyMembers as int = 0 
+	
+	DECLARE @BaseCategory as CHAR(1)  = 'V'
+	DECLARE @CeilingInterpretation as Char
+
+	BEGIN TRY 
+	
+	--check first if this is a hospital claim falling under the hospitalization category
+	--check first if this is a hospital claim falling under the hospitalization category
+	
+	-- S = Surgery
+	-- D = Delivery
+	-- A = Antenatal care
+	-- H = Hospitalization
+	-- C = Consultation
+	-- O = Other
+	-- V = Visit 
+
+	SELECT @ClaimDateFrom = DateFrom,  @ClaimDateTo = DateTo FROM tblClaim Where ClaimID = @ClaimID 
+
+	IF  EXISTS (SELECT tblClaimServices.ClaimServiceID FROM tblClaim INNER JOIN tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID INNER JOIN tblServices ON tblClaimServices.ServiceID = tblServices.ServiceID
+		WHERE        (tblClaim.ClaimID = @ClaimID) AND (tblClaim.ValidityTo IS NULL) AND (tblClaimServices.ValidityTo IS NULL) AND (tblServices.ServCategory = 'S') AND 
+							 (tblServices.ValidityTo IS NULL))
+	BEGIN
+		SET @BaseCategory = 'S'
+	END
+	ELSE
+	BEGIN
+		IF  EXISTS (SELECT tblClaimServices.ClaimServiceID FROM tblClaim INNER JOIN tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID INNER JOIN tblServices ON tblClaimServices.ServiceID = tblServices.ServiceID
+		WHERE        (tblClaim.ClaimID = @ClaimID) AND (tblClaim.ValidityTo IS NULL) AND (tblClaimServices.ValidityTo IS NULL) AND (tblServices.ServCategory = 'D') AND 
+							 (tblServices.ValidityTo IS NULL))
+		BEGIN
+			SET @BaseCategory = 'D'
+		END
+		ELSE
+		BEGIN
+			IF  EXISTS (SELECT tblClaimServices.ClaimServiceID FROM tblClaim INNER JOIN tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID INNER JOIN tblServices ON tblClaimServices.ServiceID = tblServices.ServiceID
+			WHERE        (tblClaim.ClaimID = @ClaimID) AND (tblClaim.ValidityTo IS NULL) AND (tblClaimServices.ValidityTo IS NULL) AND (tblServices.ServCategory = 'A') AND 
+								 (tblServices.ValidityTo IS NULL))
+			BEGIN
+				SET @BaseCategory = 'A'
+			END
+			ELSE
+			BEGIN
+				
+				
+				IF ISNULL(@ClaimDateTo,@ClaimDateFrom) <> @ClaimDateFrom 
+				BEGIN
+					SET @BaseCategory = 'H'
+				END
+				ELSE
+				BEGIN
+					IF  EXISTS (SELECT tblClaimServices.ClaimServiceID FROM tblClaim INNER JOIN tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID INNER JOIN tblServices ON tblClaimServices.ServiceID = tblServices.ServiceID
+					WHERE        (tblClaim.ClaimID = @ClaimID) AND (tblClaim.ValidityTo IS NULL) AND (tblClaimServices.ValidityTo IS NULL) AND (tblServices.ServCategory = 'C') AND 
+										 (tblServices.ValidityTo IS NULL))
+					BEGIN
+						SET @BaseCategory = 'C'
+					END
+					ELSE
+					BEGIN
+						SET @BaseCategory = 'V'
+					END
+				END
+			END
+		END
+	END
+
+	/*PREPARE HISTORIC TABLE WITh RELEVANT ITEMS AND SERVICES*/
+
+	DECLARE @TargetDate as Date
+
+	
+	SELECT @TargetDate = ISNULL(TblClaim.DateTo,TblClaim.DateFrom) FROM TblClaim WHERE ClaimID = @ClaimID 
+
+	DECLARE @FamilyID INT 
+	SELECT @FamilyID = FamilyID from tblInsuree where InsureeID = @InsureeID 
+	
+
+
+	DECLARE  @DTBL_ITEMS TABLE (
+							[ItemID] [int] NOT NULL,
+							[ItemCode] [nvarchar](6) NOT NULL,
+							[ItemType] [char](1) NOT NULL,
+							[ItemPrice] [decimal](18, 2) NOT NULL,
+							[ItemCareType] [char](1) NOT NULL,
+							[ItemFrequency] [smallint] NULL,
+							[ItemPatCat] [tinyint] NOT NULL
+							)
+
+	INSERT INTO @DTBL_ITEMS (ItemID , ItemCode, ItemType , ItemPrice, ItemCaretype ,ItemFrequency, ItemPatCat) 
+	SELECT ItemID , ItemCode, ItemType , ItemPrice, ItemCaretype ,ItemFrequency, ItemPatCat FROM 
+	(SELECT  ROW_NUMBER() OVER(PARTITION BY ItemId ORDER BY ValidityFrom DESC)RNo,AllItems.* FROM
+	(
+	SELECT Sub1.* FROM
+	(
+	SELECT ItemID , ItemCode, ItemType , ItemPrice, ItemCaretype ,ItemFrequency, ItemPatCat , ValidityFrom, ValidityTo, LegacyID from tblitems Where (ValidityTo IS NULL) OR ((NOT ValidityTo IS NULL) AND (LegacyID IS NULL))
+	UNION ALL
+	SELECT  LegacyID as ItemID , ItemCode, ItemType , ItemPrice, ItemCaretype ,ItemFrequency, ItemPatCat , ValidityFrom,ValidityTo, LegacyID  FROM tblItems Where  (NOT ValidityTo IS NULL) AND (NOT LegacyID IS NULL)
+	
+	) Sub1
+	INNER JOIN 
+	(
+	SELECT        tblClaimItems.ItemID
+	FROM            tblClaimItems 
+	WHERE        (tblClaimItems.ValidityTo IS NULL) AND tblClaimItems.ClaimID = @ClaimID
+	) Sub2 ON Sub1.ItemID = Sub2.ItemID 
+	)  AllItems 
+	WHERE CONVERT(date,ValidityFrom,103) <= @TargetDate 
+	)Result
+	WHERE Rno = 1 AND ((ValidityTo IS NULL) OR (NOT ValidityTo IS NULL AND NOT LegacyID IS NULL ))  	
+
+
+
+	DECLARE  @DTBL_SERVICES TABLE (
+							[ServiceID] [int] NOT NULL,
+							[ServCode] [nvarchar](6) NOT NULL,
+							[ServType] [char](1) NOT NULL,
+							[ServLevel] [char](1) NOT NULL,
+							[ServPrice] [decimal](18, 2) NOT NULL,
+							[ServCareType] [char](1) NOT NULL,
+							[ServFrequency] [smallint] NULL,
+							[ServPatCat] [tinyint] NOT NULL,
+							[ServCategory] [char](1) NULL
+							)
+
+	INSERT INTO @DTBL_SERVICES (ServiceID , ServCode, ServType , ServLevel, ServPrice, ServCaretype ,ServFrequency, ServPatCat, ServCategory ) 
+	SELECT ServiceID , ServCode, ServType , ServLevel ,ServPrice, ServCaretype ,ServFrequency, ServPatCat,ServCategory FROM 
+	(SELECT  ROW_NUMBER() OVER(PARTITION BY ServiceId ORDER BY ValidityFrom DESC)RNo,AllServices.* FROM
+	(
+	SELECT Sub1.* FROM
+	(
+	SELECT ServiceID , ServCode, ServType , ServLevel  ,ServPrice, ServCaretype ,ServFrequency, ServPatCat , ServCategory ,ValidityFrom, ValidityTo, LegacyID from tblServices WHere (ValidityTo IS NULL) OR ((NOT ValidityTo IS NULL) AND (LegacyID IS NULL))
+	UNION ALL
+	SELECT  LegacyID as ServiceID , ServCode, ServType , ServLevel  ,ServPrice, ServCaretype ,ServFrequency, ServPatCat , ServCategory , ValidityFrom, ValidityTo, LegacyID FROM tblServices Where  (NOT ValidityTo IS NULL) AND (NOT LegacyID IS NULL)
+	) Sub1
+	INNER JOIN 
+	(
+	SELECT        tblClaimServices.ServiceID 
+	FROM            tblClaim INNER JOIN
+							 tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID
+	WHERE        (tblClaimServices.ValidityTo IS NULL) AND tblClaim.ClaimID = @ClaimID
+	) Sub2 ON Sub1.ServiceID = Sub2.ServiceID 
+	)  AllServices 
+	WHERE CONVERT(date,ValidityFrom,103) <= @TargetDate
+	)Result
+	WHERE Rno = 1 AND ((ValidityTo IS NULL) OR (NOT ValidityTo IS NULL AND NOT LegacyID IS NULL ))  
+	
+	DECLARE PRODUCTLOOP CURSOR LOCAL FORWARD_ONLY FOR	
+													SELECT Policies.ProdID, Policies.PolicyID,	ISNULL(DedInsuree,0), ISNULL(DedOPInsuree,0), ISNULL(DedIPInsuree,0), ISNULL(MaxInsuree,0), ISNULL(MaxOPInsuree,0), 
+																								ISNULL(MaxIPInsuree,0), ISNULL(DedTreatment,0), ISNULL(DedOPTreatment,0), ISNULL(DedIPTreatment,0), ISNULL(MaxIPTreatment,0), 
+																								ISNULL(MaxTreatment,0), ISNULL(MaxOPTreatment,0), ISNULL(DedPolicy,0), ISNULL(DedOPPolicy,0), ISNULL(DedIPPolicy,0), 
+																								ISNULL(MaxPolicy,0), ISNULL(MaxOPPolicy,0) , ISNULL(MaxIPPolicy,0),ISNULL(MaxAmountConsultation ,0),ISNULL(MaxAmountSurgery,0),ISNULL(MaxAmountHospitalization ,0),ISNULL(MaxAmountDelivery ,0), ISNULL(MaxAmountAntenatal  ,0),
+																								ISNULL(Threshold,0), ISNULL(MaxPolicyExtraMember,0),ISNULL(MaxPolicyExtraMemberIP,0),ISNULL(MaxPolicyExtraMemberOP,0),ISNULL(MaxCeilingPolicy,0),ISNULL(MaxCeilingPolicyIP,0),ISNULL(MaxCeilingPolicyOP,0), ISNULL(CeilingInterpretation,'I')
+																		  FROM 
+													(
+													SELECT     tblClaimItems.ProdID, tblClaimItems.PolicyID
+													FROM         tblClaimItems INNER JOIN
+																		  @DTBL_ITEMS Items ON tblClaimItems.ItemID = Items.ItemID
+													WHERE     (tblClaimItems.ClaimID = @ClaimID) AND (tblClaimItems.ValidityTo IS NULL) AND (tblClaimItems.RejectionReason = 0)
+																										
+													UNION 
+													SELECT     tblClaimServices.ProdID, tblClaimServices.PolicyID
+													FROM         tblClaimServices INNER JOIN
+																		  @DTBL_SERVICES Serv ON tblClaimServices.ServiceID = Serv.ServiceID
+													WHERE     (tblClaimServices.ClaimID = @ClaimID) AND (tblClaimServices.ValidityTo IS NULL) AND (tblClaimServices.RejectionReason = 0)
+													) Policies 
+													INNER JOIN 
+													(
+													SELECT     ProdID, DedInsuree, DedOPInsuree, DedIPInsuree, MaxInsuree, MaxOPInsuree, MaxIPInsuree, DedTreatment, DedOPTreatment, DedIPTreatment, MaxIPTreatment, 
+																MaxTreatment, MaxOPTreatment, DedPolicy, DedOPPolicy, DedIPPolicy, MaxPolicy, MaxOPPolicy, MaxIPPolicy, MaxAmountConsultation ,MaxAmountSurgery ,MaxAmountHospitalization ,MaxAmountDelivery , MaxAmountAntenatal,
+																Threshold, MaxPolicyExtraMember , MaxPolicyExtraMemberIP , MaxPolicyExtraMemberOP, MaxCeilingPolicy, MaxCeilingPolicyIP ,MaxCeilingPolicyOP ,ValidityTo, CeilingInterpretation  FROM tblProduct
+													WHERE     (ValidityTo IS NULL)
+													) Product ON Product.ProdID = Policies.ProdID
+													
+	OPEN PRODUCTLOOP
+	FETCH NEXT FROM PRODUCTLOOP INTO	@ProductID, @PolicyID,@DedInsuree,@DedOPInsuree,@DedIPInsuree,@MaxInsuree,@MaxOPInsuree,@MaxIPInsuree,@DedTreatment,@DedOPTreatment,@DedIPTreatment,
+										@MaxIPTreatment,@MaxTreatment,@MaxOPTreatment,@DedPolicy,@DedOPPolicy,@DedIPPolicy,@MaxPolicy,@MaxOPPolicy,@MaxIPPolicy,@CeilingConsult,@CeilingSurgery,@CeilingHospitalization,@CeilingDelivery,@CeilingAntenatal,
+										@Treshold, @MaxPolicyExtraMember,@MaxPolicyExtraMemberIP,@MaxPolicyExtraMemberOP,@MaxCeilingPolicy,@MaxCeilingPolicyIP,@MaxCeilingPolicyOP,@CeilingInterpretation
+	
+	WHILE @@FETCH_STATUS = 0 
+	BEGIN
+		--FIRST CHECK GENERAL 
+		
+		--DECLARE @PrevDeducted as Decimal(18,2)
+		--DECLARE @PrevRemunerated as decimal(18,2)
+		--DECLARE @Deducted as decimal(18,2)
+		
+		SET @Ceiling = 0 
+		SET @Deductable = 0 
+		SET @Deducted = 0  --reset to zero 
+		SET @Remunerated = 0 
+		SET @RemuneratedConsult = 0 
+		SET @RemuneratedDelivery = 0 
+		SET @RemuneratedHospitalization = 0 
+		SET @RemuneratedSurgery = 0 
+		SET @RemuneratedAntenatal  = 0 
+
+		SELECT @PolicyMembers =  COUNT(InsureeID) FROM tblInsureePolicy WHERE tblInsureePolicy.PolicyId = @PolicyID  AND  (NOT (EffectiveDate IS NULL)) AND  ( @ClaimDateTo BETWEEN EffectiveDate And ExpiryDate  )   AND   (ValidityTo IS NULL)
+
+		IF ISNULL(@CeilingConsult,0) > 0 
+		BEGIN
+			SELECT @PrevRemuneratedConsult = 0 --SUM(RemConsult) FROM dbo.tblClaimDedRem WHERE PolicyID = @PolicyID AND InsureeID = @InsureeID And ClaimID <> @ClaimID 
+		END
+		IF ISNULL(@CeilingSurgery,0) > 0 
+		BEGIN
+			SELECT @PrevRemuneratedSurgery  = 0 -- SUM(RemSurgery ) FROM dbo.tblClaimDedRem WHERE PolicyID = @PolicyID AND InsureeID = @InsureeID And ClaimID <> @ClaimID 
+		END
+		IF ISNULL(@CeilingHospitalization,0)  > 0 
+		BEGIN
+			--check first if this is a hospital claim falling under the hospitalization category
+			IF @Hospitalization = 1 
+
+			--SELECT @ClaimDateFrom = DateFrom,  @ClaimDateTo = DateTo FROM tblClaim Where ClaimID = @ClaimID 
+			--IF ISNULL(@ClaimDateTo,@ClaimDateFrom) <> @ClaimDateFrom 
+			BEGIN
+				--SET @Hospitalization = 1 
+				SELECT @PrevRemuneratedHospitalization = 0 -- SUM(RemHospitalization) FROM dbo.tblClaimDedRem WHERE PolicyID = @PolicyID AND InsureeID = @InsureeID And ClaimID <> @ClaimID 
+			END
+		END
+
+		IF ISNULL(@CeilingDelivery,0)  > 0 
+		BEGIN
+			SELECT @PrevRemuneratedDelivery  = 0 -- SUM(RemDelivery ) FROM dbo.tblClaimDedRem WHERE PolicyID = @PolicyID AND InsureeID = @InsureeID And ClaimID <> @ClaimID 
+		END
+
+		IF ISNULL(@PrevRemuneratedAntenatal ,0)  > 0 
+		BEGIN
+			SELECT @PrevRemuneratedAntenatal  = 0 --  SUM(RemAntenatal ) FROM dbo.tblClaimDedRem WHERE PolicyID = @PolicyID AND InsureeID = @InsureeID And ClaimID <> @ClaimID 
+		END
+
+
+		IF ISNULL(@DedTreatment,0) <> 0 
+		BEGIN
+			SET @Deductable = @DedTreatment
+			SET @DeductableType = 'G'
+			SET @PrevDeducted = 0 
+		END
+		
+		IF ISNULL(@DedInsuree,0) <> 0
+		BEGIN
+			SET @Deductable = @DedInsuree
+			SET @DeductableType = 'G'
+			SELECT @PrevDeducted = SUM(DedG) FROM dbo.tblClaimDedRem WHERE PolicyID = @PolicyID AND InsureeID = @InsureeID And ClaimID <> @ClaimID 
+		END
+		
+		IF ISNULL(@DedPolicy,0) <> 0
+		BEGIN
+			SET @Deductable = @DedPolicy
+			SET @DeductableType = 'G'
+			SELECT @PrevDeducted = SUM(DedG) FROM dbo.tblClaimDedRem WHERE PolicyID = @PolicyID And ClaimID <> @ClaimID 
+		END
+		
+		IF ISNULL(@MaxTreatment,0) <> 0
+		BEGIN
+			SET @Ceiling = @MaxTreatment
+			SET @CeilingType  = 'G'
+			SET @PrevRemunerated = 0 
+		END
+		
+		IF ISNULL(@MaxInsuree,0) <> 0
+		BEGIN
+			SET @Ceiling = @MaxInsuree
+			SET @CeilingType  = 'G'
+			SELECT @PrevRemunerated = SUM(RemG) FROM dbo.tblClaimDedRem WHERE PolicyID = @PolicyID AND InsureeID = @InsureeID And ClaimID <> @ClaimID 
+		END
+		IF ISNULL(@MaxPolicy,0) <> 0
+		BEGIN
+		    --check with the amount of members if we go over the treshold --> if so lets calculate 
+			IF @PolicyMembers > @Treshold
+			BEGIN
+				SET @Ceiling = @MaxPolicy + ((@PolicyMembers - @Treshold) * @MaxPolicyExtraMember) 
+				IF @Ceiling > @MaxCeilingPolicy
+					SET @Ceiling = ISNULL(NULLIF(@MaxCeilingPolicy, 0), @Ceiling)
+			END
+			ELSE
+			BEGIN
+				SET @Ceiling = @MaxPolicy
+			END
+
+			SET @CeilingType  = 'G'
+			SELECT @PrevRemunerated = SUM(RemG) FROM dbo.tblClaimDedRem WHERE PolicyID = @PolicyID And ClaimID <> @ClaimID  
+		END
+				
+		--NOW CHECK FOR IP DEDUCTABLES --> if hospital
+		IF @Deductable = 0 
+		BEGIN 
+			IF (@CeilingInterpretation = 'I' AND  @Hospitalization = 1) OR (@CeilingInterpretation = 'H' AND @HFLevel = 'H' ) --@HFLevel = 'H' This was a claim with a hospital stay 
+			BEGIN
+				--Hospital IP
+				IF @DedIPTreatment <> 0 
+				BEGIN
+					SET @Deductable = @DedIPTreatment
+					SET @DeductableType = 'I'
+					SET @PrevDeducted = 0 
+				END
+				
+				IF @DedIPInsuree  <> 0
+				BEGIN
+					SET @Deductable = @DedIPInsuree
+					SET @DeductableType = 'I'
+					SELECT @PrevDeducted = SUM(DedIP) FROM dbo.tblClaimDedRem WHERE PolicyID = @PolicyID AND InsureeID = @InsureeID And ClaimID <> @ClaimID 
+					
+				END
+				
+				IF @DedIPPolicy <> 0
+				BEGIN
+					SET @Deductable = @DedIPPolicy
+					SET @DeductableType = 'I'
+					SELECT @PrevDeducted = SUM(DedIP) FROM dbo.tblClaimDedRem WHERE PolicyID = @PolicyID And ClaimID <> @ClaimID 
+				END	
+			END
+			ELSE
+			BEGIN
+				--Non hospital OP
+				--Hospital IP
+				IF @DedOPTreatment <> 0 
+				BEGIN
+					SET @Deductable = @DedOPTreatment
+					SET @DeductableType = 'O'
+					SET @PrevDeducted = 0 
+				END
+				
+				IF @DedIPInsuree  <> 0
+				BEGIN
+					SET @Deductable = @DedOPInsuree
+					SET @DeductableType = 'O'
+					SELECT @PrevDeducted = SUM(DedOP) FROM dbo.tblClaimDedRem WHERE PolicyID = @PolicyID AND InsureeID = @InsureeID And ClaimID <> @ClaimID 
+					
+				END
+				
+				IF @DedIPPolicy <> 0
+				BEGIN
+					SET @Deductable = @DedOPPolicy
+					SET @DeductableType = 'O'
+					SELECT @PrevDeducted = SUM(DedOP) FROM dbo.tblClaimDedRem WHERE PolicyID = @PolicyID And ClaimID <> @ClaimID 
+				END	
+			END
+		END
+		
+		--NOW CHECK FOR IP CEILINGS --> if hospital
+		IF @Ceiling = 0  
+		BEGIN
+		--- HANS HERE CHANGE DEPENDING ON NEW FIELD IN PRODUCT
+			IF (@CeilingInterpretation = 'I' AND  @Hospitalization = 1) OR (@CeilingInterpretation = 'H' AND @HFLevel = 'H' )
+			BEGIN
+				--Hospital IP
+				IF @MaxIPTreatment <> 0 
+				BEGIN
+					SET @Ceiling  = @MaxIPTreatment
+					SET @CeilingType = 'I'
+					SET @PrevRemunerated = 0 
+				END
+				
+				IF @MaxIPInsuree  <> 0
+				BEGIN
+					SET @Ceiling  = @MaxIPInsuree 
+					SET @CeilingType = 'I'
+					SELECT @PrevRemunerated = SUM(RemIP) FROM dbo.tblClaimDedRem WHERE PolicyID = @PolicyID AND InsureeID = @InsureeID And ClaimID <> @ClaimID 
+					
+				END
+				
+				IF @MaxIPPolicy <> 0
+				BEGIN
+					
+					IF @PolicyMembers > @Treshold
+					BEGIN
+						SET @Ceiling = @MaxIPPolicy + ((@PolicyMembers - @Treshold) * @MaxPolicyExtraMemberIP ) 
+						IF @Ceiling > @MaxCeilingPolicyIP 
+							SET @Ceiling = ISNULL(NULLIF(@MaxCeilingPolicyIP, 0), @Ceiling)
+					END
+					ELSE
+					BEGIN
+						SET @Ceiling = @MaxIPPolicy 
+					END
+					SET @CeilingType = 'I'
+					SELECT @PrevRemunerated = SUM(RemIP) FROM dbo.tblClaimDedRem WHERE PolicyID = @PolicyID And ClaimID <> @ClaimID 
+				END	
+			END
+			ELSE
+			BEGIN
+				--Non hospital OP
+				IF @MaxOPTreatment <> 0 
+				BEGIN
+					SET @Ceiling  = @MaxOPTreatment
+					SET @CeilingType = 'O'
+					SET @PrevRemunerated = 0 
+				END
+				
+				IF @MaxOPInsuree  <> 0
+				BEGIN
+					SET @Ceiling  = @MaxOPInsuree 
+					SET @CeilingType = 'O'
+					SELECT @PrevRemunerated = SUM(RemOP) FROM dbo.tblClaimDedRem WHERE PolicyID = @PolicyID AND InsureeID = @InsureeID And ClaimID <> @ClaimID 
+					
+				END
+				
+				IF @MaxOPPolicy <> 0
+				BEGIN
+					IF @PolicyMembers > @Treshold
+					BEGIN
+						SET @Ceiling = @MaxOPPolicy + ((@PolicyMembers - @Treshold) * @MaxPolicyExtraMemberOP ) 
+						IF @Ceiling > @MaxCeilingPolicyOP 
+							SET @Ceiling = ISNULL(NULLIF(@MaxCeilingPolicyOP, 0), @Ceiling)
+					END
+					ELSE
+					BEGIN
+						SET @Ceiling = @MaxOPPolicy 
+					END
+					 
+					SET @CeilingType = 'O'
+					SELECT @PrevRemunerated = SUM(RemOP) FROM dbo.tblClaimDedRem WHERE PolicyID = @PolicyID And ClaimID <> @ClaimID 
+				END	
+			END
+		END
+		
+		--Make sure that we have zero in case of NULL
+		SET @PrevRemunerated = ISNULL(@PrevRemunerated,0)
+		SET @PrevDeducted = ISNULL(@PrevDeducted,0)
+		SET @PrevRemuneratedConsult = ISNULL(@PrevRemuneratedConsult,0)
+		SET @PrevRemuneratedSurgery  = ISNULL(@PrevRemuneratedSurgery ,0)
+		SET @PrevRemuneratedHospitalization  = ISNULL(@PrevRemuneratedHospitalization ,0)
+		SET @PrevRemuneratedDelivery  = ISNULL(@PrevRemuneratedDelivery ,0)
+		SET @PrevRemuneratedantenatal   = ISNULL(@PrevRemuneratedantenatal ,0)
+
+		
+		DECLARE @CeilingExclusionAdult NVARCHAR(1)
+		DECLARE @CeilingExclusionChild NVARCHAR(1)
+		
+
+		--FIRST GET all items 
+		DECLARE CLAIMITEMLOOP CURSOR LOCAL FORWARD_ONLY FOR 
+															SELECT     tblClaimItems.ClaimItemID, tblClaimItems.QtyProvided, tblClaimItems.QtyApproved, tblClaimItems.PriceAsked, tblClaimItems.PriceApproved,  
+																		ISNULL(tblPLItemsDetail.PriceOverule,Items.ItemPrice) as PLPrice, tblClaimItems.PriceOrigin, tblClaimItems.Limitation, tblClaimItems.LimitationValue, tblProductItems.CeilingExclusionAdult, tblProductItems.CeilingExclusionChild 
+															FROM         tblPLItemsDetail INNER JOIN
+																		  @DTBL_ITEMS Items ON tblPLItemsDetail.ItemID = Items.ItemID INNER JOIN
+																		  tblClaimItems INNER JOIN
+																		  tblClaim ON tblClaimItems.ClaimID = tblClaim.ClaimID INNER JOIN
+																		  tblHF ON tblClaim.HFID = tblHF.HfID INNER JOIN
+																		  tblPLItems ON tblHF.PLItemID = tblPLItems.PLItemID ON tblPLItemsDetail.PLItemID = tblPLItems.PLItemID AND Items.ItemID = tblClaimItems.ItemID
+																		  INNER JOIN tblProductItems ON tblClaimItems.ItemID = tblProductItems.ItemID AND tblProductItems.ProdID = tblClaimItems.ProdID 
+															WHERE     (tblClaimItems.ClaimID = @ClaimID) AND (tblClaimItems.ValidityTo IS NULL) AND (tblClaimItems.ClaimItemStatus = 1) AND (tblClaimItems.ProdID = @ProductID) AND 
+																		  (tblClaimItems.PolicyID = @PolicyID) AND (tblPLItems.ValidityTo IS NULL) AND (tblPLItemsDetail.ValidityTo IS NULL) AND (tblProductItems.ValidityTo IS NULL)
+															ORDER BY tblClaimItems.ClaimItemID
+		OPEN CLAIMITEMLOOP
+		FETCH NEXT FROM CLAIMITEMLOOP INTO @ClaimItemId, @QtyProvided, @QtyApproved ,@PriceAsked, @PriceApproved, @PLPrice, @PriceOrigin, @Limitation, @Limitationvalue,@CeilingExclusionAdult,@CeilingExclusionChild
+		WHILE @@FETCH_STATUS = 0 
+		BEGIN
+			--SET @Deductable = @DedOPTreatment
+			--SET @DeductableType = 'O'
+			--SET @PrevDeducted = 0 
+			
+			--DeductableAmount
+			--RemuneratedAmount
+			--ExceedCeilingAmount
+			--ProcessingStatus
+			
+			--CHECK first if any amount is still to be deducted 
+			--SELECT @ClaimExclusionAdult = CeilingEx FROM tblProductItems WHERE ProdID = @ProductID AND ItemID = @ItemID AND ValidityTo IS NULL
+
+			
+			SET @ItemQty = ISNULL(@QtyApproved,@QtyProvided) 
+			SET @WorkValue = 0 
+			SET @SetPriceDeducted = 0 
+			SET @ExceedCeilingAmount = 0 
+			SET @ExceedCeilingAmountCategory = 0 
+
+			IF @PriceOrigin = 'O' 
+				SET @SetPriceAdjusted = ISNULL(@PriceApproved,@PriceAsked)
+			ELSE
+				--HVH check if this is the case
+				SET @SetPriceAdjusted = ISNULL(@PriceApproved,@PLPrice)
+			
+			SET @WorkValue = (@ItemQty * @SetPriceAdjusted)
+			
+			IF @Limitation = 'F' AND ((@ItemQty * @Limitationvalue) < @WorkValue)
+				SET @WorkValue =(@ItemQty * @Limitationvalue)
+
+
+			IF @Deductable - @PrevDeducted - @Deducted > 0 
+			BEGIN
+				IF (@Deductable - @PrevDeducted - @Deducted) >= ( @WorkValue)
+				BEGIN
+					SET @SetPriceDeducted = (@WorkValue)
+					SET @Deducted = @Deducted + ( @WorkValue)
+					SET @Remunerated = @Remunerated + 0 
+					SET @SetPriceValuated = 0 
+					SET @SetPriceRemunerated = 0 
+					GOTO NextItem
+				END
+				ELSE
+				BEGIN
+					--partial coverage 
+					SET @SetPriceDeducted = (@Deductable - @PrevDeducted - @Deducted)
+					SET @WorkValue = (@WorkValue) - @SetPriceDeducted
+					SET @Deducted = @Deducted + (@Deductable - @PrevDeducted - @Deducted)
+					
+					--go next stage --> valuation considering the ceilings 
+				END
+			END
+			
+			--DEDUCTABLES ARE ALREADY TAKEN OUT OF VALUE AND STORED IN VARS
+			
+			--IF @Limitation = 'F' AND ((@ItemQty * @Limitationvalue) < @WorkValue)
+				--SET @WorkValue =(@ItemQty * @Limitationvalue)
+			
+			IF @Limitation = 'C' 
+				SET @WorkValue = (@Limitationvalue/100) * @WorkValue  
+				
+			
+			IF @BaseCategory <> 'V'
+			BEGIN
+				IF (ISNULL(@CeilingSurgery  ,0) > 0) AND @BaseCategory = 'S'  --  Ceiling check for Surgery
+				BEGIN
+					IF @WorkValue + @PrevRemuneratedSurgery  + @RemuneratedSurgery   <= @CeilingSurgery  
+					BEGIN
+						--we are still under the ceiling for hospitalization and can be fully covered 
+						SET @RemuneratedSurgery   =  @RemuneratedSurgery   + @WorkValue
+					END
+					ELSE
+					BEGIN
+						IF @PrevRemuneratedSurgery  + @RemuneratedSurgery  >= @CeilingSurgery 
+						BEGIN
+							--Nothing can be covered already reached ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue
+							SET @RemuneratedSurgery  = @RemuneratedSurgery    + 0
+							SET @WorkValue = 0 
+						END
+						ELSE
+						BEGIN
+							--claim service can partially be covered , we are over the ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue + @PrevRemuneratedSurgery   + @RemuneratedSurgery    - @CeilingSurgery   
+							SET @WorkValue = @WorkValue - @ExceedCeilingAmountCategory
+							SET @RemuneratedSurgery    =  @RemuneratedSurgery    + @WorkValue   -- we only add the value that could be covered up to the ceiling
+						END
+					END
+				END
+
+				IF (ISNULL(@CeilingDelivery  ,0) > 0) AND @BaseCategory = 'D'  --  Ceiling check for Delivery
+				BEGIN
+					IF @WorkValue + @PrevRemuneratedDelivery  + @RemuneratedDelivery   <= @CeilingDelivery  
+					BEGIN
+						--we are still under the ceiling for hospitalization and can be fully covered 
+						SET @RemuneratedDelivery   =  @RemuneratedDelivery   + @WorkValue
+					END
+					ELSE
+					BEGIN
+						IF @PrevRemuneratedDelivery  + @RemuneratedDelivery  >= @CeilingDelivery 
+						BEGIN
+							--Nothing can be covered already reached ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue
+							SET @RemuneratedDelivery  = @RemuneratedDelivery    + 0
+							SET @WorkValue = 0 
+						END
+						ELSE
+						BEGIN
+							--claim service can partially be covered , we are over the ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue + @PrevRemuneratedDelivery   + @RemuneratedDelivery    - @CeilingDelivery   
+							SET @WorkValue = @WorkValue - @ExceedCeilingAmountCategory
+							SET @RemuneratedDelivery    =  @RemuneratedDelivery    + @WorkValue   -- we only add the value that could be covered up to the ceiling
+						END
+					END
+				END
+				
+				IF (ISNULL(@CeilingAntenatal  ,0) > 0) AND @BaseCategory = 'A'  --  Ceiling check for Antenatal
+				BEGIN
+					IF @WorkValue + @PrevRemuneratedAntenatal  + @RemuneratedAntenatal   <= @CeilingAntenatal  
+					BEGIN
+						--we are still under the ceiling for hospitalization and can be fully covered 
+						SET @RemuneratedAntenatal   =  @RemuneratedAntenatal   + @WorkValue
+					END
+					ELSE
+					BEGIN
+						IF @PrevRemuneratedAntenatal  + @RemuneratedAntenatal  >= @CeilingAntenatal 
+						BEGIN
+							--Nothing can be covered already reached ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue
+							SET @RemuneratedAntenatal  = @RemuneratedAntenatal    + 0
+							SET @WorkValue = 0 
+						END
+						ELSE
+						BEGIN
+							--claim service can partially be covered , we are over the ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue + @PrevRemuneratedAntenatal   + @RemuneratedAntenatal    - @CeilingAntenatal   
+							SET @WorkValue = @WorkValue - @ExceedCeilingAmountCategory
+							SET @RemuneratedAntenatal    =  @RemuneratedAntenatal    + @WorkValue   -- we only add the value that could be covered up to the ceiling
+						END
+					END
+				END
+
+				IF (ISNULL(@CeilingHospitalization ,0) > 0) AND @BaseCategory = 'H'  --  Ceiling check for Hospital
+				BEGIN
+					IF @WorkValue + @PrevRemuneratedHospitalization + @RemuneratedHospitalization  <= @CeilingHospitalization 
+					BEGIN
+						--we are still under the ceiling for hospitalization and can be fully covered 
+						SET @RemuneratedHospitalization  =  @RemuneratedHospitalization  + @WorkValue
+					END
+					ELSE
+					BEGIN
+						IF @PrevRemuneratedHospitalization  + @RemuneratedHospitalization  >= @CeilingHospitalization 
+						BEGIN
+							--Nothing can be covered already reached ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue
+							SET @RemuneratedHospitalization  = @RemuneratedHospitalization    + 0
+							SET @WorkValue = 0 
+						END
+						ELSE
+						BEGIN
+							--claim service can partially be covered , we are over the ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue + @PrevRemuneratedHospitalization   + @RemuneratedHospitalization    - @CeilingHospitalization   
+							SET @WorkValue = @WorkValue - @ExceedCeilingAmountCategory
+							SET @RemuneratedHospitalization    =  @RemuneratedHospitalization    + @WorkValue   -- we only add the value that could be covered up to the ceiling
+						END
+					END
+				END
+
+				IF (ISNULL(@CeilingConsult   ,0) > 0) AND @BaseCategory = 'C'  --  Ceiling check for Consult
+				BEGIN
+					IF @WorkValue + @PrevRemuneratedConsult  + @RemuneratedConsult   <= @CeilingConsult  
+					BEGIN
+						--we are still under the ceiling for hospitalization and can be fully covered 
+						SET @RemuneratedConsult   =  @RemuneratedConsult   + @WorkValue
+					END
+					ELSE
+					BEGIN
+						IF @PrevRemuneratedConsult  + @RemuneratedConsult  >= @CeilingConsult 
+						BEGIN
+							--Nothing can be covered already reached ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue
+							SET @RemuneratedConsult  = @RemuneratedConsult    + 0
+							SET @WorkValue = 0 
+						END
+						ELSE
+						BEGIN
+							--claim service can partially be covered , we are over the ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue + @PrevRemuneratedConsult   + @RemuneratedConsult    - @CeilingConsult   
+							SET @WorkValue = @WorkValue - @ExceedCeilingAmountCategory
+							SET @RemuneratedConsult    =  @RemuneratedConsult    + @WorkValue   -- we only add the value that could be covered up to the ceiling
+						END
+					END
+				END
+
+			END 
+
+		
+			IF (@AdultChild = 'A' AND (((@CeilingInterpretation = 'I' AND  @Hospitalization = 1) OR (@CeilingInterpretation = 'H' AND @HFLevel = 'H' ))) AND (@CeilingExclusionAdult = 'B' OR @CeilingExclusionAdult = 'H'))  OR
+			   (@AdultChild = 'A' AND (NOT ((@CeilingInterpretation = 'I' AND  @Hospitalization = 1) OR (@CeilingInterpretation = 'H' AND @HFLevel = 'H' ))) AND (@CeilingExclusionAdult = 'B' OR @CeilingExclusionAdult = 'N')) OR
+			   (@AdultChild = 'C' AND (((@CeilingInterpretation = 'I' AND  @Hospitalization = 1) OR (@CeilingInterpretation = 'H' AND @HFLevel = 'H' ))) AND (@CeilingExclusionChild = 'B' OR @CeilingExclusionChild  = 'H')) OR
+			   (@AdultChild = 'C' AND (NOT ((@CeilingInterpretation = 'I' AND  @Hospitalization = 1) OR (@CeilingInterpretation = 'H' AND @HFLevel = 'H' ))) AND (@CeilingExclusionChild = 'B' OR @CeilingExclusionChild  = 'N')) 
+			BEGIN
+				--NO CEILING WILL BE AFFECTED
+				SET @ExceedCeilingAmount = 0
+				SET @Remunerated = @Remunerated + 0 --here in this case we do notr add the amount to be added to the ceiling --> so exclude from the actual value to be entered against the insert into tblClaimDedRem in the end of the prod loop 
+				SET @SetPriceValuated = @WorkValue
+				SET @SetPriceRemunerated = @WorkValue
+				GOTO NextItem
+			END
+			ELSE
+			BEGIN
+				IF @Ceiling > 0 --CEILING HAS BEEN DEFINED 
+				BEGIN	
+					IF (@Ceiling - @PrevRemunerated  - @Remunerated)  > 0
+					BEGIN
+						--we have not reached the ceiling
+						IF (@Ceiling - @PrevRemunerated  - @Remunerated) >= @WorkValue
+						BEGIN
+							--full amount of workvalue can be paid out as it under the limit
+							SET @ExceedCeilingAmount = 0
+							SET @SetPriceValuated = @WorkValue
+							SET @SetPriceRemunerated = @WorkValue
+							SET @Remunerated = @Remunerated + @WorkValue
+							GOTO NextItem
+						END
+						ELSE
+						BEGIN
+							SET @ExceedCeilingAmount = @WorkValue - (@Ceiling - @PrevRemunerated  - @Remunerated)			
+							SET @SetPriceValuated = (@Ceiling - @PrevRemunerated  - @Remunerated)
+							SET @SetPriceRemunerated = (@Ceiling - @PrevRemunerated  - @Remunerated)
+							SET @Remunerated = @Remunerated + (@Ceiling - @PrevRemunerated  - @Remunerated)			
+							GOTO NextItem
+						END
+					
+					END
+					ELSE
+					BEGIN
+						SET @ExceedCeilingAmount = @WorkValue
+						SET @Remunerated = @Remunerated + 0
+						SET @SetPriceValuated = 0
+						SET @SetPriceRemunerated = 0
+						GOTO NextItem
+					END
+				END
+				ELSE
+				BEGIN
+					-->
+					SET @ExceedCeilingAmount = 0
+					SET @Remunerated = @Remunerated + @WorkValue
+					SET @SetPriceValuated = @WorkValue
+					SET @SetPriceRemunerated = @WorkValue
+					GOTO NextItem
+				END
+
+			END
+	
+			
+NextItem:
+			IF @IsProcess = 1 
+			BEGIN
+				IF @PriceOrigin = 'R'
+				BEGIN
+					UPDATE tblClaimItems SET PriceAdjusted = @SetPriceAdjusted , PriceValuated = @SetPriceValuated , DeductableAmount = @SetPriceDeducted , ExceedCeilingAmount = @ExceedCeilingAmount , @ExceedCeilingAmountCategory  = @ExceedCeilingAmountCategory WHERE ClaimItemID = @ClaimItemID 
+					SET @RelativePrices = 1 
+				END
+				ELSE
+				BEGIN
+					UPDATE tblClaimItems SET PriceAdjusted = @SetPriceAdjusted , PriceValuated = @SetPriceValuated , DeductableAmount = @SetPriceDeducted ,ExceedCeilingAmount = @ExceedCeilingAmount,  @ExceedCeilingAmountCategory  = @ExceedCeilingAmountCategory, RemuneratedAmount = @SetPriceRemunerated WHERE ClaimItemID = @ClaimItemID 
+				END
+			END
+			
+			FETCH NEXT FROM CLAIMITEMLOOP INTO @ClaimItemId, @QtyProvided, @QtyApproved ,@PriceAsked, @PriceApproved, @PLPrice, @PriceOrigin, @Limitation, @Limitationvalue,@CeilingExclusionAdult,@CeilingExclusionChild
+		END
+		CLOSE CLAIMITEMLOOP
+		DEALLOCATE CLAIMITEMLOOP 
+			
+		-- !!!!!! SECONDLY GET all SERVICES !!!!!!!
+			
+		DECLARE CLAIMSERVICELOOP CURSOR LOCAL FORWARD_ONLY FOR 
+															SELECT     tblClaimServices.ClaimServiceID, tblClaimServices.QtyProvided, tblClaimServices.QtyApproved, tblClaimServices.PriceAsked, tblClaimServices.PriceApproved,  
+																		ISNULL(tblPLServicesDetail.PriceOverule,Serv.ServPrice) as PLPrice, tblClaimServices.PriceOrigin, tblClaimServices.Limitation, tblClaimServices.LimitationValue, Serv.ServCategory , tblProductServices.CeilingExclusionAdult, tblProductServices.CeilingExclusionChild 
+															FROM         tblPLServicesDetail INNER JOIN
+																		  @DTBL_Services Serv ON tblPLServicesDetail.ServiceID = Serv.ServiceID INNER JOIN
+																		  tblClaimServices INNER JOIN
+																		  tblClaim ON tblClaimServices.ClaimID = tblClaim.ClaimID INNER JOIN
+																		  tblHF ON tblClaim.HFID = tblHF.HfID INNER JOIN
+																		  tblPLServices ON tblHF.PLServiceID = tblPLServices.PLServiceID ON tblPLServicesDetail.PLServiceID = tblPLServices.PLServiceID AND Serv.ServiceID = tblClaimServices.ServiceID
+																		  INNER JOIN tblProductServices ON tblClaimServices.ServiceID  = tblProductServices.ServiceID  AND tblProductServices.ProdID = tblClaimServices.ProdID 
+															WHERE     (tblClaimServices.ClaimID = @ClaimID) AND (tblClaimServices.ValidityTo IS NULL) AND (tblClaimServices.ClaimServiceStatus = 1) AND (tblClaimServices.ProdID = @ProductID) AND 
+																		  (tblClaimServices.PolicyID = @PolicyID) AND (tblPLServices.ValidityTo IS NULL) AND (tblPLServicesDetail.ValidityTo IS NULL)  AND (tblProductServices.ValidityTo IS NULL)
+															ORDER BY tblClaimServices.ClaimServiceID
+		OPEN CLAIMSERVICELOOP
+		FETCH NEXT FROM CLAIMSERVICELOOP INTO @ClaimServiceId, @QtyProvided, @QtyApproved ,@PriceAsked, @PriceApproved, @PLPrice, @PriceOrigin, @Limitation, @Limitationvalue,@ServCategory,@CeilingExclusionAdult,@CeilingExclusionChild
+		WHILE @@FETCH_STATUS = 0 
+		BEGIN
+			--SET @Deductable = @DedOPTreatment
+			--SET @DeductableType = 'O'
+			--SET @PrevDeducted = 0 
+			
+			--DeductableAmount
+			--RemuneratedAmount
+			--ExceedCeilingAmount
+			--ProcessingStatus
+			
+			--CHECK first if any amount is still to be deducted 
+			SET @ServiceQty = ISNULL(@QtyApproved,@QtyProvided) 
+			SET @WorkValue = 0 
+			SET @SetPriceDeducted = 0 
+			SET @ExceedCeilingAmount = 0 
+			SET @ExceedCeilingAmountCategory = 0 
+			
+
+
+			IF @PriceOrigin = 'O' 
+				SET @SetPriceAdjusted = ISNULL(@PriceApproved,@PriceAsked)
+			ELSE
+				--HVH check if this is the case
+				SET @SetPriceAdjusted = ISNULL(@PriceApproved,@PLPrice)
+			
+			--FIRST GET THE NORMAL PRICING 
+			SET @WorkValue = (@ServiceQty * @SetPriceAdjusted)
+			
+
+			IF @Limitation = 'F' AND ((@ServiceQty * @Limitationvalue) < @WorkValue)
+				SET @WorkValue =(@ServiceQty * @Limitationvalue)
+
+           
+
+			IF @Deductable - @PrevDeducted - @Deducted > 0 
+			BEGIN
+				IF (@Deductable - @PrevDeducted - @Deducted) >= (@WorkValue)
+				BEGIN
+					SET @SetPriceDeducted = ( @WorkValue)
+					SET @Deducted = @Deducted + ( @WorkValue)
+					SET @Remunerated = @Remunerated + 0 
+					SET @SetPriceValuated = 0 
+					SET @SetPriceRemunerated = 0 
+					GOTO NextService
+				END
+				ELSE
+				BEGIN
+					--partial coverage 
+					SET @SetPriceDeducted = (@Deductable - @PrevDeducted - @Deducted)
+					SET @WorkValue = (@WorkValue) - @SetPriceDeducted
+					SET @Deducted = @Deducted + (@Deductable - @PrevDeducted - @Deducted)
+					
+					--go next stage --> valuation considering the ceilings 
+				END
+			END
+			
+			--DEDUCTABLES ARE ALREADY TAKEN OUT OF VALUE AND STORED IN VARS
+			
+			--IF @Limitation = 'F' AND ((@ServiceQty * @Limitationvalue) < @WorkValue)
+				--SET @WorkValue =(@ServiceQty * @Limitationvalue)
+			
+			IF @Limitation = 'C' 
+				SET @WorkValue = (@Limitationvalue/100) * @WorkValue  
+				
+			
+			--now capping in case of category constraints
+			
+			IF @BaseCategory <> 'V'
+			BEGIN
+				IF @BaseCategory = 'S' AND (ISNULL(@CeilingSurgery ,0) > 0)  --  Ceiling check for category Surgery
+				BEGIN
+					IF @WorkValue + @PrevRemuneratedSurgery + @RemuneratedSurgery   <= @CeilingSurgery
+					BEGIN
+						--we are still under the ceiling for surgery and can be fully covered 
+						SET @RemuneratedSurgery =  @RemuneratedSurgery + @WorkValue
+					END
+					ELSE
+					BEGIN
+						IF @PrevRemuneratedSurgery + @RemuneratedSurgery >= @CeilingSurgery 
+						BEGIN
+							--Nothing can be covered already reached ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue
+							SET @RemuneratedSurgery  = @RemuneratedSurgery  + 0
+							SET @WorkValue = 0 
+						END
+						ELSE
+						BEGIN
+							--claim service can partially be covered , we are over the ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue + @PrevRemuneratedSurgery  + @RemuneratedSurgery  - @CeilingSurgery 
+							SET @WorkValue = @WorkValue - @ExceedCeilingAmountCategory
+							SET @RemuneratedSurgery  =  @RemuneratedSurgery  + @WorkValue   -- we only add the value that could be covered up to the ceiling
+						END
+					END
+				END
+
+				IF @BaseCategory = 'D' AND (ISNULL(@CeilingDelivery ,0) > 0)  --  Ceiling check for category Deliveries 
+				BEGIN
+					IF @WorkValue + @PrevRemuneratedDelivery  + @RemuneratedDelivery    <= @CeilingDelivery 
+					BEGIN
+						--we are still under the ceiling for Delivery and can be fully covered 
+						SET @RemuneratedDelivery  =  @RemuneratedDelivery  + @WorkValue
+					END
+					ELSE
+					BEGIN
+						IF @PrevRemuneratedDelivery  + @RemuneratedDelivery  >= @CeilingDelivery 
+						BEGIN
+							--Nothing can be covered already reached ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue
+							SET @RemuneratedDelivery  = @RemuneratedDelivery   + 0
+							SET @WorkValue = 0 
+						END
+						ELSE
+						BEGIN
+							--claim service can partially be covered , we are over the ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue + @PrevRemuneratedDelivery   + @RemuneratedDelivery   - @CeilingDelivery  
+							SET @WorkValue = @WorkValue - @ExceedCeilingAmountCategory
+							SET @RemuneratedDelivery   =  @RemuneratedDelivery   + @WorkValue   -- we only add the value that could be covered up to the ceiling
+						END
+					END
+				END
+				
+				IF @BaseCategory = 'A' AND (ISNULL(@CeilingAntenatal  ,0) > 0)  --  Ceiling check for category Antenatal 
+				BEGIN
+					IF @WorkValue + @PrevRemuneratedAntenatal  + @RemuneratedAntenatal    <= @CeilingAntenatal 
+					BEGIN
+						--we are still under the ceiling for Antenatal and can be fully covered 
+						SET @RemuneratedAntenatal  =  @RemuneratedAntenatal  + @WorkValue
+					END
+					ELSE
+					BEGIN
+						IF @PrevRemuneratedAntenatal  + @RemuneratedAntenatal  >= @CeilingAntenatal 
+						BEGIN
+							--Nothing can be covered already reached ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue
+							SET @RemuneratedAntenatal  = @RemuneratedAntenatal   + 0
+							SET @WorkValue = 0 
+						END
+						ELSE
+						BEGIN
+							--claim service can partially be covered , we are over the ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue + @PrevRemuneratedAntenatal   + @RemuneratedAntenatal   - @CeilingAntenatal  
+							SET @WorkValue = @WorkValue - @ExceedCeilingAmountCategory
+							SET @RemuneratedAntenatal   =  @RemuneratedAntenatal   + @WorkValue   -- we only add the value that could be covered up to the ceiling
+						END
+					END
+				END
+
+				IF  @BaseCategory  = 'H' AND (ISNULL(@CeilingHospitalization ,0) > 0)   --  Ceiling check for category Hospitalization 
+				BEGIN
+					IF @WorkValue + @PrevRemuneratedHospitalization + @RemuneratedHospitalization  <= @CeilingHospitalization 
+					BEGIN
+						--we are still under the ceiling for hospitalization and can be fully covered 
+						SET @RemuneratedHospitalization  =  @RemuneratedHospitalization  + @WorkValue
+					END
+					ELSE
+					BEGIN
+						IF @PrevRemuneratedHospitalization  + @RemuneratedHospitalization  >= @CeilingHospitalization 
+						BEGIN
+							--Nothing can be covered already reached ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue
+							SET @RemuneratedHospitalization  = @RemuneratedHospitalization    + 0
+							SET @WorkValue = 0 
+						END
+						ELSE
+						BEGIN
+							--claim service can partially be covered , we are over the ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue + @PrevRemuneratedHospitalization   + @RemuneratedHospitalization    - @CeilingHospitalization   
+							SET @WorkValue = @WorkValue - @ExceedCeilingAmountCategory
+							SET @RemuneratedHospitalization    =  @RemuneratedHospitalization    + @WorkValue   -- we only add the value that could be covered up to the ceiling
+						END
+					END
+				END
+
+				IF @BaseCategory  = 'C' AND (ISNULL(@CeilingConsult,0) > 0)  --  Ceiling check for category Consult 
+				BEGIN
+					IF @WorkValue + @PrevRemuneratedConsult + @RemuneratedConsult  <= @CeilingConsult 
+					BEGIN
+						--we are still under the ceiling for consult and can be fully covered 
+						SET @RemuneratedConsult =  @RemuneratedConsult + @WorkValue
+					END
+					ELSE
+					BEGIN
+						IF @PrevRemuneratedConsult + @RemuneratedConsult >= @CeilingConsult
+						BEGIN
+							--Nothing can be covered already reached ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue
+							SET @RemuneratedConsult  = @RemuneratedConsult + 0
+							SET @WorkValue = 0 
+						END
+						ELSE
+						BEGIN
+							--claim service can partially be covered , we are over the ceiling
+							SET @ExceedCeilingAmountCategory = @WorkValue + @PrevRemuneratedConsult + @RemuneratedConsult - @CeilingConsult
+							SET @WorkValue = @WorkValue - @ExceedCeilingAmountCategory
+							SET @RemuneratedConsult =  @RemuneratedConsult + @WorkValue   -- we only add the value that could be covered up to the ceiling
+						END
+					END
+ 				END
+
+
+			END
+
+			IF (@AdultChild = 'A' AND (((@CeilingInterpretation = 'I' AND  @Hospitalization = 1) OR (@CeilingInterpretation = 'H' AND @HFLevel = 'H' ))) AND (@CeilingExclusionAdult = 'B' OR @CeilingExclusionAdult = 'H'))  OR
+			   (@AdultChild = 'A' AND (NOT ((@CeilingInterpretation = 'I' AND  @Hospitalization = 1) OR (@CeilingInterpretation = 'H' AND @HFLevel = 'H' ))) AND (@CeilingExclusionAdult = 'B' OR @CeilingExclusionAdult = 'N')) OR
+			   (@AdultChild = 'C' AND (((@CeilingInterpretation = 'I' AND  @Hospitalization = 1) OR (@CeilingInterpretation = 'H' AND @HFLevel = 'H' ))) AND (@CeilingExclusionChild = 'B' OR @CeilingExclusionChild  = 'H')) OR
+			   (@AdultChild = 'C' AND (NOT ((@CeilingInterpretation = 'I' AND  @Hospitalization = 1) OR (@CeilingInterpretation = 'H' AND @HFLevel = 'H' ))) AND (@CeilingExclusionChild = 'B' OR @CeilingExclusionChild  = 'N')) 
+			BEGIN
+				--NO CEILING WILL BE AFFECTED
+				SET @ExceedCeilingAmount = 0
+				SET @Remunerated = @Remunerated + 0  --(we do not add any value to the running sum for renumerated values as we do not coulnt this service for any ceiling calculation 
+				SET @SetPriceValuated = @WorkValue
+				SET @SetPriceRemunerated = @WorkValue
+				GOTO NextService
+				
+			END
+			ELSE
+			BEGIN
+				IF @Ceiling > 0 --CEILING HAS BEEN DEFINED 
+				BEGIN	
+					IF (@Ceiling - @PrevRemunerated  - @Remunerated)  > 0
+					BEGIN
+						--we have not reached the ceiling
+						IF (@Ceiling - @PrevRemunerated  - @Remunerated) >= @WorkValue
+						BEGIN
+							--full amount of workvalue can be paid out as it under the limit
+							SET @ExceedCeilingAmount = 0
+							SET @SetPriceValuated = @WorkValue
+							SET @SetPriceRemunerated = @WorkValue
+							SET @Remunerated = @Remunerated + @WorkValue
+							GOTO NextService
+						END
+						ELSE
+						BEGIN
+							SET @ExceedCeilingAmount = @WorkValue - (@Ceiling - @PrevRemunerated  - @Remunerated)			
+							SET @SetPriceValuated = (@Ceiling - @PrevRemunerated  - @Remunerated)
+							SET @SetPriceRemunerated = (@Ceiling - @PrevRemunerated  - @Remunerated)
+							SET @Remunerated = @Remunerated + (@Ceiling - @PrevRemunerated  - @Remunerated)			
+							GOTO NextService
+						END
+					
+					END
+					ELSE
+					BEGIN
+						SET @ExceedCeilingAmount = @WorkValue
+						SET @Remunerated = @Remunerated + 0
+						SET @SetPriceValuated = 0
+						SET @SetPriceRemunerated = 0
+						GOTO NextService
+					END
+				END
+				ELSE
+				BEGIN
+					-->
+					SET @ExceedCeilingAmount = 0
+					SET @Remunerated = @Remunerated + @WorkValue
+					SET @SetPriceValuated = @WorkValue
+					SET @SetPriceRemunerated = @WorkValue
+					GOTO NextService
+				END
+
+			END
+
+NextService:
+			IF @IsProcess = 1 
+			BEGIN
+				IF @PriceOrigin = 'R'
+				BEGIN
+					UPDATE tblClaimServices SET PriceAdjusted = @SetPriceAdjusted , PriceValuated = @SetPriceValuated , DeductableAmount = @SetPriceDeducted , ExceedCeilingAmount = @ExceedCeilingAmount , @ExceedCeilingAmountCategory  = @ExceedCeilingAmountCategory  WHERE ClaimServiceID = @ClaimServiceID 
+					SET @RelativePrices = 1 
+				END
+				ELSE
+				BEGIN
+					UPDATE tblClaimServices SET PriceAdjusted = @SetPriceAdjusted , PriceValuated = @SetPriceValuated , DeductableAmount = @SetPriceDeducted ,ExceedCeilingAmount = @ExceedCeilingAmount, @ExceedCeilingAmountCategory  = @ExceedCeilingAmountCategory, RemuneratedAmount = @SetPriceRemunerated WHERE ClaimServiceID = @ClaimServiceID 
+				END
+			END
+			
+			FETCH NEXT FROM CLAIMSERVICELOOP INTO @ClaimServiceId, @QtyProvided, @QtyApproved ,@PriceAsked, @PriceApproved, @PLPrice, @PriceOrigin, @Limitation, @Limitationvalue,@ServCategory,@CeilingExclusionAdult,@CeilingExclusionChild
+		END
+		CLOSE CLAIMSERVICELOOP
+		DEALLOCATE CLAIMSERVICELOOP 
+		
+		
+		FETCH NEXT FROM PRODUCTLOOP INTO	@ProductID, @PolicyID,@DedInsuree,@DedOPInsuree,@DedIPInsuree,@MaxInsuree,@MaxOPInsuree,@MaxIPInsuree,@DedTreatment,@DedOPTreatment,@DedIPTreatment,
+											@MaxIPTreatment,@MaxTreatment,@MaxOPTreatment,@DedPolicy,@DedOPPolicy,@DedIPPolicy,@MaxPolicy,@MaxOPPolicy,@MaxIPPolicy,@CeilingConsult,@CeilingSurgery,@CeilingHospitalization,@CeilingDelivery,@CeilingAntenatal,
+											@Treshold, @MaxPolicyExtraMember,@MaxPolicyExtraMemberIP,@MaxPolicyExtraMemberOP,@MaxCeilingPolicy,@MaxCeilingPolicyIP,@MaxCeilingPolicyOP,@CeilingInterpretation
+	
+	END
+	CLOSE PRODUCTLOOP
+	DEALLOCATE PRODUCTLOOP 
+	
+	--Now insert the total renumerations and deductions on this claim 
+	
+	If @IsProcess = 1 
+	BEGIN
+		--delete first the policy entry in the table tblClaimDedRem as it was a temporary booking
+		DELETE FROM tblClaimDedRem WHERE ClaimID = @ClaimID -- AND PolicyID = @PolicyID AND InsureeID = @InsureeID 
+	END
+
+	IF (@CeilingInterpretation = 'I' AND  @Hospitalization = 1) OR (@CeilingInterpretation = 'H' AND @HFLevel = 'H' )
+	BEGIN 
+		INSERT INTO tblClaimDedRem ([PolicyID],[InsureeID],[ClaimID],[DedG],[RemG],[DedIP],[RemIP],[RemConsult],[RemSurgery] ,[RemHospitalization] ,[RemDelivery] , [RemAntenatal] , [AuditUserID]) VALUES (@PolicyID,@InsureeID , @ClaimID , @Deducted ,@Remunerated ,@Deducted ,@Remunerated , @RemuneratedConsult  , @RemuneratedSurgery  ,@RemuneratedHospitalization , @RemuneratedDelivery  , @RemuneratedAntenatal,@AuditUser) 
+	END
+	ELSE
+	BEGIN 
+		INSERT INTO tblClaimDedRem ([PolicyID],[InsureeID],[ClaimID],[DedG],[RemG],[DedOP],[RemOP], [RemConsult],[RemSurgery] ,[RemHospitalization] ,[RemDelivery], [RemAntenatal] ,  [AuditUserID]) VALUES (@PolicyID,@InsureeID , @ClaimID , @Deducted ,@Remunerated ,@Deducted ,@Remunerated , @RemuneratedConsult  , @RemuneratedSurgery  ,@RemuneratedHospitalization , @RemuneratedDelivery , @RemuneratedAntenatal ,@AuditUser) 
+	END
+	
+	If @IsProcess = 1 
+	BEGIN
+		IF @RelativePrices = 0
+		BEGIN
+			--update claim in total and set to Valuated
+			UPDATE tblClaim SET ClaimStatus = 16, AuditUserIDProcess = @AuditUser, ProcessStamp = GETDATE(), DateProcessed = GETDATE() WHERE ClaimID = @ClaimID 
+			SET @RtnStatus = 4
+		END
+		ELSE
+		BEGIN
+			--update claim in total and set to Processed --> awaiting one or more Services for relative prices
+			UPDATE tblClaim SET ClaimStatus = 8, AuditUserIDProcess = @AuditUser, ProcessStamp = GETDATE(), DateProcessed = GETDATE() WHERE ClaimID = @ClaimID 
+			SET @RtnStatus = 3
+		END  
+	
+		UPDATE tblClaim SET FeedbackStatus = 16 WHERE ClaimID = @ClaimID AND FeedbackStatus = 4 
+		UPDATE tblClaim SET ReviewStatus = 16 WHERE ClaimID = @ClaimID AND ReviewStatus = 4 
+	END
+
+
+	
+FINISH:
+	RETURN @oReturnValue
+	
+	END TRY
+	
+	BEGIN CATCH
+		SELECT 'Unexpected error encountered'
+		SET @oReturnValue = 1 
+		RETURN @oReturnValue
+		
+	END CATCH
+END
+
+
+
+
+
+
+
+
+GO
+
 
 
 

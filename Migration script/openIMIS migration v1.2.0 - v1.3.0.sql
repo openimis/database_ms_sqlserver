@@ -3,8 +3,8 @@
 IF  COL_LENGTH('tblUsers','StoredPassword') IS NULL
 ALTER TABLE tblUsers ADD StoredPassword nvarchar(256) NULL
 GO
-IF  COL_LENGTH('tblUsers','PrivateKey') IS NULL
-ALTER TABLE tblUsers ADD PrivateKey nvarchar(256) NULL
+IF  COL_LENGTH('tblUsers','PrivateKey') < 256
+ALTER TABLE tblUsers ALTER COLUMN PrivateKey nvarchar(256) NULL
 GO
 IF  COL_LENGTH('tblUsers','PasswordValidity') IS NULL
 ALTER TABLE tblUsers ADD PasswordValidity DateTime NULL
@@ -14194,7 +14194,7 @@ GO
 ---====================Combined Start Script V1-3-0 19-10-2018
 
 
-
+IF NOT TYPE_ID('xPayementStatus') IS NULL
 DROP TYPE [dbo].[xPayementStatus]
 GO
 
@@ -14204,6 +14204,7 @@ CREATE TYPE [dbo].[xPayementStatus] AS TABLE(
 )
 GO
 
+IF NOT OBJECT_ID('udfAPIisValidMaritalStatus') IS NULL
 DROP FUNCTION [dbo].[udfAPIisValidMaritalStatus]
 GO
 
@@ -21020,7 +21021,7 @@ IF OBJECT_ID('tblRole') IS NULL
 		CREATE TABLE [dbo].[tblRole](
 			[RoleID] [int] IDENTITY(1,1) NOT NULL,
 			[RoleName] [nvarchar](50) NOT NULL,
-			[AltLanguage] [nvarchar](50) NOT NULL,
+			[AltLanguage] [nvarchar](50),
 			[IsSystem] [int] NOT NULL,
 			[IsBlocked] [bit] NOT NULL,
 			[ValidityFrom] [datetime] NOT NULL,
@@ -23718,8 +23719,15 @@ BEGIN
 
 --API Changes
 
-
-
+IF  COL_LENGTH('tblPayment','LanguageName') IS NULL
+	ALTER TABLE tblPayment ADD LanguageName nvarchar(10) NULL;
+GO
+IF  COL_LENGTH('tblPayment','TypeOfPayment') IS NULL
+	ALTER TABLE tblPayment ADD TypeOfPayment nvarchar(50) NULL;
+GO
+IF  COL_LENGTH('tblPayment','TransferFee') IS NULL
+	ALTER TABLE tblPayment ADD TransferFee DECIMAL(18,2) NULL;
+GO
 
 ALTER PROCEDURE [dbo].[uspInsertPaymentIntent]
 (
@@ -24048,15 +24056,6 @@ BEGIN
 END
 
 
-GO
-IF  COL_LENGTH('tblPayment','LanguageName') IS NULL
-	ALTER TABLE tblPayment ADD LanguageName nvarchar(10) NULL;
-GO
-IF  COL_LENGTH('tblPayment','TypeOfPayment') IS NULL
-	ALTER TABLE tblPayment ADD TypeOfPayment nvarchar(50) NULL;
-GO
-IF  COL_LENGTH('tblPayment','TransferFee') IS NULL
-	ALTER TABLE tblPayment ADD TransferFee DECIMAL(18,2) NULL;
 GO
 ALTER PROCEDURE [dbo].[uspReceivePayment]
 (

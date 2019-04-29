@@ -89,20 +89,19 @@ ALTER TABLE [dbo].[tblRoleRight] CHECK CONSTRAINT [FK_tblRoleRight_tblRole]
 GO
 
 IF OBJECT_ID('tblUserRole') IS NULL
-
-CREATE TABLE tblUserRole
-(	UserRoleID INT not null IDENTITY(1,1),
-	UserID INT NOT NULL,
-	RoleID int NOT null,
-	ValidityFrom datetime NOT NULL,
-	ValidityTo datetime NULL,
-	AudituserID INT NULL,
-	LegacyID INT NULL
-	CONSTRAINT PK_tblUserRole PRIMARY KEY (UserRoleID),
-	CONSTRAINT FK_tblUserRole_tblUsers FOREIGN KEY (UserID) REFERENCES tblUsers(UserID) ON DELETE CASCADE ON UPDATE CASCADE,
-	CONSTRAINT FK_tblUserRole_tblRole FOREIGN KEY (RoleID) REFERENCES tblRole (RoleID) ON DELETE CASCADE ON UPDATE CASCADE
-)
-GO
+	CREATE TABLE tblUserRole
+	(	UserRoleID INT not null IDENTITY(1,1),
+		UserID INT NOT NULL,
+		RoleID int NOT null,
+		ValidityFrom datetime NOT NULL,
+		ValidityTo datetime NULL,
+		AudituserID INT NULL,
+		LegacyID INT NULL
+		CONSTRAINT PK_tblUserRole PRIMARY KEY (UserRoleID),
+		CONSTRAINT FK_tblUserRole_tblUsers FOREIGN KEY (UserID) REFERENCES tblUsers(UserID) ON DELETE CASCADE ON UPDATE CASCADE,
+		CONSTRAINT FK_tblUserRole_tblRole FOREIGN KEY (RoleID) REFERENCES tblRole (RoleID) ON DELETE CASCADE ON UPDATE CASCADE
+	)
+	GO
 IF (SELECT 1 FROM tblRole WHERE RoleName = 'Enrolement Officer' AND ValidityTo IS NULL) IS NULL
 	INSERT INTO tblRole
 	(RoleName,IsSystem,ValidityFrom,IsBlocked)
@@ -123,7 +122,7 @@ IF (SELECT 1 FROM tblRole WHERE RoleName = 'Medical Officer' AND ValidityTo IS N
 	INSERT INTO tblRole
 	(RoleName,IsSystem,ValidityFrom,IsBlocked)
 	VALUES('Medical Officer',16,GETDATE(),0)
-IF (SELECT 1 FROM tblRole WHERE RoleName = 'Administrator' AND ValidityTo IS NULL) IS NULL
+IF (SELECT 1 FROM tblRole WHERE RoleName = 'Scheme Administrator' AND ValidityTo IS NULL) IS NULL
 	INSERT INTO tblRole
 	(RoleName,IsSystem,ValidityFrom,IsBlocked)
 	VALUES('Scheme Administrator',32,GETDATE(),0)

@@ -599,6 +599,14 @@ INSERT INTO @Rights VALUES(131302)--Restore
 INSERT INTO @Rights VALUES(131303)--ExecuteScript
 INSERT INTO @Rights VALUES(131304)--EmailSetting
 
+-- User Profile rights
+INSERT INTO @Rights VALUES('122000') -- userProfiles
+INSERT INTO @Rights VALUES('122001') -- FindUserProfile
+INSERT INTO @Rights VALUES('122002') -- AddUserProfile
+INSERT INTO @Rights VALUES('122003') -- DeleteUserProfile
+INSERT INTO @Rights VALUES('122004') -- EditUserProfile
+INSERT INTO @Rights VALUES('122005') -- DuplicateUserProfile
+
 --Setting value
 SELECT @RoleID = RoleID from tblRole WHERE Rolename ='IMIS Administrator' AND ValidityTo IS NULL	
 --Uncheck

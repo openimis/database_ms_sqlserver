@@ -13,7 +13,6 @@ ALTER TABLE tblUsers ALTER COLUMN PrivateKey nvarchar(256) NULL
 GO
 IF  COL_LENGTH('tblUsers','PasswordValidity') IS NULL
 ALTER TABLE tblUsers ADD PasswordValidity DateTime NULL
-GO
 OPEN SYMMETRIC KEY EncryptionKey DECRYPTION BY Certificate EncryptData;
 UPDATE tblUsers 
 SET Privatekey =
@@ -30,6 +29,7 @@ FROM tblusers
 WHERE ValidityTo is null
 
 CLOSE SYMMETRIC KEY EncryptionKey
+GO													   
 
 -- OP-63: Generation of user records for enrolment officer and claim administrators	(RFC 91)
 IF  COL_LENGTH('tblOfficer','HasLogin') IS NULL

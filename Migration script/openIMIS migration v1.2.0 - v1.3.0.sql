@@ -243,7 +243,7 @@ BEGIN
 END
 IF @LegacyRoleID & 32 > 0
 BEGIN
-	SELECT @NewRoleID = RoleID from tblRole WHERE Rolename ='Administrator'
+	SELECT @NewRoleID = RoleID from tblRole WHERE Rolename ='Scheme Administrator'
 	IF @NewRoleID > 0
 		BEGIN
 
@@ -295,7 +295,7 @@ BEGIN
 END
 IF @LegacyRoleID & 512 > 0
 BEGIN
-	SELECT @NewRoleID = RoleID from tblRole WHERE Rolename ='Claim Contributer'
+	SELECT @NewRoleID = RoleID from tblRole WHERE Rolename ='Claim Contributor'
 	IF @NewRoleID > 0
 		BEGIN
 

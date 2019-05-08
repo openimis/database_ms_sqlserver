@@ -102,10 +102,10 @@ IF OBJECT_ID('tblUserRole') IS NULL
 		CONSTRAINT FK_tblUserRole_tblRole FOREIGN KEY (RoleID) REFERENCES tblRole (RoleID) ON DELETE CASCADE ON UPDATE CASCADE
 	)
 	GO
-IF (SELECT 1 FROM tblRole WHERE RoleName = 'Enrolement Officer' AND ValidityTo IS NULL) IS NULL
+IF (SELECT 1 FROM tblRole WHERE RoleName = 'Enrolment Officer' AND ValidityTo IS NULL) IS NULL
 	INSERT INTO tblRole
 	(RoleName,IsSystem,ValidityFrom,IsBlocked)
-	VALUES('Enrolement Officer',1,GETDATE(),0)
+	VALUES('Enrolment Officer',1,GETDATE(),0)
 IF (SELECT 1 FROM tblRole WHERE RoleName = 'Manager' AND ValidityTo IS NULL) IS NULL
 	INSERT INTO tblRole
 	(RoleName,IsSystem,ValidityFrom,IsBlocked)
@@ -182,7 +182,7 @@ WHILE @@FETCH_STATUS = 0
 BEGIN
 IF @LegacyRoleID & 1 > 0
 BEGIN
-	SELECT @NewRoleID = RoleID from tblRole WHERE Rolename ='Enrolement Officer'
+	SELECT @NewRoleID = RoleID from tblRole WHERE Rolename ='Enrolment Officer'
 	IF @NewRoleID > 0
 		BEGIN
 			IF (SELECT userID FROM tblUserRole WHERE Userid = @UserID AND RoleID = @NewRoleID AND ValidityTo IS NULL) IS NULL
@@ -454,7 +454,7 @@ DECLARE @RoleName NVARCHAR(25) = 'AdminProfile',
 			NOT IN(SELECT ISNULL(RightID,0) RightID FROM tblRoleRight WHERE RoleID = @RoleID)
 GO
 
---'Enrolement Officer'
+--'Enrolment Officer'
 DECLARE @RoleID as INT
 DECLARE @Rights AS TABLE(RightID INT) 
 INSERT INTO @Rights VALUES(101001)--FamilySearch
@@ -477,7 +477,7 @@ INSERT INTO @Rights VALUES(101303)--ContributionEdit
 INSERT INTO @Rights VALUES(101304)--ContributionDelete
 INSERT INTO @Rights VALUES(111001)--ClaimSearch  
 INSERT INTO @Rights VALUES(111009)--ClaimFeedback 
-SELECT @RoleID = RoleID from tblRole WHERE Rolename ='Enrolement Officer' AND ValidityTo IS NULL	
+SELECT @RoleID = RoleID from tblRole WHERE Rolename ='Enrolment Officer' AND ValidityTo IS NULL	
 --Uncheck
 DELETE FROM tblRoleRight WHERE RoleID = @RoleID AND RightID NOT IN (SELECT RightID FROM @Rights)
 

@@ -31,7 +31,7 @@ For documentation purposes only, refer to the plain text scripts of each individ
 
 ### Upgrading
 
-In order to upgrade from the [previous version of openIMIS database](https://github.com/openimis/master-version/tree/master/Database/Empty%20databases), execute the migration script from [Migration script](./Migration%20script/) folder.
+In order to upgrade from the [previous version of openIMIS database](https://github.com/openimis/master-version/tree/master/Database/Empty%20databases), execute the migration script from [Migration script](./Migration%20script/) folder. We recommend that you create a backup of your openIMIS database before executing the migration script. 
 
 ## Deployment
 

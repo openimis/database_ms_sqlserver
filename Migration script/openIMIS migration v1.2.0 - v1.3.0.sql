@@ -911,3 +911,11 @@ INSERT INTO tblRoleRight (RoleID,RightID,ValidityFrom)
 VALUES (@ID,131304,GETDATE()) --EmailSettings
 GO
 --END HF Administrator--
+
+-- fixes the table name misspell
+IF (EXISTS (SELECT *
+		FROM INFORMATION_SCHEMA.TABLES
+		WHERE  TABLE_NAME = 'tblIMISDetaulsPhone'))
+BEGIN
+    EXEC sp_rename 'tblIMISDetaulsPhone', 'tblIMISDefaultsPhone'
+END

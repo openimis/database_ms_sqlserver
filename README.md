@@ -17,21 +17,19 @@ In order to use and develop the openIMIS database on your local machine, you fir
 
 To make a copy of this project on your local machine, please follow the next steps:
 
-* clone the repository.
+* clone the repository
 
 ```
 git clone https://github.com/openimis/database_ms_sqlserver
 ```
 
-* Restore the openIMIS database backup file (from [Empty databases](./Empty%20databases/) folder) to your SQL Server using SSMS. (The default empty database to restore is openIMIS_ONLINE_vX.Y.Z.bak)
+* create a new database (i.e. openIMIS.X.Y.Z where X.Y.Z is the openIMIS database version)
 
-* Once restored, execute the SETUP-IMIS stored procedure.
-
-For documentation purposes only, refer to the plain text scripts of each individual database item in the [Scripts](./Scripts/) folder.
+* Execute the initial database creation script (from [Empty databases](./Empty%20databases/) folder) to your SQL Server using SSMS or shell. (The default empty database to create is openIMIS_ONLINE.sql)
 
 ### Upgrading
 
-In order to upgrade from the [previous version of openIMIS database](https://github.com/openimis/master-version/tree/master/Database/Empty%20databases), execute the migration script from [Migration script](./Migration%20script/) folder. We recommend that you create a backup of your openIMIS database before executing the migration script. 
+In order to upgrade from the previous version of openIMIS database (see [Versioning](#versioning) section), execute the migration script from [Migration script](./Migration%20script/) folder. We recommend that you create a backup of your openIMIS database before executing the migration script. 
 
 ## Deployment
 
@@ -42,17 +40,13 @@ For deployment please read the [installation manual](http://openimis.readthedocs
 Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
 -->
 
-<!--## Versioning
+## Versioning
 
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags). 
--->
+We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/openimis/web_app_vb/tags). 
 
-<!--## Authors
+## Issues
 
-* **Billie Thompson** - *Initial work* - [PurpleBooth](https://github.com/PurpleBooth)
-
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
--->
+To report a bug, request a new features or asking questions about openIMIS, please use the [openIMIS Service Desk](https://openimis.atlassian.net/servicedesk/customer/portal/1). 
 
 ## License
 
@@ -60,10 +54,3 @@ Copyright (c) Swiss Agency for Development and Cooperation (SDC)
 
 This project is licensed under the GNU AGPL v3 License - see the [LICENSE.md](LICENSE.md) file for details.
 
-
-<!--## Acknowledgments
-
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
--->

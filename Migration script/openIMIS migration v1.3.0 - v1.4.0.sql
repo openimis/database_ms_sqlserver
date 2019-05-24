@@ -1,0 +1,25 @@
+﻿--- MIGRATION Script from v1.3.0 to v1.4.0
+
+-- OS-13: Preparing the migration script for an existing database
+
+ALTER TABLE tblUsers ADD UserUUID uniqueidentifier NOT NULL DEFAULT NEWID() 
+ALTER TABLE tblLocations ADD LocationUUID uniqueidentifier NOT NULL DEFAULT NEWID()
+ALTER TABLE tblHF ADD HfUUID uniqueidentifier NOT NULL DEFAULT NEWID()
+ALTER TABLE tblClaim ADD ClaimUUID uniqueidentifier NOT NULL DEFAULT NEWID()
+ALTER TABLE tblProduct ADD ProdUUID uniqueidentifier NOT NULL DEFAULT NEWID()
+ALTER TABLE tblFamilies ADD FamilyUUID uniqueidentifier NOT NULL DEFAULT NEWID()
+ALTER TABLE tblServices ADD ServiceUUID uniqueidentifier NOT NULL DEFAULT NEWID()
+ALTER TABLE tblInsuree ADD InsureeUUID uniqueidentifier NOT NULL DEFAULT NEWID()
+ALTER TABLE tblPolicy ADD PolicyUUID uniqueidentifier NOT NULL DEFAULT NEWID()
+ALTER TABLE tblItems ADD ItemUUID uniqueidentifier NOT NULL DEFAULT NEWID()
+ALTER TABLE tblFeedback ADD FeedbackUUID uniqueidentifier NOT NULL DEFAULT NEWID()
+ALTER TABLE tblOfficer ADD OfficerUUID uniqueidentifier NOT NULL DEFAULT NEWID()
+ALTER TABLE tblPayer ADD PayerUUID uniqueidentifier NOT NULL DEFAULT NEWID()
+ALTER TABLE tblPremium ADD PremiumUUID uniqueidentifier NOT NULL DEFAULT NEWID()
+ALTER TABLE tblClaimAdmin ADD ClaimAdminUUID uniqueidentifier NOT NULL DEFAULT NEWID()
+ALTER TABLE tblExtracts ADD ExtractUUID uniqueidentifier NOT NULL DEFAULT NEWID()
+ALTER TABLE tblPhotos ADD PhotoUUID uniqueidentifier NOT NULL DEFAULT NEWID()
+ALTER TABLE tblPLItems ADD PLItemUUID uniqueidentifier NOT NULL DEFAULT NEWID()
+ALTER TABLE tblPLServices ADD PLServiceUUID uniqueidentifier NOT NULL DEFAULT NEWID()
+ALTER TABLE tblPolicyRenewals ADD RenewalUUID uniqueidentifier NOT NULL DEFAULT NEWID()
+ALTER TABLE tblRole ADD RoleUUID uniqueidentifier NOT NULL DEFAULT NEWID()

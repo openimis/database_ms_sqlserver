@@ -106,18 +106,3 @@ IF COL_LENGTH('tblRole', 'RoleUUID') IS NULL
 BEGIN
 	ALTER TABLE tblRole ADD RoleUUID uniqueidentifier NOT NULL DEFAULT NEWID()
 END
-
-IF COL_LENGTH('tblEducations', 'EducationUUID') IS NULL
-BEGIN
-	ALTER TABLE tblEducations ADD EducationUUID uniqueidentifier NOT NULL DEFAULT NEWID()
-END
-
-IF COL_LENGTH('tblProfessions', 'ProfessionUUID') IS NULL
-BEGIN
-	ALTER TABLE tblProfessions ADD ProfessionUUID uniqueidentifier NOT NULL DEFAULT NEWID()
-END
-
-IF COL_LENGTH('tblRelations', 'RelationUUID') IS NULL
-BEGIN
-	ALTER TABLE tblRelations ADD RelationUUID uniqueidentifier NOT NULL DEFAULT NEWID()
-END

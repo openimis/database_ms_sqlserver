@@ -72,7 +72,7 @@ BEGIN
 	ALTER TABLE tblPremium ADD PremiumUUID uniqueidentifier NOT NULL DEFAULT NEWID()
 END
 
-IF COL_LENGTH('tblClaimAdmins', 'ClaimAdminUUID') IS NULL
+IF COL_LENGTH('tblClaimAdmin', 'ClaimAdminUUID') IS NULL
 BEGIN
 	ALTER TABLE tblClaimAdmin ADD ClaimAdminUUID uniqueidentifier NOT NULL DEFAULT NEWID()
 END

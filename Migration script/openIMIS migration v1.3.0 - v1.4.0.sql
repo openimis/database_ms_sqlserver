@@ -107,10 +107,13 @@ BEGIN
 	ALTER TABLE tblRole ADD RoleUUID uniqueidentifier NOT NULL DEFAULT NEWID()
 END
 
-
 -- *******************************************************************************************************************************************************
 -- OS-29: Preparing database for modules (Payment, Claim, Coverage, Insuree)
 
+IF COL_LENGTH('tblIMISDefaults', 'APIKey') IS NULL
+BEGIN
+	ALTER TABLE tblIMISDefaults ADD APIKey [nvarchar](100) NULL 
+END
 
 IF COL_LENGTH('tblReporting', 'OfficerID') IS NULL
 BEGIN

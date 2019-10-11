@@ -3276,3 +3276,33 @@ END
 
 GO
 
+--- OP-94 Change the length of LanguageCode to allow ISO 639 and ISO 3166 coding
+
+
+ALTER TABLE tblUsers
+DROP CONSTRAINT  FK_tblLanguages_tblUsers
+GO
+
+ALTER TABLE tblLanguages
+DROP CONSTRAINT PK_Language;
+GO
+
+ALTER TABLE tblLanguages
+ALTER COLUMN LanguageCode nvarchar(5) not null;
+GO
+
+ALTER TABLE tblUsers
+ALTER COLUMN LanguageID nvarchar(5) not null;
+GO
+
+ALTER TABLE tblLanguages
+ADD CONSTRAINT PK_Language PRIMARY KEY (LanguageCode);
+GO
+
+ALTER TABLE tblUsers  WITH CHECK ADD  CONSTRAINT FK_tblLanguages_tblUsers FOREIGN KEY (LanguageID)
+REFERENCES tblLanguages(LanguageCode)
+GO
+
+ALTER TABLE tblUsers CHECK CONSTRAINT FK_tblLanguages_tblUsers
+GO
+

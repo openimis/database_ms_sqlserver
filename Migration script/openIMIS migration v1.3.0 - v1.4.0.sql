@@ -3306,3 +3306,10 @@ GO
 ALTER TABLE tblUsers CHECK CONSTRAINT FK_tblLanguages_tblUsers
 GO
 
+-- OP-96: Preparing the migration script for an existing database (Add UUID for Payment)
+
+IF COL_LENGTH('tblPayment', 'PaymentUUID') IS NULL
+BEGIN
+	ALTER TABLE tblPayment ADD PaymentUUID uniqueidentifier NOT NULL DEFAULT NEWID() 
+END
+

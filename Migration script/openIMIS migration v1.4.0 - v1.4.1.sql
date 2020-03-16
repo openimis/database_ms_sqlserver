@@ -1,8 +1,7 @@
 ﻿--- MIGRATION Script from v1.4.0 to v1.4.1
 
--- Fixing uspConsumeEnrollments stored procedure
+-- OP-140 : Fixing uspConsumeEnrollments stored procedure
 
-/****** Object:  StoredProcedure [dbo].[uspConsumeEnrollments] ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -890,12 +889,8 @@ ALTER PROCEDURE [dbo].[uspConsumeEnrollments](
 
 		SELECT @PolicyImported = ISNULL(COUNT(1),0) FROM @tblPolicy WHERE isOffline = 1
 			
-			
-
 		
-
-	
-	IF EXISTS(SELECT COUNT(1) 
+		IF EXISTS(SELECT COUNT(1) 
 			FROM tblInsuree 
 			WHERE ValidityTo IS NULL
 			AND IsHead = 1
@@ -963,10 +958,9 @@ ALTER PROCEDURE [dbo].[uspConsumeEnrollments](
 GO 
 
 
--- Fixing uspSSRSCapitationPayment stored procedure
 
+-- OP-141: Fixing uspSSRSCapitationPayment stored procedure
 
-/****** Object:  StoredProcedure [dbo].[uspSSRSCapitationPayment] ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -1317,3 +1311,206 @@ DECLARE @Level1 CHAR(1) = NULL,
 
 	 GROUP BY HFCode
 END
+
+
+-- OP-154: database partitioning  
+
+-- Adds four new filegroups to the database  
+BEGIN TRY
+	BEGIN TRANSACTION; 
+	
+	-- if the DATETIME provided in before 1970 then it goes to partition 1 else it goes to partition 2
+	CREATE PARTITION FUNCTION [StillValid] (DATETIME) AS RANGE LEFT
+	FOR
+	VALUES (
+		N'1970-01-01T00:00:00.001'
+		)
+
+	-- Create partition Scheme that will define the partition to be used, both use the PRIMARY file group (not IDEAL but done to limit changes in a crisis mode)
+	CREATE PARTITION SCHEME [liveArchive] AS PARTITION [StillValid] TO (
+		[PRIMARY]
+		,[PRIMARY]
+	)
+
+	ALTER TABLE tblClaimItems DROP CONSTRAINT [FK_tblClaimItems_tblClaim-ClaimID] 
+	ALTER TABLE tblClaimServices DROP CONSTRAINT [FK_tblClaimServices_tblClaim-ClaimID] 
+	ALTER TABLE tblFeedback DROP CONSTRAINT [FK_tblFeedback_tblClaim-ClaimID]
+	
+	-- Modular
+	IF OBJECT_ID('claim_ClaimAttachment') IS NOT NULL
+	BEGIN
+		ALTER TABLE claim_ClaimAttachment DROP CONSTRAINT claim_ClaimAttachment_claim_id_6d421217_fk_tblClaim_ClaimID	
+	END
+
+	IF OBJECT_ID('claim_ClaimMutation') IS NOT NULL
+	BEGIN
+		ALTER TABLE claim_ClaimMutation DROP CONSTRAINT claim_ClaimMutation_claim_id_22e307c0_fk_tblClaim_ClaimID
+	END
+
+	ALTER TABLE [tblClaim] DROP CONSTRAINT [PK_tblClaim]
+	CREATE UNIQUE CLUSTERED INDEX CI_tblClaimValid ON tblClaim (ClaimID,ValidityTo)
+	WITH
+	(	PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
+		IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON
+	) ON liveArchive(ValidityTo)
+	
+	ALTER TABLE tblClaim ADD CONSTRAINT PK_tblClaim PRIMARY KEY NONCLUSTERED (ClaimID) ON [PRIMARY];
+	CREATE INDEX NCI_tblClaim_DateClaimed ON [tblClaim](DateClaimed);
+	ALTER TABLE [tblClaimItems] ADD CONSTRAINT [FK_tblClaimItems_tblClaim-ClaimID] FOREIGN KEY(ClaimID) REFERENCES [tblClaim] (ClaimID) 
+	ALTER TABLE [tblClaimServices] ADD CONSTRAINT [FK_tblClaimServices_tblClaim-ClaimID]  FOREIGN KEY(ClaimID) REFERENCES [tblClaim] (ClaimID)
+	ALTER TABLE [tblFeedback] ADD CONSTRAINT [FK_tblFeedback_tblClaim-ClaimID] FOREIGN KEY(ClaimID) REFERENCES [tblClaim] (ClaimID)
+
+	IF OBJECT_ID('claim_ClaimAttachment') IS NOT NULL
+	BEGIN
+		ALTER TABLE [claim_ClaimAttachment] ADD CONSTRAINT claim_ClaimAttachment_claim_id_6d421217_fk_tblClaim_ClaimID FOREIGN KEY(claim_id) REFERENCES [tblClaim] (ClaimID)
+	END
+
+	IF OBJECT_ID('claim_ClaimMutation') IS NOT NULL
+	BEGIN
+		ALTER TABLE claim_ClaimMutation ADD CONSTRAINT claim_ClaimMutation_claim_id_22e307c0_fk_tblClaim_ClaimID FOREIGN KEY(claim_id) REFERENCES [tblClaim] (ClaimID)
+	END
+	
+	ALTER TABLE [tblClaimItems] DROP CONSTRAINT [PK_tblClaimItems]
+	CREATE UNIQUE CLUSTERED INDEX CI_tblClaimItemsValid ON tblClaimItems (ClaimItemID,ValidityTo)
+	WITH
+	(	PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
+		IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON
+	) ON liveArchive(ValidityTo)
+	ALTER TABLE tblClaimItems ADD CONSTRAINT PK_tblClaimItems PRIMARY KEY NONCLUSTERED (ClaimItemID) ON [PRIMARY];
+		
+	ALTER TABLE [tblClaimServices] DROP CONSTRAINT [PK_tblClaimServices]
+		
+	CREATE UNIQUE CLUSTERED INDEX CI_tblClaimServicesValid ON  tblClaimServices (ClaimServiceID,ValidityTo)
+	WITH
+	(	PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
+		IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON
+	) ON liveArchive(ValidityTo)
+	ALTER TABLE tblClaimServices ADD CONSTRAINT PK_tblClaimServices PRIMARY KEY NONCLUSTERED (ClaimServiceID) ON [PRIMARY];
+	
+	ALTER TABLE tblInsuree DROP CONSTRAINT [FK_tblInsuree_tblFamilies1-FamilyID]
+	ALTER TABLE tblPolicy DROP CONSTRAINT [FK_tblPolicy_tblFamilies-FamilyID]
+		
+	ALTER TABLE [tblFamilies] DROP CONSTRAINT [PK_tblFamilies]
+	CREATE UNIQUE CLUSTERED INDEX CI_tblFamiliesValid ON tblFamilies (FamilyID,ValidityTo)
+	WITH
+	(	PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
+		IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON
+	) ON liveArchive(ValidityTo)
+	ALTER TABLE tblFamilies ADD CONSTRAINT PK_tblFamilies PRIMARY KEY NONCLUSTERED (FamilyID) ON [PRIMARY];
+	
+	ALTER TABLE [tblInsuree] ADD CONSTRAINT [FK_tblInsuree_tblFamilies1-FamilyID] FOREIGN KEY(FamilyID) REFERENCES [tblFamilies] (FamilyID)
+	ALTER TABLE [tblPolicy] ADD CONSTRAINT [FK_tblPolicy_tblFamilies-FamilyID]  FOREIGN KEY(FamilyID) REFERENCES [tblFamilies] (FamilyID)
+	
+	ALTER TABLE tblClaim DROP CONSTRAINT [FK_tblClaim_tblInsuree-InsureeID]
+	ALTER TABLE tblClaimDedRem DROP CONSTRAINT FK_tblClaimDedRem_tblInsuree
+	ALTER TABLE tblFamilies DROP CONSTRAINT FK_tblFamilies_tblInsuree
+	ALTER TABLE tblHealthStatus DROP CONSTRAINT FK_tblHealthStatus_tblInsuree
+	ALTER TABLE tblInsureePolicy DROP CONSTRAINT FK_tblInsureePolicy_tblInsuree
+	ALTER TABLE tblPolicyRenewalDetails DROP CONSTRAINT FK_tblPolicyRenewalDetails_tblInsuree
+	ALTER TABLE tblPolicyRenewals DROP CONSTRAINT FK_tblPolicyRenewals_tblInsuree
+		
+	ALTER TABLE [tblInsuree] DROP CONSTRAINT [PK_tblInsuree]
+	CREATE UNIQUE CLUSTERED INDEX CI_tblInsureeValid ON tblInsuree (InsureeID,ValidityTo)
+	WITH
+	(	PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
+		IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON
+	) ON liveArchive(ValidityTo)
+	ALTER TABLE tblInsuree ADD CONSTRAINT PK_tblInsuree PRIMARY KEY NONCLUSTERED (InsureeID) ON [PRIMARY];
+		
+	ALTER TABLE [tblClaim] ADD CONSTRAINT [FK_tblClaim_tblInsuree-InsureeID] FOREIGN KEY(InsureeID) REFERENCES [tblInsuree] (InsureeID)
+	ALTER TABLE [tblClaimDedRem] ADD CONSTRAINT [FK_tblClaimDedRem_tblInsuree-InsureeID]  FOREIGN KEY(InsureeID) REFERENCES [tblInsuree] (InsureeID)
+	ALTER TABLE [tblFamilies] ADD CONSTRAINT [FK_tblFamilies_tblInsuree-InsureeID] FOREIGN KEY(InsureeID) REFERENCES [tblInsuree] (InsureeID)
+	ALTER TABLE [tblHealthStatus] ADD CONSTRAINT [FK_tblHealthStatus_tblInsuree-InsureeID] FOREIGN KEY(InsureeID) REFERENCES [tblInsuree] (InsureeID)
+	ALTER TABLE [tblInsureePolicy] ADD CONSTRAINT [FK_tblInsureePolicy_tblInsuree-InsureeID] FOREIGN KEY(InsureeID) REFERENCES [tblInsuree] (InsureeID)
+	ALTER TABLE [tblPolicyRenewalDetails] ADD CONSTRAINT [FK_tblPolicyRenewalDetails_tblInsuree-InsureeID] FOREIGN KEY(InsureeID) REFERENCES [tblInsuree] (InsureeID)
+	ALTER TABLE [tblPolicyRenewals] ADD CONSTRAINT [FK_tblPolicyRenewals_tblInsuree-InsureeID] FOREIGN KEY(InsureeID) REFERENCES [tblInsuree] (InsureeID)
+
+	ALTER TABLE tblHFCatchment DROP CONSTRAINT [FK_tblHFCatchment_tblLocations] 
+	ALTER TABLE tblProduct DROP CONSTRAINT [FK_tblProduct_tblLocation] 
+	ALTER TABLE tblUsersDistricts DROP CONSTRAINT [FK_tblUsersDistricts_tblLocations] 
+	ALTER TABLE tblPayer DROP CONSTRAINT FK_tblPayer_tblLocations
+	ALTER TABLE tblPLServices DROP CONSTRAINT FK_tblPLServices_tblLocations
+	ALTER TABLE tblOfficerVillages DROP CONSTRAINT FK_tblOfficerVillages_tblLocations
+	ALTER TABLE tblPLItems DROP CONSTRAINT FK_tblPLItems_tblLocations
+	ALTER TABLE tblOfficer DROP CONSTRAINT FK_tblOfficer_tblLocations
+	ALTER TABLE tblHF DROP CONSTRAINT FK_tblHF_tblLocations
+	ALTER TABLE tblBatchRun DROP CONSTRAINT FK_tblBatchRun_tblLocations
+	ALTER TABLE tblFamilies DROP CONSTRAINT FK_tblFamilies_tblLocations
+
+	ALTER TABLE [tblLocations] DROP CONSTRAINT [PK_tblLocations]
+	CREATE UNIQUE CLUSTERED INDEX CI_tblLocations ON tblLocations (LocationId,ValidityTo)
+	WITH
+		( PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
+		IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON
+		) ON liveArchive(ValidityTo)
+	ALTER TABLE [tblLocations] ADD CONSTRAINT PK_tblLocations PRIMARY KEY NONCLUSTERED (LocationId) ON [PRIMARY];
+
+	ALTER TABLE tblHFCatchment ADD CONSTRAINT [FK_tblHFCatchment_tblLocation] FOREIGN KEY(LocationId) REFERENCES [tblLocations] (LocationId)
+	ALTER TABLE tblProduct ADD CONSTRAINT [FK_tblProduct_tblLocations] FOREIGN KEY(LocationId) REFERENCES [tblLocations] (LocationId)
+	ALTER TABLE tblUsersDistricts ADD CONSTRAINT [FK_tblUsersDistricts_tblLocations] FOREIGN KEY(LocationId) REFERENCES [tblLocations] (LocationId)
+	ALTER TABLE tblPayer ADD CONSTRAINT FK_tblPayer_tblLocations FOREIGN KEY(LocationId) REFERENCES [tblLocations] (LocationId)
+	ALTER TABLE tblPLServices WITH NOCHECK ADD CONSTRAINT FK_tblPLServices_tblLocations FOREIGN KEY(LocationId) REFERENCES [tblLocations] (LocationId)
+	ALTER TABLE tblOfficerVillages ADD CONSTRAINT FK_tblOfficerVillages_tblLocations FOREIGN KEY(LocationId) REFERENCES [tblLocations] (LocationId)
+	ALTER TABLE tblPLItems WITH NOCHECK ADD CONSTRAINT FK_tblPLItems_tblLocations FOREIGN KEY(LocationId) REFERENCES [tblLocations] (LocationId)
+	ALTER TABLE tblOfficer ADD CONSTRAINT FK_tblOfficer_tblLocations FOREIGN KEY(LocationId) REFERENCES [tblLocations] (LocationId)
+	ALTER TABLE tblHF ADD CONSTRAINT FK_tblHF_tblLocations FOREIGN KEY(LocationId) REFERENCES [tblLocations] (LocationId)
+	ALTER TABLE tblBatchRun ADD CONSTRAINT FK_tblBatchRun_tblLocations FOREIGN KEY(LocationID) REFERENCES [tblLocations] (LocationID)
+	ALTER TABLE tblFamilies ADD CONSTRAINT FK_tblFamilies_tblLocations FOREIGN KEY(LocationID) REFERENCES [tblLocations] (LocationID)
+
+	CREATE NONCLUSTERED INDEX NCI_tblUserDistrict_UserID ON tblUsersDistricts (ValidityTo,UserID)
+	CREATE NONCLUSTERED INDEX NCI_tblUsers_UserUUID ON tblUsers (ValidityTo,UserUUID)
+	CREATE NONCLUSTERED INDEX NCI_tblUserRoles_UserID ON tblUserRoles (ValidityTo,UserID)
+	
+	COMMIT TRANSACTION;  
+END TRY
+BEGIN CATCH  
+     ROLLBACK  TRANSACTION;  
+END CATCH  
+
+-- OP-154: add indexed to Location views
+
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER VIEW [dbo].[tblWards]  WITH SCHEMABINDING AS
+SELECT LocationId WardId, ParentLocationId DistrictId, LocationCode WardCode, LocationName WardName, ValidityFrom, ValidityTo, LegacyId, AuditUserId, RowId 
+FROM [dbo].tblLocations
+WHERE ValidityTo IS NULL
+AND LocationType = N'W'
+GO
+
+CREATE UNIQUE CLUSTERED INDEX CI_tblWards ON tblWards(WardId) 
+GO
+
+ALTER VIEW [dbo].[tblVillages] WITH SCHEMABINDING AS
+SELECT LocationId VillageId, ParentLocationId WardId, LocationCode VillageCode, LocationName VillageName,MalePopulation, FemalePopulation, OtherPopulation, Families, ValidityFrom, ValidityTo, LegacyId, AuditUserId, RowId
+FROM [dbo].tblLocations
+WHERE ValidityTo IS NULL
+AND LocationType = N'V'
+GO
+
+CREATE UNIQUE CLUSTERED INDEX CI_tblVillages ON tblVillages(VillageId) 
+GO
+
+ALTER VIEW [dbo].[tblRegions] WITH SCHEMABINDING AS
+SELECT LocationId RegionId, LocationCode RegionCode, LocationName RegionName, ValidityFrom, ValidityTo, LegacyId, AuditUserId, RowId
+FROM [dbo].tblLocations
+WHERE ValidityTo IS NULL
+AND LocationType = N'R'
+GO
+
+CREATE UNIQUE CLUSTERED INDEX CI_tblRegions ON tblRegions(RegionId) 
+GO
+
+ALTER VIEW [dbo].[tblDistricts] WITH SCHEMABINDING
+AS
+SELECT LocationId DistrictId, LocationCode DistrictCode, LocationName DistrictName, ParentLocationId Region, ValidityFrom, ValidityTo, LegacyId, AuditUserId, RowId
+FROM [dbo].tblLocations
+WHERE ValidityTo IS NULL
+AND LocationType = N'D'
+GO
+
+CREATE UNIQUE CLUSTERED INDEX CI_tblDistricts ON tblDistricts(DistrictId)   

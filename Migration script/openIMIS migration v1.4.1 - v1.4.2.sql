@@ -979,7 +979,7 @@ ALTER PROCEDURE [dbo].[uspSSRSCapitationPayment]
 AS
 BEGIN
 	
-DECLARE @Level1 CHAR(1) = NULL,
+		DECLARE @Level1 CHAR(1) = NULL,
 			    @Sublevel1 CHAR(1) = NULL,
 			    @Level2 CHAR(1) = NULL,
 			    @Sublevel2 CHAR(1) = NULL,

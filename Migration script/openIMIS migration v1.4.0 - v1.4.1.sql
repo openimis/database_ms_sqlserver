@@ -963,3 +963,10 @@ ALTER PROCEDURE [dbo].[uspConsumeEnrollments](
 	END
 
 GO 
+
+-- OP-153: Additional items in the Reports section
+
+IF COL_LENGTH('tblReporting', 'ReportMode') IS NULL
+BEGIN
+	ALTER TABLE tblReporting ADD ReportMode int NULL
+END

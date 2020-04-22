@@ -3578,3 +3578,6 @@ BEGIN
 	SELECT * FROM @Result
 
 END
+
+--Add Enquire right to Claim Administrator role
+insert into [tblRoleRight] (RoleID, RightID, ValidityFrom) values (9, 101105, CURRENT_TIMESTAMP)

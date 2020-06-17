@@ -1,4 +1,4 @@
-﻿--- MIGRATION Script from v1.4.0 to v1.4.1
+﻿--- MIGRATION Script from v1.4.1 to v1.4.2
 
 -- OP-140 : Fixing uspConsumeEnrollments stored procedure
 
@@ -1513,25 +1513,4 @@ WHERE ValidityTo IS NULL
 AND LocationType = N'D'
 GO
 
-CREATE UNIQUE CLUSTERED INDEX CI_tblDistricts ON tblDistricts(DistrictId)   
-
--- OTC-111: Changing the logic of user Roles
-
-IF COL_LENGTH('tblUserRole', 'Assign') IS NULL
-BEGIN
-	ALTER TABLE tblUserRole ADD Assign int NULL
-END
-
-IF TYPE_ID(N'xtblUserRole') IS NULL
-BEGIN
-	CREATE TYPE [dbo].[xtblUserRole] AS TABLE(
-		[UserRoleID] [int] NOT NULL,
-		[UserID] [int] NOT NULL,
-		[RoleID] [int] NOT NULL,
-		[ValidityFrom] [datetime] NULL,
-		[ValidityTo] [datetime] NULL,
-		[AudituserID] [int] NULL,
-		[LegacyID] [int] NULL,
-		[Assign] [int] NULL
-)
-END 
+CREATE UNIQUE CLUSTERED INDEX CI_tblDistricts ON tblDistricts(DistrictId)

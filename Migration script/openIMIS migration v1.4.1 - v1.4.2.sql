@@ -1,4 +1,4 @@
-﻿--- MIGRATION Script from v1.4.0 to v1.4.1
+﻿--- MIGRATION Script from v1.4.1 to v1.4.2
 
 -- OP-140 : Fixing uspConsumeEnrollments stored procedure
 
@@ -1513,4 +1513,4 @@ WHERE ValidityTo IS NULL
 AND LocationType = N'D'
 GO
 
-CREATE UNIQUE CLUSTERED INDEX CI_tblDistricts ON tblDistricts(DistrictId)   
+CREATE UNIQUE CLUSTERED INDEX CI_tblDistricts ON tblDistricts(DistrictId)

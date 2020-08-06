@@ -1273,3 +1273,10 @@ BEGIN
 	
 	RETURN 0
 END
+
+-- OP-153: Additional items in the Reports section
+
+IF COL_LENGTH('tblReporting', 'ReportMode') IS NULL
+BEGIN
+	ALTER TABLE tblReporting ADD ReportMode int DEFAULT(0);
+END 

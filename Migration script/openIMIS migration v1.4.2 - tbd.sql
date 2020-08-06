@@ -1278,5 +1278,5 @@ END
 
 IF COL_LENGTH('tblReporting', 'ReportMode') IS NULL
 BEGIN
-	ALTER TABLE tblReporting ADD ReportMode int NULL
+	ALTER TABLE tblReporting ADD ReportMode int DEFAULT(0);
 END 

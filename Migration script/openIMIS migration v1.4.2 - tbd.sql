@@ -1280,3 +1280,32 @@ IF COL_LENGTH('tblReporting', 'ReportMode') IS NULL
 BEGIN
 	ALTER TABLE tblReporting ADD ReportMode int DEFAULT(0);
 END 
+
+-- OTC-70: Additional columns needed for Report of commission functionality
+
+IF COL_LENGTH('tblPremium', 'OverviewCommissionReport') IS NULL
+BEGIN
+	ALTER TABLE tblPremium ADD OverviewCommissionReport DATETIME NULL
+END 
+
+IF COL_LENGTH('tblPremium', 'AllDetailsCommissionReport') IS NULL
+BEGIN
+	ALTER TABLE tblPremium ADD AllDetailsCommissionReport DATETIME NULL
+END 
+
+IF COL_LENGTH('tblReporting', 'Scope') IS NULL
+BEGIN
+	ALTER TABLE tblReporting ADD Scope INT NULL
+END 
+
+-- Removed duplicated unnecessary columns (typo in name)
+
+IF COL_LENGTH('tblPremium', 'ReportingCommisionID') IS NOT NULL
+BEGIN
+	ALTER TABLE tblPremium DROP COLUMN ReportingCommisionID
+END 
+
+IF COL_LENGTH('tblReporting', 'CammissionRate') IS NOT NULL
+BEGIN
+	ALTER TABLE tblReporting DROP COLUMN CammissionRate
+END 

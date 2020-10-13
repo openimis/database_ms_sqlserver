@@ -8,6 +8,7 @@ BEGIN
 	CONSTRAINT AssignDefaultConstraint DEFAULT 3 
 	WITH VALUES
 END
+GO 
 
 IF TYPE_ID(N'xtblUserRole') IS NULL
 BEGIN
@@ -22,6 +23,7 @@ BEGIN
 		[Assign] [int] NULL
 )
 END 
+GO
 
 -- OP-153: Additional items in the Reports section
 
@@ -31,6 +33,7 @@ BEGIN
 	CONSTRAINT ReportModeDefaultConstraint DEFAULT 0 
 	WITH VALUES
 END 
+GO
 
 -- OTC-67: RFC-116 New state of policies
 
@@ -151,7 +154,7 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 		NULLIF(T.I.value('(HFID)[1]','INT'),''),
 		T.I.value('(CurrentAddress)[1]','NVARCHAR(200)'),
 		T.I.value('(GeoLocation)[1]','NVARCHAR(200)'),
-		NULLIF(T.I.value('(CurVillage)[1]','INT'),''),
+		NULLIF(NULLIF(T.I.value('(CurVillage)[1]','INT'),''),0),
 		T.I.value('(isOffline)[1]','BIT'),
 		T.I.value('(PhotoPath)[1]','NVARCHAR(100)')
 		FROM @XML.nodes('Enrolment/Insurees/Insuree') AS T(I)
@@ -1014,6 +1017,7 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 	
 	RETURN 0 --ALL OK
 	END
+GO 
 
 --OP-222: BEPHA Claims from phones do not have an admin code assigned 
 IF OBJECT_ID('uspUpdateClaimFromPhone', 'P') IS NOT NULL
@@ -1286,4 +1290,4 @@ BEGIN
 	
 	RETURN 0
 END
-
+GO

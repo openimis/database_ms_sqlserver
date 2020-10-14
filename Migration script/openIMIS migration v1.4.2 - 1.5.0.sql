@@ -1294,4 +1294,5 @@ GO
 
 
 -- OP-238: Discrepancy in reporting of IMIS Policies
-INSERT [dbo].[tblRoleRight] ([RoleRightID], [RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) VALUES (187, 1, 131201, CURRENT_TIMESTAMP, NULL, NULL, NULL)
+INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) 
+VALUES ((select RoleID from tblRole where RoleUUID='8B7F95F6-065F-47D7-8454-BF7B82FBB301'), 131201, CURRENT_TIMESTAMP, NULL, NULL, NULL);

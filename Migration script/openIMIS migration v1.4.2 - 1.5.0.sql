@@ -1291,3 +1291,7 @@ BEGIN
 	RETURN 0
 END
 GO
+
+
+-- OP-238: Discrepancy in reporting of IMIS Policies
+INSERT [dbo].[tblRoleRight] ([RoleRightID], [RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) VALUES (187, 1, 131201, CURRENT_TIMESTAMP, NULL, NULL, NULL)

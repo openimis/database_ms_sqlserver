@@ -1291,3 +1291,12 @@ BEGIN
 	RETURN 0
 END
 GO
+
+
+--OP-190: BEPHA Policies App: Marital Status shows "-- Select Status--"
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+UPDATE tblInsuree SET Marital = null Where Marital = '';

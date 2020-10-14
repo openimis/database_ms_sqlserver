@@ -36,6 +36,7 @@ END
 GO
 
 -- OTC-67: RFC-116 New state of policies
+--OP-190: BEPHA Policies App: Marital Status shows "-- Select Status--"
 
 IF COL_LENGTH('tblIMISDefaults', 'ActivationOption') IS NULL
 BEGIN
@@ -141,7 +142,7 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 		T.I.value('(OtherNames)[1]','NVARCHAR(100)'),
 		T.I.value('(DOB)[1]','DATE'),
 		T.I.value('(Gender)[1]','CHAR(1)'),
-		T.I.value('(Marital)[1]','CHAR(1)'),
+		NULLIF(T.I.value('(Marital)[1]','CHAR(1)'),''),
 		T.I.value('(isHead)[1]','BIT'),
 		T.I.value('(IdentificationNumber)[1]','NVARCHAR(25)'),
 		T.I.value('(Phone)[1]','NVARCHAR(50)'),

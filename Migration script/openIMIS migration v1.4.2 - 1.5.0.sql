@@ -36,6 +36,7 @@ END
 GO
 
 -- OTC-67: RFC-116 New state of policies
+--OP-190: BEPHA Policies App: Marital Status shows "-- Select Status--"
 
 IF COL_LENGTH('tblIMISDefaults', 'ActivationOption') IS NULL
 BEGIN
@@ -141,7 +142,7 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 		T.I.value('(OtherNames)[1]','NVARCHAR(100)'),
 		T.I.value('(DOB)[1]','DATE'),
 		T.I.value('(Gender)[1]','CHAR(1)'),
-		T.I.value('(Marital)[1]','CHAR(1)'),
+		NULLIF(T.I.value('(Marital)[1]','CHAR(1)'),''),
 		T.I.value('(isHead)[1]','BIT'),
 		T.I.value('(IdentificationNumber)[1]','NVARCHAR(25)'),
 		T.I.value('(Phone)[1]','NVARCHAR(50)'),
@@ -1292,7 +1293,15 @@ BEGIN
 END
 GO
 
+--OP-190: BEPHA Policies App: Marital Status shows "-- Select Status--"
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+UPDATE tblInsuree SET Marital = null Where Marital = '';
 
 -- OP-238: Discrepancy in reporting of IMIS Policies
 INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) 
-VALUES ((select RoleID from tblRole where RoleUUID='8B7F95F6-065F-47D7-8454-BF7B82FBB301'), 131201, CURRENT_TIMESTAMP, NULL, NULL, NULL);
+SELECT role.RoleID, 131201, CURRENT_TIMESTAMP, NULL, NULL, NULL 
+from tblRole role where IsSystem=1

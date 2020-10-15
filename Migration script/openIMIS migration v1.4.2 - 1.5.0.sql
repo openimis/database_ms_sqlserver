@@ -1293,7 +1293,6 @@ BEGIN
 END
 GO
 
-
 --OP-190: BEPHA Policies App: Marital Status shows "-- Select Status--"
 SET ANSI_NULLS ON
 GO
@@ -1301,3 +1300,8 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 UPDATE tblInsuree SET Marital = null Where Marital = '';
+
+-- OP-238: Discrepancy in reporting of IMIS Policies
+INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) 
+SELECT role.RoleID, 131201, CURRENT_TIMESTAMP, NULL, NULL, NULL 
+from tblRole role where IsSystem=1

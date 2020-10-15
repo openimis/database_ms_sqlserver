@@ -1304,4 +1304,9 @@ UPDATE tblInsuree SET Marital = null Where Marital = '';
 -- OP-238: Discrepancy in reporting of IMIS Policies
 INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) 
 SELECT role.RoleID, 131201, CURRENT_TIMESTAMP, NULL, NULL, NULL 
-from tblRole role where IsSystem=1
+from tblRole role where IsSystem=1;
+
+INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) 
+SELECT role.RoleID, 131200, CURRENT_TIMESTAMP, NULL, NULL, NULL 
+from tblRole role where IsSystem=1;
+GO

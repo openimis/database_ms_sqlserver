@@ -1311,6 +1311,7 @@ BEGIN
 
 	 GROUP BY HFCode
 END
+GO
 
 
 -- OP-154: database partitioning  

@@ -1,4 +1,4 @@
-﻿--- MIGRATION Script from v1.4.2 - tbd
+﻿--- MIGRATION Script from v1.4.2 - v1.5.0
 
 -- OTC-111: Changing the logic of user Roles
 
@@ -1668,4 +1668,4 @@ BEGIN
 END
 GO
 
-CREATE NONCLUSTERED INDEX NCI_HF_ValidityToON tblHF(ValidityTo)
+CREATE NONCLUSTERED INDEX NCI_HF_ValidityTo ON tblHF(ValidityTo)

@@ -1311,6 +1311,22 @@ SELECT role.RoleID, 131200, CURRENT_TIMESTAMP, NULL, NULL, NULL
 from tblRole role where IsSystem=1;
 GO
 
+-- OTC-49: The system role Claim Administrator role doesn't have the required rights
+INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) 
+SELECT role.RoleID, 101001, CURRENT_TIMESTAMP, NULL, NULL, NULL 
+from tblRole role where IsSystem=256;
+
+INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) 
+SELECT role.RoleID, 101101, CURRENT_TIMESTAMP, NULL, NULL, NULL 
+from tblRole role where IsSystem=256;
+
+INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) 
+SELECT role.RoleID, 101201, CURRENT_TIMESTAMP, NULL, NULL, NULL 
+from tblRole role where IsSystem=256;
+
+INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) 
+SELECT role.RoleID, 111012, CURRENT_TIMESTAMP, NULL, NULL, NULL 
+from tblRole role where IsSystem=256;
 
 --OTC-149: Cannot access to report page 
 IF COL_LENGTH('tblReporting', 'Scope') IS NULL

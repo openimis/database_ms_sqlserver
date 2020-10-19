@@ -1311,6 +1311,15 @@ SELECT role.RoleID, 131200, CURRENT_TIMESTAMP, NULL, NULL, NULL
 from tblRole role where IsSystem=1;
 GO
 
+
+--OTC-149: Cannot access to report page 
+IF COL_LENGTH('tblReporting', 'Scope') IS NULL
+BEGIN
+	ALTER TABLE tblReporting ADD [Scope] [int] NULL
+END 
+GO
+
+
 -- OP-141: Fixing uspSSRSCapitationPayment stored procedure
 
 SET ANSI_NULLS ON
@@ -1669,3 +1678,4 @@ END
 GO
 
 CREATE NONCLUSTERED INDEX NCI_HF_ValidityTo ON tblHF(ValidityTo)
+

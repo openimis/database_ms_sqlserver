@@ -1,3 +1,7 @@
+-- Please update the database name to be used !!!
+USE [openIMIS-1.5.0];
+GO
+
 DECLARE @TableName VARCHAR(255)
 DECLARE @sql NVARCHAR(500)
 DECLARE @fillfactor INT

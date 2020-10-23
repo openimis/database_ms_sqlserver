@@ -1,5 +1,9 @@
 ﻿--- MIGRATION Script from v1.4.2 - v1.5.0
 
+-- Please update the database name to be used !!!
+USE [openIMIS-1.5.0];
+GO
+
 -- OTC-111: Changing the logic of user Roles
 
 IF COL_LENGTH('tblUserRole', 'Assign') IS NULL
@@ -1912,3 +1916,45 @@ BEGIN CATCH
      ROLLBACK  TRANSACTION;  
 END CATCH  
 
+IF OBJECT_ID('uspIndexRebuild', 'P') IS NOT NULL
+    DROP PROCEDURE uspIndexRebuild
+GO
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Description:	Rebuilds all indexes on the openIMIS database
+-- =============================================
+CREATE PROCEDURE [dbo].[uspIndexRebuild] 
+AS
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	SET NOCOUNT ON;
+
+    DECLARE @TableName VARCHAR(255)
+	DECLARE @sql NVARCHAR(500)
+	DECLARE @fillfactor INT
+	
+	SET @fillfactor = 80 
+	
+	DECLARE TableCursor CURSOR FOR
+	SELECT QUOTENAME(OBJECT_SCHEMA_NAME([object_id]))+'.' + QUOTENAME(name) AS TableName
+	FROM sys.tables
+	
+	OPEN TableCursor
+	FETCH NEXT FROM TableCursor INTO @TableName
+	WHILE @@FETCH_STATUS = 0
+	BEGIN
+		SET @sql = 'ALTER INDEX ALL ON ' + @TableName + ' REBUILD WITH (FILLFACTOR = ' + CONVERT(VARCHAR(3),@fillfactor) + ')'
+		EXEC (@sql)
+	FETCH NEXT FROM TableCursor INTO @TableName
+	END
+	CLOSE TableCursor
+	
+	DEALLOCATE TableCursor
+
+END
+GO

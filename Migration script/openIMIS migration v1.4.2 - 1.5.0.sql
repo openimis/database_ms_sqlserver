@@ -168,7 +168,7 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 		SELECT @ActivationOption = ActivationOption FROM tblIMISDefaults
 
 		DECLARE @ActiveStatus TINYINT = 2
-		DECLARE @ReadyStatus TINYINT = 3
+		DECLARE @ReadyStatus TINYINT = 16
 
 		INSERT INTO @tblPolicy(PolicyId,FamilyId,EnrollDate,StartDate,EffectiveDate,ExpiryDate,PolicyStatus,PolicyValue,ProdId,OfficerId,PolicyStage,isOffline)
 		SELECT 
@@ -832,7 +832,7 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 				@PolicyValueFromPhone DECIMAL(18, 4),
 				@ContributionAmount DECIMAL(18, 4),
 				@Active TINYINT=2,
-				@Ready TINYINT=3,
+				@Ready TINYINT=16,
 				@Idle TINYINT=1,
 				@NewPolicyId INT,
 				@OldPolicyStatus INT,

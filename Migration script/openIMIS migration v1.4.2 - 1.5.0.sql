@@ -1915,5 +1915,17 @@ BEGIN CATCH
 END CATCH  
 
 -- OTC-144: Set isOffline status to 0 for insurees in database 
-UPDATE tblInsuree set isOffline=0;
-UPDATE tblFamilies set isOffline=0;
+UPDATE tblInsuree SET isOffline=0 
+	WHERE (SELECT 1 FROM tblIMISDefaults where OfflineCHF = 1 And OfflineHF = 1) is null;
+
+UPDATE tblFamilies SET isOffline=0 
+	WHERE (SELECT 1 FROM tblIMISDefaults where OfflineCHF = 1 And OfflineHF = 1) is null;
+
+UPDATE tblInsureePolicy SET isOffline=0 
+	WHERE (SELECT 1 FROM tblIMISDefaults where OfflineCHF = 1 And OfflineHF = 1) is null;
+
+UPDATE tblPremium SET isOffline=0
+	WHERE (SELECT 1 FROM tblIMISDefaults where OfflineCHF = 1 And OfflineHF = 1) is null;
+
+UPDATE tblPolicy SET isOffline=0
+	WHERE (SELECT 1 FROM tblIMISDefaults where OfflineCHF = 1 And OfflineHF = 1) is null;

@@ -678,7 +678,7 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 								WHILE @@FETCH_STATUS = 0
 								BEGIN
 								INSERT INTO tblFamilies(InsureeId, LocationId, Poverty, ValidityFrom, AuditUserId, FamilyType, FamilyAddress, Ethnicity, ConfirmationNo, ConfirmationType, isOffline) 
-								SELECT 0 , TF.LocationId, TF.Poverty, GETDATE() , @AuditUserId , TF.FamilyType, TF.FamilyAddress, TF.Ethnicity, TF.ConfirmationNo, ConfirmationType,1 isOffline FROM @tblFamilies TF
+								SELECT 0 , TF.LocationId, TF.Poverty, GETDATE() , @AuditUserId , TF.FamilyType, TF.FamilyAddress, TF.Ethnicity, TF.ConfirmationNo, ConfirmationType, 0 FROM @tblFamilies TF
 								DECLARE @NewFamilyId  INT  =0
 								SELECT @NewFamilyId= SCOPE_IDENTITY();
 								IF @@ROWCOUNT > 0
@@ -765,7 +765,7 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 								INSERT INTO tblInsuree(FamilyId, CHFID, LastName, OtherNames, DOB, Gender, Marital, IsHead, passport, Phone, CardIssued, ValidityFrom,
 								AuditUserId, Relationship, Profession, Education, Email, TypeOfId, HFID, CurrentAddress, GeoLocation, CurrentVillage, isOffline)
 								SELECT NewFamilyId, CHFID, LastName, OtherNames, DOB, Gender, Marital, IsHead, passport, Phone, CardIssued, GETDATE() ValidityFrom,
-								@AuditUserId AuditUserId, Relationship, Profession, Education, Email, TypeOfId, HFID, CurrentAddress, GeoLocation, CurVillage, 1 isOffLine
+								@AuditUserId AuditUserId, Relationship, Profession, Education, Email, TypeOfId, HFID, CurrentAddress, GeoLocation, CurVillage, 0
 								FROM @tblInsuree WHERE InsureeId = @CurInsureeId;
 								DECLARE @NewInsureeId  INT  =0
 								SELECT @NewInsureeId= SCOPE_IDENTITY();

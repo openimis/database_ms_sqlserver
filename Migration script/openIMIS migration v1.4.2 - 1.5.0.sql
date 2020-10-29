@@ -1994,3 +1994,9 @@ BEGIN
 
 END
 GO
+-- partial index for user district
+CREATE NONCLUSTERED INDEX NCI_A_tblUsersDistricts
+ON [dbo].[tblUsersDistricts] ([UserID],[LocationId])
+WHERE ValidityTo is null
+GO
+

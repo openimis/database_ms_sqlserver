@@ -1877,15 +1877,13 @@ BEGIN TRY
 
 	CREATE UNIQUE CLUSTERED INDEX CI_tblLocations ON tblLocations (
 		[ValidityTo] ASC,
-		[LocationId] ASC,
-		[LocationCode] ASC,
-		[LocationName] ASC,
-		[LocationType] ASC
+		[LocationId] ASC
 		)
 	WITH
 		( PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
 		IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON
 		) ON liveArchive(ValidityTo)
+
 
 	ALTER TABLE [tblLocations] ADD CONSTRAINT PK_tblLocations PRIMARY KEY NONCLUSTERED (LocationId) ON [PRIMARY];
 	ALTER TABLE tblHFCatchment ADD CONSTRAINT [FK_tblHFCatchment_tblLocation] FOREIGN KEY(LocationId) REFERENCES [tblLocations] (LocationId)
@@ -1904,6 +1902,44 @@ END TRY
 BEGIN CATCH  
      ROLLBACK  TRANSACTION;  
 END CATCH  
+
+-- add partial indexes
+	CREATE NONCLUSTERED INDEX NCI_R_tblLocations ON tblLocations (
+		[LocationId] ASC,
+		[LocationCode] ASC)
+	INCLUDE(
+		[LocationName],
+		[ParentLocationId]
+		)
+	WHERE [ValidityTo] is NULL and [LocationType] = 'R'
+
+	CREATE NONCLUSTERED INDEX NCI_V_tblLocations ON tblLocations (
+		[LocationId] ASC,
+		[LocationCode] ASC)
+	INCLUDE(
+		[LocationName],
+		[ParentLocationId]
+		)
+	WHERE [ValidityTo] is NULL and [LocationType] = 'V'
+
+	CREATE NONCLUSTERED INDEX NCI_W_tblLocations ON tblLocations (
+		[LocationId] ASC,
+		[LocationCode] ASC)
+	INCLUDE(
+		[LocationName],
+		[ParentLocationId]
+		)
+	WHERE [ValidityTo] is NULL and [LocationType] = 'W'
+
+	CREATE NONCLUSTERED INDEX NCI_M_tblLocations ON tblLocations (
+		[LocationId] ASC,
+		[LocationCode] ASC)
+	INCLUDE(
+		[LocationName],
+		[ParentLocationId]
+		)
+	WHERE [ValidityTo] is NULL and [LocationType] = 'M'
+
 
 BEGIN TRY
 	BEGIN TRANSACTION; 

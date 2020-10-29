@@ -1929,3 +1929,19 @@ UPDATE tblPremium SET isOffline=0
 
 UPDATE tblPolicy SET isOffline=0
 	WHERE (SELECT 1 FROM tblIMISDefaults where OfflineCHF = 1 And OfflineHF = 1) is null;
+
+-- OTC-161: Commission repport error
+IF COL_LENGTH('tblPremium', 'OverviewCommissionReport') IS NULL
+BEGIN
+	ALTER TABLE tblPremium ADD OverviewCommissionReport datetime NULL
+END
+
+IF COL_LENGTH('tblPremium', 'AllDetailsCommissionReport') IS NULL
+BEGIN
+	ALTER TABLE tblPremium ADD AllDetailsCommissionReport datetime NULL
+END
+
+IF COL_LENGTH('tblPremium', 'ReportingCommisionID') IS NOT NULL
+BEGIN
+	ALTER TABLE tblPremium DROP COLUMN ReportingCommisionID
+END

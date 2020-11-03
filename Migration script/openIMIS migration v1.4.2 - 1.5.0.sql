@@ -10,6 +10,14 @@ BEGIN
 	WITH VALUES
 END
 GO
+IF TYPE_ID(N'xClaimRejReasons') IS NULL
+BEGIN
+CREATE TYPE [dbo].[xClaimRejReasons] AS TABLE(
+	[ID] [int] NOT NULL,
+	[Name] [nvarchar](100) NULL
+)
+END
+GO
 
 IF COL_LENGTH('tblPremium', 'OverviewCommissionReport') IS NULL
 BEGIN

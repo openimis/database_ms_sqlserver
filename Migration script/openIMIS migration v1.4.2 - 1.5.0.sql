@@ -18,7 +18,7 @@ CREATE TYPE [dbo].[xClaimRejReasons] AS TABLE(
 )
 END
 GO
-
+-- OTC-161: Commission repport error
 IF COL_LENGTH('tblPremium', 'OverviewCommissionReport') IS NULL
 BEGIN
 	ALTER TABLE tblPremium ADD OverviewCommissionReport datetime NULL 
@@ -29,7 +29,7 @@ BEGIN
 	ALTER TABLE tblPremium ADD AllDetailsCommissionReport datetime NULL 
 END
 GO
-
+-- end of 0tc 161
 IF TYPE_ID(N'xtblUserRole') IS NULL
 BEGIN
 	CREATE TYPE [dbo].[xtblUserRole] AS TABLE(
@@ -4132,14 +4132,6 @@ UPDATE tblPremium SET isOffline=0
 UPDATE tblPolicy SET isOffline=0
 	WHERE (SELECT 1 FROM tblIMISDefaults where OfflineCHF = 1 And OfflineHF = 1) is null;
 
--- OTC-161: Commission repport error
-IF COL_LENGTH('tblPremium', 'OverviewCommissionReport') IS NULL
-BEGIN
-	ALTER TABLE tblPremium ADD OverviewCommissionReport datetime NULL
-END
 
-IF COL_LENGTH('tblPremium', '') IS NULL
-BEGINAllDetailsCommissionReport
-	ALTER TABLE tblPremium ADD AllDetailsCommissionReport datetime NULL
-END
+
 

@@ -2,11 +2,12 @@ BEGIN
 	
 	--Update the database to be used
 	use [openIMIS-demo];
+	GO 
 
 	DECLARE @monthShift INT
 
-	--Get number of months to shift the policy by, using FamilyID 22 which is a renewal example described on the Wiki
-	SELECT TOP(1) @monthShift = DATEDIFF(month, expirydate, GETDATE()) FROM [tblPolicy] where ValidityTo is NULL
+	--Get number of months to shift the policy by, using FamilyID 38 which is a renewal example described on the Wiki
+	SELECT TOP(1) @monthShift = DATEDIFF(MONTH, expirydate, GETDATE()) FROM [tblPolicy] where PolicyID=38
 
 	--Shift Enrolldate by @monthShift
 	UPDATE [tblPolicy] SET EnrollDate = DATEADD(month, @monthShift, EnrollDate)
@@ -20,6 +21,9 @@ BEGIN
 
 	--Shift ExpiryDate by @monthShift
 	UPDATE [tblPolicy] SET ExpiryDate = DATEADD(month, @monthShift, ExpiryDate)
+	
+	--Update policy status 
+	UPDATE [tblPolicy] SET PolicyStatus = IIF(ExpiryDate<GETDATE(), 8, 2)
 	
 	--Update InsureePolicy dates
 	UPDATE     IP 

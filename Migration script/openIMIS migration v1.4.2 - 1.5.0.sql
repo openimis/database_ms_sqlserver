@@ -29,6 +29,11 @@ BEGIN
 	ALTER TABLE tblPremium ADD AllDetailsCommissionReport datetime NULL 
 END
 GO
+IF COL_LENGTH('tblPremium', 'ReportingCommisionID') IS NOT NULL
+BEGIN
+	ALTER TABLE tblPremium DROP COLUMN ReportingCommisionID
+END
+GO
 -- end of 0tc 161
 IF TYPE_ID(N'xtblUserRole') IS NULL
 BEGIN

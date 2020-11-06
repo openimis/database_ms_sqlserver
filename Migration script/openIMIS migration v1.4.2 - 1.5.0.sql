@@ -1,6 +1,5 @@
 ﻿--- MIGRATION Script from v1.4.2 - v1.5.0
 
-
 -- OTC-111: Changing the logic of user Roles
 
 IF COL_LENGTH('tblUserRole', 'Assign') IS NULL

@@ -1,5 +1,10 @@
-﻿--- MIGRATION Script from v1.4.2 - v1.5.0
+﻿--- MIGRATION Script from v1.4.2 onward
 
+------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
+---------------------------- Structural changes ------------------------------------------
+------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
 
 -- OTC-111: Changing the logic of user Roles
 
@@ -34,7 +39,8 @@ BEGIN
 	ALTER TABLE tblPremium DROP COLUMN ReportingCommisionID
 END
 GO
--- end of 0tc 161
+-- end of OTC 161
+
 IF TYPE_ID(N'xtblUserRole') IS NULL
 BEGIN
 	CREATE TYPE [dbo].[xtblUserRole] AS TABLE(
@@ -61,16 +67,58 @@ END
 GO
 
 -- OTC-67: RFC-116 New state of policies
---OP-190: BEPHA Policies App: Marital Status shows "-- Select Status--"
-
 IF COL_LENGTH('tblIMISDefaults', 'ActivationOption') IS NULL
 BEGIN
 	ALTER TABLE tblIMISDefaults ADD ActivationOption tinyint NOT NULL 
 	CONSTRAINT ActivationOptionDefaultConstraint DEFAULT 2 
 	WITH VALUES
 END
-
 GO
+
+--OTC-149: Cannot access to report page 
+IF COL_LENGTH('tblReporting', 'Scope') IS NULL
+BEGIN
+	ALTER TABLE tblReporting ADD [Scope] [int] NULL
+END 
+GO
+
+ALTER VIEW [dbo].[uvwLocations]
+AS
+	SELECT 0 LocationId, null VillageId, null VillageName,NULL VillageCode, null WardId, null WardName,NULL WardCode, null DistrictId,null DistrictName, NULL DistrictCode, NULL RegionId, N'National' RegionName, null RegionCode, 0 ParentLocationId
+	UNION ALL
+	SELECT lUv.LocationId, lUv.LocationId VillageId, lUv.LocationName VillageName,luv.LocationCode VillageCode, luw.LocationId WardId, luw.LocationName WardName,luw.LocationCode WardCode, lUD.LocationId DistrictId, lUD.LocationName DistrictName, lud.LocationCode DistrictCode, LUR.LocationId RegionId, LUR.LocationName RegionName , lur.LocationCode RegionCode, LUv.ParentLocationId  FROM tblLocations LUR
+	INNER JOIN tblLocations lud  on lUR.LocationId = LUD.ParentLocationId and LUD.ValidityTo is null and LUD.LocationType = 'D' 
+	INNER JOIN tblLocations luw  on lUD.LocationId = LUW.ParentLocationId and LUW.ValidityTo is null and LUW.LocationType = 'W' 
+	INNER JOIN tblLocations luv  on luw.LocationId = LUv.ParentLocationId and LUv.ValidityTo is null and LUv.LocationType = 'V' 
+	WHERE LUR.ValidityTo is null and LUR.LocationType = 'R'
+	UNION ALL
+	SELECT lUd.LocationId, null VillageId, null VillageName,NULL VillageCode, luw.LocationId WardId, luw.LocationName WardName,luw.LocationCode WardCode,lUD.LocationId DistrictId, lUD.LocationName DistrictName, lud.LocationCode DistrictCode, LUR.LocationId RegionId, LUR.LocationName RegionName , lur.LocationCode RegionCode, LUw.ParentLocationId FROM tblLocations LUR
+	INNER JOIN tblLocations lud  on lUR.LocationId = LUD.ParentLocationId and LUD.ValidityTo is null and LUD.LocationType = 'D' 
+	INNER JOIN tblLocations luw  on lUD.LocationId = LUW.ParentLocationId and LUW.ValidityTo is null and LUW.LocationType = 'W' 
+	WHERE LUR.ValidityTo is null and LUR.LocationType = 'R'
+	UNION ALL
+	SELECT lUd.LocationId, null VillageId, null VillageName,NULL VillageCode, null WardId, null WardName,NULL WardCode,lUD.LocationId DistrictId, lUD.LocationName DistrictName,lud.LocationCode DistrictCode, LUR.LocationId RegionId, LUR.LocationName RegionName , lur.LocationCode RegionCode, LUD.ParentLocationId FROM tblLocations LUR
+	INNER JOIN tblLocations lud  on lUR.LocationId = LUD.ParentLocationId and LUD.ValidityTo is null and LUD.LocationType = 'D' 
+	WHERE LUR.ValidityTo is null and LUR.LocationType = 'R'
+	UNION ALL
+	SELECT lUr.LocationId, null VillageId, null VillageName,NULL VillageCode, null WardId, null WardName,NULL WardCode, null DistrictId,null DistrictName, NULL DistrictCode, LUR.LocationId RegionId, LUR.LocationName RegionName, lur.LocationCode RegionCode, 0 ParentLocationId FROM tblLocations LUR
+	WHERE LUR.ValidityTo is null and LUR.LocationType = 'R'
+
+Go
+
+-- Missing column in tblProduct
+IF COL_LENGTH('tblProduct', 'Recurrence') IS NULL
+BEGIN
+	ALTER TABLE tblProduct ADD Recurrence tinyint NULL 
+END
+GO
+
+------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
+------------------------------- Stored Procedures ----------------------------------------
+------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
+
 
 -- OTC-144: Modify a member or family fails   
 
@@ -1329,39 +1377,49 @@ GO
 UPDATE tblInsuree SET Marital = null Where Marital = '';
 
 -- OP-238: Discrepancy in reporting of IMIS Policies
-INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) 
-SELECT role.RoleID, 131201, CURRENT_TIMESTAMP, NULL, NULL, NULL 
-from tblRole role where IsSystem=1;
+DECLARE @SystemRole INT
+SELECT @SystemRole = role.RoleID from tblRole role where IsSystem=1;
 
-INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) 
-SELECT role.RoleID, 131200, CURRENT_TIMESTAMP, NULL, NULL, NULL 
-from tblRole role where IsSystem=1;
+IF NOT EXISTS (SELECT * FROM [tblRoleRight] WHERE [RoleID] = @SystemRole AND [RightID] = 131201)
+BEGIN
+	INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) 
+	VALUES (@SystemRole, 131201, CURRENT_TIMESTAMP, NULL, NULL, NULL)
+END
+
+IF NOT EXISTS (SELECT * FROM [tblRoleRight] WHERE [RoleID] = @SystemRole AND [RightID] = 131200)
+BEGIN
+	INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) 
+	VALUES (@SystemRole, 131200, CURRENT_TIMESTAMP, NULL, NULL, NULL)
+END
 GO
 
 -- OTC-49: The system role Claim Administrator role doesn't have the required rights
-INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) 
-SELECT role.RoleID, 101001, CURRENT_TIMESTAMP, NULL, NULL, NULL 
-from tblRole role where IsSystem=256;
+DECLARE @SystemRole INT
+SELECT @SystemRole = role.RoleID from tblRole role where IsSystem=256;
 
-INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) 
-SELECT role.RoleID, 101101, CURRENT_TIMESTAMP, NULL, NULL, NULL 
-from tblRole role where IsSystem=256;
-
-INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) 
-SELECT role.RoleID, 101201, CURRENT_TIMESTAMP, NULL, NULL, NULL 
-from tblRole role where IsSystem=256;
-
-INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) 
-SELECT role.RoleID, 111012, CURRENT_TIMESTAMP, NULL, NULL, NULL 
-from tblRole role where IsSystem=256;
-
---OTC-149: Cannot access to report page 
-IF COL_LENGTH('tblReporting', 'Scope') IS NULL
+IF NOT EXISTS (SELECT * FROM [tblRoleRight] WHERE [RoleID] = @SystemRole AND [RightID] = 101001)
 BEGIN
-	ALTER TABLE tblReporting ADD [Scope] [int] NULL
+	INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom]) 
+	VALUES (@SystemRole, 101001, CURRENT_TIMESTAMP)
 END 
-GO
 
+IF NOT EXISTS (SELECT * FROM [tblRoleRight] WHERE [RoleID] = @SystemRole AND [RightID] = 101101)
+BEGIN
+	INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom]) 
+	VALUES (@SystemRole, 101101, CURRENT_TIMESTAMP)
+END 
+
+IF NOT EXISTS (SELECT * FROM [tblRoleRight] WHERE [RoleID] = @SystemRole AND [RightID] = 101201)
+BEGIN
+	INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom]) 
+	VALUES (@SystemRole, 101201, CURRENT_TIMESTAMP)
+END 
+
+IF NOT EXISTS (SELECT * FROM [tblRoleRight] WHERE [RoleID] = @SystemRole AND [RightID] = 111012)
+BEGIN
+	INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom]) 
+	VALUES (@SystemRole, 111012, CURRENT_TIMESTAMP)
+END 
 
 -- OP-141: Fixing uspSSRSCapitationPayment stored procedure
 
@@ -1731,6 +1789,13 @@ BEGIN
 END
 GO
 
+
+------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
+------------------------------- Indexes ----------------------------------------
+------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
+
 BEGIN TRY
 	BEGIN TRANSACTION; 
 	CREATE NONCLUSTERED INDEX NCI_HF_ValidityTo ON tblHF(ValidityTo)
@@ -2055,36 +2120,15 @@ END CATCH
 
 
 Go
-ALTER VIEW [dbo].[uvwLocations]
-AS
-	SELECT 0 LocationId, null VillageId, null VillageName,NULL VillageCode, null WardId, null WardName,NULL WardCode, null DistrictId,null DistrictName, NULL DistrictCode, NULL RegionId, N'National' RegionName, null RegionCode, 0 ParentLocationId
-	UNION ALL
-	SELECT lUv.LocationId, lUv.LocationId VillageId, lUv.LocationName VillageName,luv.LocationCode VillageCode, luw.LocationId WardId, luw.LocationName WardName,luw.LocationCode WardCode, lUD.LocationId DistrictId, lUD.LocationName DistrictName, lud.LocationCode DistrictCode, LUR.LocationId RegionId, LUR.LocationName RegionName , lur.LocationCode RegionCode, LUv.ParentLocationId  FROM tblLocations LUR
-	INNER JOIN tblLocations lud  on lUR.LocationId = LUD.ParentLocationId and LUD.ValidityTo is null and LUD.LocationType = 'D' 
-	INNER JOIN tblLocations luw  on lUD.LocationId = LUW.ParentLocationId and LUW.ValidityTo is null and LUW.LocationType = 'W' 
-	INNER JOIN tblLocations luv  on luw.LocationId = LUv.ParentLocationId and LUv.ValidityTo is null and LUv.LocationType = 'V' 
-	WHERE LUR.ValidityTo is null and LUR.LocationType = 'R'
-	UNION ALL
-	SELECT lUd.LocationId, null VillageId, null VillageName,NULL VillageCode, luw.LocationId WardId, luw.LocationName WardName,luw.LocationCode WardCode,lUD.LocationId DistrictId, lUD.LocationName DistrictName, lud.LocationCode DistrictCode, LUR.LocationId RegionId, LUR.LocationName RegionName , lur.LocationCode RegionCode, LUw.ParentLocationId FROM tblLocations LUR
-	INNER JOIN tblLocations lud  on lUR.LocationId = LUD.ParentLocationId and LUD.ValidityTo is null and LUD.LocationType = 'D' 
-	INNER JOIN tblLocations luw  on lUD.LocationId = LUW.ParentLocationId and LUW.ValidityTo is null and LUW.LocationType = 'W' 
-	WHERE LUR.ValidityTo is null and LUR.LocationType = 'R'
-	UNION ALL
-	SELECT lUd.LocationId, null VillageId, null VillageName,NULL VillageCode, null WardId, null WardName,NULL WardCode,lUD.LocationId DistrictId, lUD.LocationName DistrictName,lud.LocationCode DistrictCode, LUR.LocationId RegionId, LUR.LocationName RegionName , lur.LocationCode RegionCode, LUD.ParentLocationId FROM tblLocations LUR
-	INNER JOIN tblLocations lud  on lUR.LocationId = LUD.ParentLocationId and LUD.ValidityTo is null and LUD.LocationType = 'D' 
-	WHERE LUR.ValidityTo is null and LUR.LocationType = 'R'
-	UNION ALL
-	SELECT lUr.LocationId, null VillageId, null VillageName,NULL VillageCode, null WardId, null WardName,NULL WardCode, null DistrictId,null DistrictName, NULL DistrictCode, LUR.LocationId RegionId, LUR.LocationName RegionName, lur.LocationCode RegionCode, 0 ParentLocationId FROM tblLocations LUR
-	WHERE LUR.ValidityTo is null and LUR.LocationType = 'R'
-
-Go
 
 -- FIX MISSING DETAILS (ONLY REJECTED SHOWED) - otc-45 RELATED
 
 -----
+IF OBJECT_ID('uspSSRSPremiumCollection', 'P') IS NOT NULL
+    DROP PROCEDURE uspSSRSPremiumCollection
+GO
 
-
-	ALTER PROCEDURE [dbo].[uspSSRSPremiumCollection]
+CREATE PROCEDURE [dbo].[uspSSRSPremiumCollection]
 	(
 		@LocationId INT = 0,
 		@Product INT = 0,
@@ -2120,7 +2164,12 @@ Go
 	        GROUP BY LF.RegionName, LF.DistrictName, Prod.ProductCode,Prod.ProductName,Pr.PayDate,Pr.PayType,Prod.AccCodePremiums, PT.Name
 	END
 GO
-	ALTER PROCEDURE [dbo].[uspSSRSProductSales]
+
+IF OBJECT_ID('uspSSRSProductSales', 'P') IS NOT NULL
+    DROP PROCEDURE uspSSRSProductSales
+GO
+
+	CREATE PROCEDURE [dbo].[uspSSRSProductSales]
 	(
 		@LocationId INT = 0,
 		@Product INT = 0,
@@ -2145,7 +2194,12 @@ GO
 		GROUP BY L.DistrictName,Prod.ProductCode,Prod.ProductName,PL.EffectiveDate
 	END
 GO
-	ALTER PROCEDURE [dbo].[uspSSRSPremiumDistribution]
+
+IF OBJECT_ID('uspSSRSPremiumDistribution', 'P') IS NOT NULL
+    DROP PROCEDURE uspSSRSPremiumDistribution
+GO
+
+	CREATE PROCEDURE [dbo].[uspSSRSPremiumDistribution]
 	(
 		@Month INT,
 		@Year INT,
@@ -2284,7 +2338,12 @@ GO
 		SELECT MonthId, DistrictName,ProductCode,ProductName,TotalCollected,NotAllocated,Allocated FROM #tmpResult
 	END
 GO
-	ALTER PROCEDURE [dbo].[uspSSRSFeedbackPrompt]
+	
+IF OBJECT_ID('uspSSRSFeedbackPrompt', 'P') IS NOT NULL
+    DROP PROCEDURE uspSSRSFeedbackPrompt
+GO
+
+CREATE PROCEDURE [dbo].[uspSSRSFeedbackPrompt]
 	(
 		@SMSStatus INT = 0,
 		@LocationId INT = 0,
@@ -2332,7 +2391,12 @@ GO
 		FP.FeedbackPromptDate,FP.ClaimID,C.ClaimCode, HF.HFCode, HF.HFName, I.CHFID, I.OtherNames, I.LastName, ICD.ICDName, C.DateFrom, C.DateTo,FP.SMSStatus,C.Claimed
 	END
 GO
-	ALTER PROCEDURE [dbo].[uspSSRSProcessBatch] 
+
+IF OBJECT_ID('uspSSRSProcessBatch', 'P') IS NOT NULL
+    DROP PROCEDURE uspSSRSProcessBatch
+GO
+
+CREATE PROCEDURE [dbo].[uspSSRSProcessBatch] 
 	(
 		@LocationId INT = 0,
 		@ProdID INT = 0,
@@ -2401,7 +2465,12 @@ GO
 	END
 
 GO
-	ALTER PROCEDURE [dbo].[uspSSRSPrimaryIndicators1] 
+
+IF OBJECT_ID('uspSSRSPrimaryIndicators1', 'P') IS NOT NULL
+    DROP PROCEDURE uspSSRSPrimaryIndicators1
+GO
+
+CREATE PROCEDURE [dbo].[uspSSRSPrimaryIndicators1] 
 	(
 		@LocationId INT = 0,
 		@ProductID INT = 0,
@@ -2560,7 +2629,12 @@ DECLARE @LastDay DATE
 
 	END
 GO
-	ALTER PROCEDURE [dbo].[uspSSRSPrimaryIndicators2]
+
+IF OBJECT_ID('uspSSRSPrimaryIndicators2', 'P') IS NOT NULL
+    DROP PROCEDURE uspSSRSPrimaryIndicators2
+GO
+
+CREATE PROCEDURE [dbo].[uspSSRSPrimaryIndicators2]
 	(
 		@LocationId INT = 0,
 		@ProductID INT = 0,
@@ -2642,7 +2716,12 @@ GO
 		ORDER BY MonthNo
 	END
 GO
-	ALTER PROCEDURE [dbo].[uspSSRSDerivedIndicators1]
+
+IF OBJECT_ID('uspSSRSDerivedIndicators1', 'P') IS NOT NULL
+    DROP PROCEDURE uspSSRSDerivedIndicators1
+GO
+
+CREATE PROCEDURE [dbo].[uspSSRSDerivedIndicators1]
 	(
 		@ProductID INT = 0,
 		@LocationId INT = 0,
@@ -2746,7 +2825,12 @@ GO
 	END
 
 GO
-	ALTER PROCEDURE [dbo].[uspSSRSDerivedIndicators2]
+
+IF OBJECT_ID('uspSSRSDerivedIndicators2', 'P') IS NOT NULL
+    DROP PROCEDURE uspSSRSDerivedIndicators2
+GO
+
+CREATE PROCEDURE [dbo].[uspSSRSDerivedIndicators2]
 	(
 		@LocationId INT = 0,
 		@ProductID INT = 0,
@@ -2846,7 +2930,12 @@ GO
 	END
 
 GO
-	ALTER PROCEDURE [dbo].[uspSSRSUserLogReport]
+
+IF OBJECT_ID('uspSSRSUserLogReport', 'P') IS NOT NULL
+    DROP PROCEDURE uspSSRSUserLogReport
+GO
+
+CREATE PROCEDURE [dbo].[uspSSRSUserLogReport]
 	(
 		@UserId INT = NULL,
 		@FromDate DATETIME,
@@ -3332,7 +3421,12 @@ GO
 		ORDER BY ActionTime
 	END
 GO
-	ALTER PROCEDURE [dbo].[uspSSRSStatusRegister]
+
+IF OBJECT_ID('uspSSRSStatusRegister', 'P') IS NOT NULL
+    DROP PROCEDURE uspSSRSStatusRegister
+GO
+
+CREATE PROCEDURE [dbo].[uspSSRSStatusRegister]
 	(
 		@LocationId INT = 0
 	)
@@ -3496,7 +3590,12 @@ GO
 	    END
 	END
 GO
-	ALTER PROCEDURE [dbo].[uspSSRSPaymentCategoryOverview]
+
+IF OBJECT_ID('uspSSRSPaymentCategoryOverview', 'P') IS NOT NULL
+    DROP PROCEDURE uspSSRSPaymentCategoryOverview
+GO
+
+CREATE PROCEDURE [dbo].[uspSSRSPaymentCategoryOverview]
 	(
 		@DateFrom DATE,
 		@DateTo DATE,
@@ -3562,7 +3661,12 @@ GO
 	    GROUP BY Prod.ProdId, Prod.ProductCode, Prod.ProductName, D.DistrictName
 	END
 GO
-	ALTER PROCEDURE [dbo].[uspSSRSGetMatchingFunds]
+
+IF OBJECT_ID('uspSSRSGetMatchingFunds', 'P') IS NOT NULL
+    DROP PROCEDURE uspSSRSGetMatchingFunds
+GO
+
+CREATE PROCEDURE [dbo].[uspSSRSGetMatchingFunds]
 	(
 		@LocationId INT = NULL, 
 		@ProdId INT = NULL,
@@ -3656,7 +3760,12 @@ GO
 	    SET @ErrorMessage = N''
 	END
 Go
-	ALTER PROCEDURE [dbo].[uspSSRSGetClaimOverview]
+
+IF OBJECT_ID('uspSSRSGetClaimOverview', 'P') IS NOT NULL
+    DROP PROCEDURE uspSSRSGetClaimOverview
+GO
+
+CREATE PROCEDURE [dbo].[uspSSRSGetClaimOverview]
 	(
 		@HFID INT,	
 		@LocationId INT,
@@ -3753,7 +3862,12 @@ Go
 		OR COALESCE(CS.ProdID, CI.ProdId) IS NULL OR @ProdId = 0)
 	END
 Go
-	ALTER PROCEDURE [dbo].[uspSSRSProcessBatchWithClaim]
+
+IF OBJECT_ID('uspSSRSProcessBatchWithClaim', 'P') IS NOT NULL
+    DROP PROCEDURE uspSSRSProcessBatchWithClaim
+GO
+
+CREATE PROCEDURE [dbo].[uspSSRSProcessBatchWithClaim]
 	(
 		@LocationId INT = 0,
 		@ProdId INT = 0,
@@ -3822,7 +3936,12 @@ Go
 	    D.DistrictId, D.DistrictName, R.RegionId, R.RegionName
 	END
 Go
-	ALTER PROCEDURE [dbo].[uspSSRSEnroledFamilies]
+
+IF OBJECT_ID('uspSSRSEnroledFamilies', 'P') IS NOT NULL
+    DROP PROCEDURE uspSSRSEnroledFamilies
+GO
+
+CREATE PROCEDURE [dbo].[uspSSRSEnroledFamilies]
 	(
 		@LocationId INT,
 		@StartDate DATE,
@@ -3876,7 +3995,12 @@ Go
 		ORDER BY MainDetails.LocationId;
 	END
 Go
-	ALTER PROCEDURE [dbo].[uspSSRSOverviewOfCommissions]
+
+IF OBJECT_ID('uspSSRSOverviewOfCommissions', 'P') IS NOT NULL
+    DROP PROCEDURE uspSSRSOverviewOfCommissions
+GO
+
+CREATE PROCEDURE [dbo].[uspSSRSOverviewOfCommissions]
 	(
 		@Month INT,
 		@Year INT, 
@@ -4021,8 +4145,11 @@ Go
 	END
 Go
 
+IF OBJECT_ID('uspSSRSGetClaimHistory', 'P') IS NOT NULL
+    DROP PROCEDURE uspSSRSGetClaimHistory
+GO
 
-	CREATE PROCEDURE [dbo].[uspSSRSGetClaimHistory]
+CREATE PROCEDURE [dbo].[uspSSRSGetClaimHistory]
 	(
 		@HFID INT,
 		@LocationId INT,
@@ -4122,31 +4249,25 @@ Go
 
 
 -- OTC-144: Set isOffline status to 0 for insurees in database 
-UPDATE tblInsuree SET isOffline=0 
-	WHERE (SELECT 1 FROM tblIMISDefaults where OfflineCHF = 1 And OfflineHF = 1) is null;
-
-UPDATE tblFamilies SET isOffline=0 
-	WHERE (SELECT 1 FROM tblIMISDefaults where OfflineCHF = 1 And OfflineHF = 1) is null;
-
-UPDATE tblInsureePolicy SET isOffline=0 
-	WHERE (SELECT 1 FROM tblIMISDefaults where OfflineCHF = 1 And OfflineHF = 1) is null;
-
-UPDATE tblPremium SET isOffline=0
-	WHERE (SELECT 1 FROM tblIMISDefaults where OfflineCHF = 1 And OfflineHF = 1) is null;
-
-UPDATE tblPolicy SET isOffline=0
-	WHERE (SELECT 1 FROM tblIMISDefaults where OfflineCHF = 1 And OfflineHF = 1) is null;
-
+IF NOT EXISTS (SELECT 1 FROM tblIMISDefaults where OfflineCHF = 1 OR OfflineHF = 1)
+BEGIN
+	UPDATE tblInsuree SET isOffline=0 
+	UPDATE tblFamilies SET isOffline=0 
+	UPDATE tblInsureePolicy SET isOffline=0 
+	UPDATE tblPremium SET isOffline=0
+	UPDATE tblPolicy SET isOffline=0
+END 
 
 -- ready status support
+IF OBJECT_ID('uspMatchPayment', 'P') IS NOT NULL
+    DROP PROCEDURE uspMatchPayment
+GO
 
-
-/****** Object:  StoredProcedure [dbo].[uspMatchPayment]    Script Date: 11/4/2020 3:19:16 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-ALTER PROCEDURE [dbo].[uspMatchPayment]
+CREATE PROCEDURE [dbo].[uspMatchPayment]
 	@PaymentID INT = NULL,
 	@AuditUserId INT = NULL
 AS

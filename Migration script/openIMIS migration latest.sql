@@ -15,6 +15,7 @@ BEGIN
 	WITH VALUES
 END
 GO
+
 IF TYPE_ID(N'xClaimRejReasons') IS NULL
 BEGIN
 CREATE TYPE [dbo].[xClaimRejReasons] AS TABLE(
@@ -23,7 +24,7 @@ CREATE TYPE [dbo].[xClaimRejReasons] AS TABLE(
 )
 END
 GO
--- OTC-161: Commission repport error
+-- OP-275: Commission repport error
 IF COL_LENGTH('tblPremium', 'OverviewCommissionReport') IS NULL
 BEGIN
 	ALTER TABLE tblPremium ADD OverviewCommissionReport datetime NULL 
@@ -39,7 +40,6 @@ BEGIN
 	ALTER TABLE tblPremium DROP COLUMN ReportingCommisionID
 END
 GO
--- end of OTC 161
 
 IF TYPE_ID(N'xtblUserRole') IS NULL
 BEGIN
@@ -57,7 +57,6 @@ END
 GO
 
 -- OP-153: Additional items in the Reports section
-
 IF COL_LENGTH('tblReporting', 'ReportMode') IS NULL
 BEGIN
 	ALTER TABLE tblReporting ADD ReportMode int 
@@ -66,7 +65,7 @@ BEGIN
 END 
 GO
 
--- OTC-67: RFC-116 New state of policies
+-- OP-276: New state of policies
 IF COL_LENGTH('tblIMISDefaults', 'ActivationOption') IS NULL
 BEGIN
 	ALTER TABLE tblIMISDefaults ADD ActivationOption tinyint NOT NULL 
@@ -120,7 +119,7 @@ GO
 ------------------------------------------------------------------------------------------
 
 
--- OTC-144: Modify a member or family fails   
+-- OP-277: Modify a member or family fails   
 
 IF OBJECT_ID('uspConsumeEnrollments', 'P') IS NOT NULL
     DROP PROCEDURE uspConsumeEnrollments
@@ -1393,7 +1392,7 @@ BEGIN
 END
 GO
 
--- OTC-49: The system role Claim Administrator role doesn't have the required rights
+-- OP-278: The system role Claim Administrator role doesn't have the required rights
 DECLARE @SystemRole INT
 SELECT @SystemRole = role.RoleID from tblRole role where IsSystem=256;
 
@@ -1428,7 +1427,11 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-ALTER PROCEDURE [dbo].[uspSSRSCapitationPayment]
+IF OBJECT_ID('uspSSRSCapitationPayment', 'P') IS NOT NULL
+    DROP PROCEDURE uspSSRSCapitationPayment
+GO
+
+CREATE PROCEDURE [dbo].[uspSSRSCapitationPayment]
 
 (
 	@RegionId INT = NULL,
@@ -2115,15 +2118,9 @@ BEGIN TRY
 END TRY
 BEGIN CATCH  
 END CATCH  
+GO
 
--- uvwLocations without using other view
-
-
-Go
-
--- FIX MISSING DETAILS (ONLY REJECTED SHOWED) - otc-45 RELATED
-
------
+-- OP-280: FIX MISSING DETAILS (ONLY REJECTED SHOWED) - otc-45 RELATED
 IF OBJECT_ID('uspSSRSPremiumCollection', 'P') IS NOT NULL
     DROP PROCEDURE uspSSRSPremiumCollection
 GO
@@ -2156,13 +2153,13 @@ CREATE PROCEDURE [dbo].[uspSSRSPremiumCollection]
 	        AND PR.ValidityTo IS NULL 
 	        AND F.ValidityTo  IS NULL
 	
-	        AND (Prod.ProdId = @Product OR @Product = 0)
-	        AND (Pr.PayType = @PaymentType OR @PaymentType = '')
-	        AND Pr.PayDate BETWEEN @FromDate AND @ToDate
-	        AND (LF.RegionId = @LocationId OR LF.DistrictId = @LocationId OR    @LocationId =0 ) --OR ISNULL(Prod.LocationId, 0) = ISNULL(@LocationId, 0) BY Rogers
+	    AND (Prod.ProdId = @Product OR @Product = 0)
+	    AND (Pr.PayType = @PaymentType OR @PaymentType = '')
+	    AND Pr.PayDate BETWEEN @FromDate AND @ToDate
+	    AND (LF.RegionId = @LocationId OR LF.DistrictId = @LocationId OR    @LocationId =0 ) --OR ISNULL(Prod.LocationId, 0) = ISNULL(@LocationId, 0) BY Rogers
 	
-	        GROUP BY LF.RegionName, LF.DistrictName, Prod.ProductCode,Prod.ProductName,Pr.PayDate,Pr.PayType,Prod.AccCodePremiums, PT.Name
-	END
+	    GROUP BY LF.RegionName, LF.DistrictName, Prod.ProductCode,Prod.ProductName,Pr.PayDate,Pr.PayType,Prod.AccCodePremiums, PT.Name
+END
 GO
 
 IF OBJECT_ID('uspSSRSProductSales', 'P') IS NOT NULL
@@ -2420,50 +2417,50 @@ CREATE PROCEDURE [dbo].[uspSSRSProcessBatch]
 	        SET @DateTo = N'3000-12-31'
         END
 
-        ;WITH CDetails AS
-	        (
-		        SELECT CI.ClaimId, CI.ProdId,
-		        SUM(ISNULL(CI.PriceApproved, CI.PriceAsked) * ISNULL(CI.QtyApproved, CI.QtyProvided)) PriceApproved,
-		        SUM(CI.PriceValuated) PriceAdjusted, SUM(CI.RemuneratedAmount)RemuneratedAmount
-		        FROM tblClaimItems CI
-		        WHERE CI.ValidityTo IS NULL
-		        AND CI.ClaimItemStatus = 1
-		        GROUP BY CI.ClaimId, CI.ProdId
-		        UNION ALL
 
-		        SELECT CS.ClaimId, CS.ProdId,
-		        SUM(ISNULL(CS.PriceApproved, CS.PriceAsked) * ISNULL(CS.QtyApproved, CS.QtyProvided)) PriceApproved,
-		        SUM(CS.PriceValuated) PriceValuated, SUM(CS.RemuneratedAmount) RemuneratedAmount
+    ;WITH CDetails AS
+	    (
+		    SELECT CI.ClaimId, CI.ProdId,
+		    SUM(ISNULL(CI.PriceApproved, CI.PriceAsked) * ISNULL(CI.QtyApproved, CI.QtyProvided)) PriceApproved,
+		    SUM(CI.PriceValuated) PriceAdjusted, SUM(CI.RemuneratedAmount)RemuneratedAmount
+		    FROM tblClaimItems CI
+		    WHERE CI.ValidityTo IS NULL
+		    AND CI.ClaimItemStatus = 1
+		    GROUP BY CI.ClaimId, CI.ProdId
+		    UNION ALL
 
-		        FROM tblClaimServices CS
-		        WHERE CS.ValidityTo IS NULL
-		        AND CS.ClaimServiceStatus = 1
-		        GROUP BY CS.CLaimId, CS.ProdId
-	        )
-		SELECT R.RegionName, D.DistrictName, HF.HFCode, HF.HFName, Prod.ProductCode, Prod.ProductName, SUM(CDetails.RemuneratedAmount)Remunerated, Prod.AccCodeRemuneration, HF.AccCode
+		    SELECT CS.ClaimId, CS.ProdId,
+		    SUM(ISNULL(CS.PriceApproved, CS.PriceAsked) * ISNULL(CS.QtyApproved, CS.QtyProvided)) PriceApproved,
+		    SUM(CS.PriceValuated) PriceValuated, SUM(CS.RemuneratedAmount) RemuneratedAmount
 
-		FROM tblClaim C
-		INNER JOIN tblInsuree I ON I.InsureeId = C.InsureeID
-		INNER JOIN tblHF HF ON HF.HFID = C.HFID
-		INNER JOIN CDetails ON CDetails.ClaimId = C.ClaimID
-		INNER JOIN tblProduct Prod ON Prod.ProdId = CDetails.ProdID
-		INNER JOIN tblFamilies F ON F.FamilyId = I.FamilyID
-		INNER JOIN tblVillages V ON V.VillageID = F.LocationId
-		INNER JOIN tblWards W ON W.WardId = V.WardId
-		INNER JOIN tblDistricts D ON D.DistrictID = W.DistrictId
-		INNER JOIN tblRegions R ON R.RegionId = D.Region
+		    FROM tblClaimServices CS
+		    WHERE CS.ValidityTo IS NULL
+		    AND CS.ClaimServiceStatus = 1
+		    GROUP BY CS.CLaimId, CS.ProdId
+	    )
+	SELECT R.RegionName, D.DistrictName, HF.HFCode, HF.HFName, Prod.ProductCode, Prod.ProductName, SUM(CDetails.RemuneratedAmount)Remunerated, Prod.AccCodeRemuneration, HF.AccCode
 
-		WHERE C.ValidityTo IS NULL
-		AND (Prod.LocationId = @LocationId OR @LocationId = 0 OR Prod.LocationId IS NULL)
-		AND(Prod.ProdId = @ProdId OR @ProdId = 0)
-		AND (C.RunId = @RunId OR @RunId = 0)
-		AND (HF.HFId = @HFID OR @HFId = 0)
-		AND (HF.HFLevel = @HFLevel OR @HFLevel = N'')
-		AND (C.DateTo BETWEEN @DateFrom AND @DateTo)
-		GROUP BY  R.RegionName,D.DistrictName, HF.HFCode, HF.HFName, Prod.ProductCode, Prod.ProductName, Prod.AccCodeRemuneration, HF.AccCode
-		HAVING SUM(CDetails.RemuneratedAmount) > @MinRemunerated
-	END
+	FROM tblClaim C
+	INNER JOIN tblInsuree I ON I.InsureeId = C.InsureeID
+	INNER JOIN tblHF HF ON HF.HFID = C.HFID
+	INNER JOIN CDetails ON CDetails.ClaimId = C.ClaimID
+	INNER JOIN tblProduct Prod ON Prod.ProdId = CDetails.ProdID
+	INNER JOIN tblFamilies F ON F.FamilyId = I.FamilyID
+	INNER JOIN tblVillages V ON V.VillageID = F.LocationId
+	INNER JOIN tblWards W ON W.WardId = V.WardId
+	INNER JOIN tblDistricts D ON D.DistrictID = W.DistrictId
+	INNER JOIN tblRegions R ON R.RegionId = D.Region
 
+	WHERE C.ValidityTo IS NULL
+	AND (Prod.LocationId = @LocationId OR @LocationId = 0 OR Prod.LocationId IS NULL)
+	AND(Prod.ProdId = @ProdId OR @ProdId = 0)
+	AND (C.RunId = @RunId OR @RunId = 0)
+	AND (HF.HFId = @HFID OR @HFId = 0)
+	AND (HF.HFLevel = @HFLevel OR @HFLevel = N'')
+	AND (C.DateTo BETWEEN @DateFrom AND @DateTo)
+	GROUP BY  R.RegionName,D.DistrictName, HF.HFCode, HF.HFName, Prod.ProductCode, Prod.ProductName, Prod.AccCodeRemuneration, HF.AccCode
+	HAVING SUM(CDetails.RemuneratedAmount) > @MinRemunerated
+END
 GO
 
 IF OBJECT_ID('uspSSRSPrimaryIndicators1', 'P') IS NOT NULL
@@ -2483,151 +2480,151 @@ CREATE PROCEDURE [dbo].[uspSSRSPrimaryIndicators1]
 	BEGIN
 DECLARE @LastDay DATE
 	
-	    IF @LocationId=-1
-	    	SET @LocationId=NULL
-	    IF NOT OBJECT_ID('tempdb..#tmpResult') IS NULL DROP TABLE #tmpResult
+	IF @LocationId=-1
+	    SET @LocationId=NULL
+	IF NOT OBJECT_ID('tempdb..#tmpResult') IS NULL DROP TABLE #tmpResult
 	
-	    CREATE TABLE #tmpResult(
-		    [Quarter] INT,
-		    NameOfTheMonth VARCHAR(15),
-		    OfficerCode VARCHAR(8),
-		    LastName NVARCHAR(50),
-		    OtherNames NVARCHAR(50),
-		    ProductCode NVARCHAR(8),
-		    ProductName NVARCHAR(100),
-		    NoOfPolicyMale INT,
-		    NoOfPolicyFemale INT,
-		    NoOfPolicyOther INT, -- bY Ruzo
-		    NoOfNewPolicyMale INT,
-		    NoOfNewPolicyFemale INT,
-		    NoOfNewPolicyOther INT, -- bY Ruzo
-		    NoOfSuspendedPolicy INT,
-		    NoOfExpiredPolicy INT,
-		    NoOfRenewPolicy INT,
-		    NoOfInsureeMale INT,
-		    NoOfInsureeFemale INT,
-		    NoOfInsureeOther INT, -- bY Ruzo
-		    NoOfNewInsureeMale INT,
-		    NoOfNewInsureeFemale INT,
-		    NoOfNewInsureeOther INT, -- bY Ruzo
-		    PremiumCollected DECIMAL(18,2),
-		    PremiumAvailable DECIMAL(18,2),
-		    MonthId INT,
-		    OfficerStatus CHAR(1)
-	    )	
+	CREATE TABLE #tmpResult(
+		[Quarter] INT,
+		NameOfTheMonth VARCHAR(15),
+		OfficerCode VARCHAR(8),
+		LastName NVARCHAR(50),
+		OtherNames NVARCHAR(50),
+		ProductCode NVARCHAR(8),
+		ProductName NVARCHAR(100),
+		NoOfPolicyMale INT,
+		NoOfPolicyFemale INT,
+		NoOfPolicyOther INT, -- bY Ruzo
+		NoOfNewPolicyMale INT,
+		NoOfNewPolicyFemale INT,
+		NoOfNewPolicyOther INT, -- bY Ruzo
+		NoOfSuspendedPolicy INT,
+		NoOfExpiredPolicy INT,
+		NoOfRenewPolicy INT,
+		NoOfInsureeMale INT,
+		NoOfInsureeFemale INT,
+		NoOfInsureeOther INT, -- bY Ruzo
+		NoOfNewInsureeMale INT,
+		NoOfNewInsureeFemale INT,
+		NoOfNewInsureeOther INT, -- bY Ruzo
+		PremiumCollected DECIMAL(18,2),
+		PremiumAvailable DECIMAL(18,2),
+		MonthId INT,
+		OfficerStatus CHAR(1)
+	)	
 	
-		DECLARE @Counter INT = 1
-		DECLARE @MaxCount INT = 12
+	DECLARE @Counter INT = 1
+	DECLARE @MaxCount INT = 12
 
-		IF @MonthFrom > 0
-			BEGIN
-				SET @Counter = @MonthFrom
-				SET @MaxCount = @MonthTo
-			END
-		
-		WHILE @Counter <> @MaxCount + 1
+	IF @MonthFrom > 0
 		BEGIN
-		
-			SET @LastDay = DATEADD(DAY,-1,DATEADD(MONTH,1,CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Counter AS VARCHAR(2)) + '-01'))
-			IF @Mode = 1
-				INSERT INTO #tmpResult
-				SELECT DATEPART(QQ,@LastDay) [Quarter],
-				CAST(YEAR(@LastDay) AS VARCHAR(4)) + ' ' + DATENAME(MONTH,@LastDay)NameOfTheMonth,NULL,NULL,NULL,MainInfo.ProductCode,MainInfo.ProductName,
-				TP.Male AS NoOfPolicyMale,
-				TP.Female AS NoOfPolicyFemale,
-				TP.Other AS NoOfPolicyOther,
-				NP.Male AS NoOfNewPolicyMale,
-				NP.Female AS NoOfNewPolicyFemale,
-				NP.Other AS NoOfNewPolicyOther,
-				SP.SuspendedPolicies NoOfSuspendedPolicy,
-				EP.ExpiredPolicies NoOfExpiredPolicy,
-				PR.Renewals NoOfRenewPolicy,
-				PIn.Male NoOfInsureeMale,Pin.Female NoOfInsureeFemale, PIn.Other NoOfInsureeOther,
-				NPI.Male NoOfNewInsureeMale, NPI.Female NoOfNewInsureeFemale, NPI.Other NoOfNewInsureeOther,
-				NPC.PremiumCollection PremiumCollected,
-				AP.Allocated PremiumAvailable,
-				@Counter MonthId,
-				NULL OfficerStatus
-
-				FROM 
-				(SELECT PR.ProdID,PR.ProductCode,PR.ProductName
-				FROM tblProduct PR 
-				--INNER JOIN uvwLocations L ON L.LocationId = ISNULL(PR.LocationId, 0) OR L.RegionId = PR.LocationId OR L.DistrictId= PR.LocationId
-				WHERE PR.ValidityTo IS NULL
-				--AND (PR.LocationId = @LocationId OR @LocationId = 0 OR PR.LocationId IS NULL)
-				AND (PR.ProdID = @ProductID OR @ProductID = 0)
-				--AND (L.LocationId = ISNULL(@LocationId, 0) OR ISNULL(@LocationId, 0) = 0)
-				)MainInfo LEFT OUTER JOIN
-				dbo.udfTotalPolicies(@ProductID,@LocationId,@LastDay,@Mode) TP ON MainInfo.ProdID = TP.ProdID LEFT OUTER JOIN
-				dbo.udfNewPolicies(@ProductID,@LocationId,@Counter,@Year,@Mode) NP ON MainInfo.ProdID = NP.ProdID LEFT OUTER JOIN
-				dbo.udfSuspendedPolicies(@ProductID,@LocationId,@Counter,@Year,@Mode)SP ON MainInfo.ProdID = SP.ProdID LEFT OUTER JOIN
-				dbo.udfExpiredPolicies(@ProductID,@LocationId,@Counter,@Year,@Mode)EP ON MainInfo.ProdID = EP.ProdID LEFT OUTER JOIN
-				dbo.udfPolicyRenewal(@ProductID,@LocationId,@Counter,@Year,@Mode) PR ON MainInfo.ProdID = PR.ProdID LEFT OUTER JOIN
-				dbo.udfPolicyInsuree(@ProductID,@LocationId,@lastDay,@Mode)PIn ON MainInfo.ProdID = PIn.ProdID LEFT OUTER JOIN
-				dbo.udfNewPolicyInsuree(@ProductID,@LocationId,@Counter,@Year,@Mode)NPI ON MainInfo.ProdID = NPI.ProdID LEFT OUTER JOIN
-				dbo.udfNewlyPremiumCollected(@ProductID,@LocationId,@Counter,@Year,@Mode)NPC ON MainInfo.ProdID = NPC.ProdID  LEFT OUTER JOIN
-				dbo.udfAvailablePremium(@ProductID,@LocationId,@Counter,@Year,@Mode)AP ON MainInfo.ProdID = AP.ProdID 
-			ELSE
-				INSERT INTO #tmpResult
-		
-				SELECT DATEPART(QQ,@LastDay) [Quarter],
-				CAST(YEAR(@LastDay) AS VARCHAR(4)) + ' ' + DATENAME(MONTH,@LastDay)NameOfTheMonth,MainInfo.Code,MainInfo.LastName,MainInfo.OtherNames,MainInfo.ProductCode,MainInfo.ProductName,
-				TP.Male AS NoOfPolicyMale,
-				TP.Female AS NoOfPolicyFemale,
-				TP.Other AS NoOfPolicyOther,
-				NP.Male AS NoOfNewPolicyMale,
-				NP.Female AS NoOfNewPolicyFemale,
-				NP.Other AS NoOfNewPolicyOther,
-				SP.SuspendedPolicies NoOfSuspendedPolicy,
-				EP.ExpiredPolicies NoOfExpiredPolicy,
-				PR.Renewals NoOfRenewPolicy,
-				PIn.Male NoOfInsureeMale,Pin.Female NoOfInsureeFemale, PIn.Other NoOfInsureeOther,
-				NPI.Male NoOfNewInsureeMale, NPI.Female NoOfNewInsureeFemale, NPI.Other NoOfNewInsureeOther,
-				NPC.PremiumCollection PremiumCollected,
-				AP.Allocated PremiumAvailable,
-				@Counter MonthId,
-				IIF(ISNULL(CAST(WorksTo AS DATE) , DATEADD(DAY, 1, GETDATE())) <= CAST(GETDATE() AS DATE), 'N', 'A')OfficerStatus
-
-				FROM 
-				(SELECT PR.ProdID,PR.ProductCode,PR.ProductName, o.code,O.LastName,O.OtherNames, O.WorksTo
-				FROM tblProduct PR 
-				INNER JOIN tblPolicy PL ON PR.ProdID = PL.ProdID
-				INNER JOIN tblFamilies F ON PL.FamilyID = F.FamilyID
-				INNER JOIN tblVillages V ON V.VillageId = F.LocationId
-				INNER JOIN tblWards W ON W.WardId = V.WardId
-				INNER JOIN tblDistricts D ON D.DistrictId = W.DistrictId
-				INNER JOIN (select OfficerID,code,LastName,OtherNames,LocationId,ValidityTo, WorksTo from tblOfficer) O on PL.OfficerID = O.OfficerID
-				WHERE pr.ValidityTo is null and o.ValidityTo is null
-				--AND (PR.LocationId = @LocationId OR @LocationId = 0 OR PR.LocationId IS NULL)
-				--AND (D.DistrictID = @LocationId OR @LocationId IS NULL)
-				AND (PR.ProdID = @ProductID OR @ProductID = 0)
-				AND PL.ValidityTo IS NULL --AND F.ValidityTo IS NULL
-				AND V.ValidityTO IS NULL
-				AND W.ValidityTo IS NULL
-				AND D.ValidityTo IS NULL
-				AND (D.Region = @LocationId OR D.DistrictId = @LocationId OR @LocationId = 0)
-				)MainInfo LEFT OUTER JOIN
-				dbo.udfTotalPolicies(@ProductID,@LocationId,@LastDay,@Mode) TP ON MainInfo.ProdID = TP.ProdID and (maininfo.Code = tp.Officer OR maininfo.Code = ISNULL(TP.Officer,0))  LEFT OUTER JOIN
-				dbo.udfNewPolicies(@ProductID,@LocationId,@Counter,@Year,@Mode) NP ON MainInfo.ProdID = NP.ProdID  and (maininfo.Code = np.Officer OR maininfo.Code = ISNULL(NP.Officer,0)) LEFT OUTER JOIN
-				dbo.udfSuspendedPolicies(@ProductID,@LocationId,@Counter,@Year,@Mode)SP ON MainInfo.ProdID = SP.ProdID  and (maininfo.Code = sp.Officer OR maininfo.Code = ISNULL(SP.Officer,0))LEFT OUTER JOIN
-				dbo.udfExpiredPolicies(@ProductID,@LocationId,@Counter,@Year,@Mode)EP ON MainInfo.ProdID = EP.ProdID and (maininfo.Code = ep.Officer OR maininfo.Code = ISNULL(EP.Officer,0)) LEFT OUTER JOIN
-				dbo.udfPolicyRenewal(@ProductID,@LocationId,@Counter,@Year,@Mode) PR ON MainInfo.ProdID = PR.ProdID and (maininfo.Code = pr.Officer OR maininfo.Code = ISNULL(PR.Officer,0)) LEFT OUTER JOIN
-				dbo.udfPolicyInsuree(@ProductID,@LocationId,@lastDay,@Mode)PIn ON MainInfo.ProdID = PIn.ProdID and (maininfo.Code = pin.Officer OR maininfo.Code = ISNULL(PIn.Officer,0)) LEFT OUTER JOIN
-				dbo.udfNewPolicyInsuree(@ProductID,@LocationId,@Counter,@Year,@Mode)NPI ON MainInfo.ProdID = NPI.ProdID and (maininfo.Code = npi.Officer OR maininfo.Code = ISNULL(NPI.Officer,0))LEFT OUTER JOIN
-				dbo.udfNewlyPremiumCollected(@ProductID,@LocationId,@Counter,@Year,@Mode)NPC ON MainInfo.ProdID = NPC.ProdID and (maininfo.Code = npc.Officer OR maininfo.Code = ISNULL(NPC.Officer,0)) LEFT OUTER JOIN
-				dbo.udfAvailablePremium(@ProductID,@LocationId,@Counter,@Year,@Mode)AP ON MainInfo.ProdID = AP.ProdID and (maininfo.Code = ap.Officer OR maininfo.Code = ISNULL(AP.Officer,0))
-
-			SET @Counter = @Counter + 1
-
+			SET @Counter = @MonthFrom
+			SET @MaxCount = @MonthTo
 		END
+		
+	WHILE @Counter <> @MaxCount + 1
+	BEGIN
+		
+		SET @LastDay = DATEADD(DAY,-1,DATEADD(MONTH,1,CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Counter AS VARCHAR(2)) + '-01'))
+		IF @Mode = 1
+			INSERT INTO #tmpResult
+			SELECT DATEPART(QQ,@LastDay) [Quarter],
+			CAST(YEAR(@LastDay) AS VARCHAR(4)) + ' ' + DATENAME(MONTH,@LastDay)NameOfTheMonth,NULL,NULL,NULL,MainInfo.ProductCode,MainInfo.ProductName,
+			TP.Male AS NoOfPolicyMale,
+			TP.Female AS NoOfPolicyFemale,
+			TP.Other AS NoOfPolicyOther,
+			NP.Male AS NoOfNewPolicyMale,
+			NP.Female AS NoOfNewPolicyFemale,
+			NP.Other AS NoOfNewPolicyOther,
+			SP.SuspendedPolicies NoOfSuspendedPolicy,
+			EP.ExpiredPolicies NoOfExpiredPolicy,
+			PR.Renewals NoOfRenewPolicy,
+			PIn.Male NoOfInsureeMale,Pin.Female NoOfInsureeFemale, PIn.Other NoOfInsureeOther,
+			NPI.Male NoOfNewInsureeMale, NPI.Female NoOfNewInsureeFemale, NPI.Other NoOfNewInsureeOther,
+			NPC.PremiumCollection PremiumCollected,
+			AP.Allocated PremiumAvailable,
+			@Counter MonthId,
+			NULL OfficerStatus
 
-	    SELECT * FROM #tmpResult
-	    GROUP BY [Quarter], NameOfTheMonth, OfficerCode, LastName, OtherNames,ProductCode, ProductName, NoOfPolicyMale, NoOfPolicyFemale,NoOfPolicyOther, NoOfNewPolicyMale,
-	    NoOfNewPolicyFemale,NoOfNewPolicyOther, NoOfSuspendedPolicy, NoOfExpiredPolicy, NoOfRenewPolicy, NoOfInsureeMale, NoOfInsureeFemale,NoOfInsureeOther, NoOfNewInsureeMale,
-	    NoOfNewInsureeFemale,NoOfNewInsureeOther, PremiumCollected, PremiumAvailable, MonthId, OfficerStatus
-      	ORDER BY MonthId
+			FROM 
+			(SELECT PR.ProdID,PR.ProductCode,PR.ProductName
+			FROM tblProduct PR 
+			--INNER JOIN uvwLocations L ON L.LocationId = ISNULL(PR.LocationId, 0) OR L.RegionId = PR.LocationId OR L.DistrictId= PR.LocationId
+			WHERE PR.ValidityTo IS NULL
+			--AND (PR.LocationId = @LocationId OR @LocationId = 0 OR PR.LocationId IS NULL)
+			AND (PR.ProdID = @ProductID OR @ProductID = 0)
+			--AND (L.LocationId = ISNULL(@LocationId, 0) OR ISNULL(@LocationId, 0) = 0)
+			)MainInfo LEFT OUTER JOIN
+			dbo.udfTotalPolicies(@ProductID,@LocationId,@LastDay,@Mode) TP ON MainInfo.ProdID = TP.ProdID LEFT OUTER JOIN
+			dbo.udfNewPolicies(@ProductID,@LocationId,@Counter,@Year,@Mode) NP ON MainInfo.ProdID = NP.ProdID LEFT OUTER JOIN
+			dbo.udfSuspendedPolicies(@ProductID,@LocationId,@Counter,@Year,@Mode)SP ON MainInfo.ProdID = SP.ProdID LEFT OUTER JOIN
+			dbo.udfExpiredPolicies(@ProductID,@LocationId,@Counter,@Year,@Mode)EP ON MainInfo.ProdID = EP.ProdID LEFT OUTER JOIN
+			dbo.udfPolicyRenewal(@ProductID,@LocationId,@Counter,@Year,@Mode) PR ON MainInfo.ProdID = PR.ProdID LEFT OUTER JOIN
+			dbo.udfPolicyInsuree(@ProductID,@LocationId,@lastDay,@Mode)PIn ON MainInfo.ProdID = PIn.ProdID LEFT OUTER JOIN
+			dbo.udfNewPolicyInsuree(@ProductID,@LocationId,@Counter,@Year,@Mode)NPI ON MainInfo.ProdID = NPI.ProdID LEFT OUTER JOIN
+			dbo.udfNewlyPremiumCollected(@ProductID,@LocationId,@Counter,@Year,@Mode)NPC ON MainInfo.ProdID = NPC.ProdID  LEFT OUTER JOIN
+			dbo.udfAvailablePremium(@ProductID,@LocationId,@Counter,@Year,@Mode)AP ON MainInfo.ProdID = AP.ProdID 
+		ELSE
+			INSERT INTO #tmpResult
+		
+			SELECT DATEPART(QQ,@LastDay) [Quarter],
+			CAST(YEAR(@LastDay) AS VARCHAR(4)) + ' ' + DATENAME(MONTH,@LastDay)NameOfTheMonth,MainInfo.Code,MainInfo.LastName,MainInfo.OtherNames,MainInfo.ProductCode,MainInfo.ProductName,
+			TP.Male AS NoOfPolicyMale,
+			TP.Female AS NoOfPolicyFemale,
+			TP.Other AS NoOfPolicyOther,
+			NP.Male AS NoOfNewPolicyMale,
+			NP.Female AS NoOfNewPolicyFemale,
+			NP.Other AS NoOfNewPolicyOther,
+			SP.SuspendedPolicies NoOfSuspendedPolicy,
+			EP.ExpiredPolicies NoOfExpiredPolicy,
+			PR.Renewals NoOfRenewPolicy,
+			PIn.Male NoOfInsureeMale,Pin.Female NoOfInsureeFemale, PIn.Other NoOfInsureeOther,
+			NPI.Male NoOfNewInsureeMale, NPI.Female NoOfNewInsureeFemale, NPI.Other NoOfNewInsureeOther,
+			NPC.PremiumCollection PremiumCollected,
+			AP.Allocated PremiumAvailable,
+			@Counter MonthId,
+			IIF(ISNULL(CAST(WorksTo AS DATE) , DATEADD(DAY, 1, GETDATE())) <= CAST(GETDATE() AS DATE), 'N', 'A')OfficerStatus
+
+			FROM 
+			(SELECT PR.ProdID,PR.ProductCode,PR.ProductName, o.code,O.LastName,O.OtherNames, O.WorksTo
+			FROM tblProduct PR 
+			INNER JOIN tblPolicy PL ON PR.ProdID = PL.ProdID
+			INNER JOIN tblFamilies F ON PL.FamilyID = F.FamilyID
+			INNER JOIN tblVillages V ON V.VillageId = F.LocationId
+			INNER JOIN tblWards W ON W.WardId = V.WardId
+			INNER JOIN tblDistricts D ON D.DistrictId = W.DistrictId
+			INNER JOIN (select OfficerID,code,LastName,OtherNames,LocationId,ValidityTo, WorksTo from tblOfficer) O on PL.OfficerID = O.OfficerID
+			WHERE pr.ValidityTo is null and o.ValidityTo is null
+			--AND (PR.LocationId = @LocationId OR @LocationId = 0 OR PR.LocationId IS NULL)
+			--AND (D.DistrictID = @LocationId OR @LocationId IS NULL)
+			AND (PR.ProdID = @ProductID OR @ProductID = 0)
+			AND PL.ValidityTo IS NULL --AND F.ValidityTo IS NULL
+			AND V.ValidityTO IS NULL
+			AND W.ValidityTo IS NULL
+			AND D.ValidityTo IS NULL
+			AND (D.Region = @LocationId OR D.DistrictId = @LocationId OR @LocationId = 0)
+			)MainInfo LEFT OUTER JOIN
+			dbo.udfTotalPolicies(@ProductID,@LocationId,@LastDay,@Mode) TP ON MainInfo.ProdID = TP.ProdID and (maininfo.Code = tp.Officer OR maininfo.Code = ISNULL(TP.Officer,0))  LEFT OUTER JOIN
+			dbo.udfNewPolicies(@ProductID,@LocationId,@Counter,@Year,@Mode) NP ON MainInfo.ProdID = NP.ProdID  and (maininfo.Code = np.Officer OR maininfo.Code = ISNULL(NP.Officer,0)) LEFT OUTER JOIN
+			dbo.udfSuspendedPolicies(@ProductID,@LocationId,@Counter,@Year,@Mode)SP ON MainInfo.ProdID = SP.ProdID  and (maininfo.Code = sp.Officer OR maininfo.Code = ISNULL(SP.Officer,0))LEFT OUTER JOIN
+			dbo.udfExpiredPolicies(@ProductID,@LocationId,@Counter,@Year,@Mode)EP ON MainInfo.ProdID = EP.ProdID and (maininfo.Code = ep.Officer OR maininfo.Code = ISNULL(EP.Officer,0)) LEFT OUTER JOIN
+			dbo.udfPolicyRenewal(@ProductID,@LocationId,@Counter,@Year,@Mode) PR ON MainInfo.ProdID = PR.ProdID and (maininfo.Code = pr.Officer OR maininfo.Code = ISNULL(PR.Officer,0)) LEFT OUTER JOIN
+			dbo.udfPolicyInsuree(@ProductID,@LocationId,@lastDay,@Mode)PIn ON MainInfo.ProdID = PIn.ProdID and (maininfo.Code = pin.Officer OR maininfo.Code = ISNULL(PIn.Officer,0)) LEFT OUTER JOIN
+			dbo.udfNewPolicyInsuree(@ProductID,@LocationId,@Counter,@Year,@Mode)NPI ON MainInfo.ProdID = NPI.ProdID and (maininfo.Code = npi.Officer OR maininfo.Code = ISNULL(NPI.Officer,0))LEFT OUTER JOIN
+			dbo.udfNewlyPremiumCollected(@ProductID,@LocationId,@Counter,@Year,@Mode)NPC ON MainInfo.ProdID = NPC.ProdID and (maininfo.Code = npc.Officer OR maininfo.Code = ISNULL(NPC.Officer,0)) LEFT OUTER JOIN
+			dbo.udfAvailablePremium(@ProductID,@LocationId,@Counter,@Year,@Mode)AP ON MainInfo.ProdID = AP.ProdID and (maininfo.Code = ap.Officer OR maininfo.Code = ISNULL(AP.Officer,0))
+
+		SET @Counter = @Counter + 1
 
 	END
+
+	SELECT * FROM #tmpResult
+	GROUP BY [Quarter], NameOfTheMonth, OfficerCode, LastName, OtherNames,ProductCode, ProductName, NoOfPolicyMale, NoOfPolicyFemale,NoOfPolicyOther, NoOfNewPolicyMale,
+	NoOfNewPolicyFemale,NoOfNewPolicyOther, NoOfSuspendedPolicy, NoOfExpiredPolicy, NoOfRenewPolicy, NoOfInsureeMale, NoOfInsureeFemale,NoOfInsureeOther, NoOfNewInsureeMale,
+	NoOfNewInsureeFemale,NoOfNewInsureeOther, PremiumCollected, PremiumAvailable, MonthId, OfficerStatus
+    ORDER BY MonthId
+
+END
 GO
 
 IF OBJECT_ID('uspSSRSPrimaryIndicators2', 'P') IS NOT NULL
@@ -2657,64 +2654,64 @@ CREATE PROCEDURE [dbo].[uspSSRSPrimaryIndicators2]
 			Remunerated DECIMAL(18,2),
 			RejectedClaims INT,
 			MonthNo INT
-		)
+	)
 
-        DECLARE @Counter INT = 1
-        DECLARE @MaxCount INT = 12
+    DECLARE @Counter INT = 1
+    DECLARE @MaxCount INT = 12
 
-        IF @MonthFrom > 0
-	        BEGIN
-		        SET @Counter = @MonthFrom
-		        SET @MaxCount = @MonthTo
-	        END
+    IF @MonthFrom > 0
+	    BEGIN
+		    SET @Counter = @MonthFrom
+		    SET @MaxCount = @MonthTo
+	    END
 	
-        IF @LocationId = -1
-        SET @LocationId = NULL
-        WHILE @Counter <> @MaxCount + 1
-        BEGIN
-		        DECLARE @LastDay DATE = DATEADD(DAY,-1,DATEADD(MONTH,1,CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Counter AS VARCHAR(2)) + '-01'))
+    IF @LocationId = -1
+    SET @LocationId = NULL
+    WHILE @Counter <> @MaxCount + 1
+    BEGIN
+		    DECLARE @LastDay DATE = DATEADD(DAY,-1,DATEADD(MONTH,1,CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Counter AS VARCHAR(2)) + '-01'))
 			
-		        INSERT INTO #tmpResult
-		        SELECT CAST(YEAR(@LastDay) AS VARCHAR(4)) + ' ' + DATENAME(MONTH,@LastDay),MainInfo.DistrictName,
-		        MainInfo.HFCode,MainInfo.HFName ,MainInfo.ProductCode , MainInfo.ProductName , 
-		        TC.TotalClaims TotalClaims,
-		        R.Remunerated Remunerated,
-		        RC.RejectedClaims RejectedClaims,
-		        DATEPART(MM,@LastDay) MonthNo --Added by Rogers On 19092017
-	        FROM
-	        (SELECT  DistrictName DistrictName,HF.HFID,HF.HFCode,HF.HFName,Prod.ProdID,Prod.ProductCode,Prod.ProductName
-	        FROM tblClaim C 
-	        INNER JOIN tblInsuree I ON C.InsureeID = I.InsureeID
-	        INNER JOIN tblHF HF ON C.HFID = HF.HFID 
-	        INNER JOIN tblDistricts D ON D.DistrictId = HF.LocationId
-	        LEFT JOIN tblLocations L ON HF.LocationId = L.LocationId
-	        LEFT OUTER JOIN 
-	        (SELECT ClaimId,ProdId FROM tblClaimItems WHERE ValidityTo IS NULL
-	        UNION 
-	        SELECT ClaimId, ProdId FROM tblClaimServices WHERE ValidityTo IS NULL
-	        )CProd ON CProd.ClaimId = C.ClaimID
-	        LEFT OUTER JOIN tblProduct Prod ON Prod.ProdId = CProd.ProdID
-	        WHERE C.ValidityTo IS NULL 
-	        AND I.ValidityTo IS NULL 
-	        AND D.ValidityTo IS NULL 
-	        AND HF.ValidityTo IS NULL 
-	        AND Prod.ValidityTo IS NULL
-	        AND  (HF.LocationId  = @LocationId OR L.ParentLocationId = @LocationId) --Changed From LocationId to HFLocationId	On 29062017
-	        AND (Prod.ProdID = @ProductId OR @ProductId = 0)
-	        AND (HF.HfID = @HFID OR @HFID = 0)
-	        GROUP BY DistrictName,HF.HFID,HF.HFCode,HF.HFName,Prod.ProdID,Prod.ProductCode,Prod.ProductName
-	        ) MainInfo 
-	        LEFT OUTER JOIN dbo.udfTotalClaims(@ProductID,@HFID,@LocationId,@Counter,@Year) TC ON ISNULL(MainInfo.ProdID, 0) = ISNULL(TC.ProdID, 0) AND MainInfo.HfID = TC.HFID 
-	        LEFT OUTER JOIN dbo.udfRemunerated(@HFID,@ProductID,@LocationId,@Counter,@Year) R ON ISNULL(MainInfo.ProdID, 0) = ISNULL(R.ProdID, 0) AND MainInfo.HfID = R.HFID 
-	        LEFT OUTER JOIN dbo.udfRejectedClaims(@ProductID,@HFID,@LocationId,@Counter,@Year) RC ON ISNULL(MainInfo.ProdID, 0) = ISNULL(RC.ProdID, 0) AND MainInfo.HfID = RC.HFID
+		    INSERT INTO #tmpResult
+		    SELECT CAST(YEAR(@LastDay) AS VARCHAR(4)) + ' ' + DATENAME(MONTH,@LastDay),MainInfo.DistrictName,
+		    MainInfo.HFCode,MainInfo.HFName ,MainInfo.ProductCode , MainInfo.ProductName , 
+		    TC.TotalClaims TotalClaims,
+		    R.Remunerated Remunerated,
+		    RC.RejectedClaims RejectedClaims,
+		    DATEPART(MM,@LastDay) MonthNo --Added by Rogers On 19092017
+	    FROM
+	    (SELECT  DistrictName DistrictName,HF.HFID,HF.HFCode,HF.HFName,Prod.ProdID,Prod.ProductCode,Prod.ProductName
+	    FROM tblClaim C 
+	    INNER JOIN tblInsuree I ON C.InsureeID = I.InsureeID
+	    INNER JOIN tblHF HF ON C.HFID = HF.HFID 
+	    INNER JOIN tblDistricts D ON D.DistrictId = HF.LocationId
+	    LEFT JOIN tblLocations L ON HF.LocationId = L.LocationId
+	    LEFT OUTER JOIN 
+	    (SELECT ClaimId,ProdId FROM tblClaimItems WHERE ValidityTo IS NULL
+	    UNION 
+	    SELECT ClaimId, ProdId FROM tblClaimServices WHERE ValidityTo IS NULL
+	    )CProd ON CProd.ClaimId = C.ClaimID
+	    LEFT OUTER JOIN tblProduct Prod ON Prod.ProdId = CProd.ProdID
+	    WHERE C.ValidityTo IS NULL 
+	    AND I.ValidityTo IS NULL 
+	    AND D.ValidityTo IS NULL 
+	    AND HF.ValidityTo IS NULL 
+	    AND Prod.ValidityTo IS NULL
+	    AND  (HF.LocationId  = @LocationId OR L.ParentLocationId = @LocationId) --Changed From LocationId to HFLocationId	On 29062017
+	    AND (Prod.ProdID = @ProductId OR @ProductId = 0)
+	    AND (HF.HfID = @HFID OR @HFID = 0)
+	    GROUP BY DistrictName,HF.HFID,HF.HFCode,HF.HFName,Prod.ProdID,Prod.ProductCode,Prod.ProductName
+	    ) MainInfo 
+	    LEFT OUTER JOIN dbo.udfTotalClaims(@ProductID,@HFID,@LocationId,@Counter,@Year) TC ON ISNULL(MainInfo.ProdID, 0) = ISNULL(TC.ProdID, 0) AND MainInfo.HfID = TC.HFID 
+	    LEFT OUTER JOIN dbo.udfRemunerated(@HFID,@ProductID,@LocationId,@Counter,@Year) R ON ISNULL(MainInfo.ProdID, 0) = ISNULL(R.ProdID, 0) AND MainInfo.HfID = R.HFID 
+	    LEFT OUTER JOIN dbo.udfRejectedClaims(@ProductID,@HFID,@LocationId,@Counter,@Year) RC ON ISNULL(MainInfo.ProdID, 0) = ISNULL(RC.ProdID, 0) AND MainInfo.HfID = RC.HFID
 
-	        SET @Counter = @Counter + 1
+	    SET @Counter = @Counter + 1
 	
-        END
+    END
 	
-		SELECT NameOfTheMonth,MonthNo,DistrictName,HFCode ,HFName,ProductCode,ProductName ,ISNULL(TotalClaims,0) TotalClaims ,ISNULL(Remunerated,0) Remunerated ,ISNULL(RejectedClaims,0) RejectedClaims FROM #tmpResult
-		ORDER BY MonthNo
-	END
+	SELECT NameOfTheMonth,MonthNo,DistrictName,HFCode ,HFName,ProductCode,ProductName ,ISNULL(TotalClaims,0) TotalClaims ,ISNULL(Remunerated,0) Remunerated ,ISNULL(RejectedClaims,0) RejectedClaims FROM #tmpResult
+	ORDER BY MonthNo
+END
 GO
 
 IF OBJECT_ID('uspSSRSDerivedIndicators1', 'P') IS NOT NULL
@@ -2732,97 +2729,97 @@ CREATE PROCEDURE [dbo].[uspSSRSDerivedIndicators1]
 	BEGIN
 		IF NOT OBJECT_ID('tempdb..#tmpResult') IS NULL DROP TABLE #tmpResult
 	
-		CREATE TABLE #tmpResult(
-				NameOfTheMonth VARCHAR(15),
-				DistrictName NVARCHAR(50),
-				ProductCode NVARCHAR(8),
-				ProductName NVARCHAR(100),
-				IncurredClaimRatio DECIMAL(18,2),
-				RenewalRatio DECIMAL(18,2),
-				GrowthRatio DECIMAL(18,2),
-				Promptness DECIMAL(18,2),
-				InsureePerClaim DECIMAL(18,2)
-		)
+	CREATE TABLE #tmpResult(
+			NameOfTheMonth VARCHAR(15),
+			DistrictName NVARCHAR(50),
+			ProductCode NVARCHAR(8),
+			ProductName NVARCHAR(100),
+			IncurredClaimRatio DECIMAL(18,2),
+			RenewalRatio DECIMAL(18,2),
+			GrowthRatio DECIMAL(18,2),
+			Promptness DECIMAL(18,2),
+			InsureePerClaim DECIMAL(18,2)
+	)
 
-		DECLARE @LastDay DATE
-		DECLARE @PreMonth INT
-		DECLARE @PreYear INT 
+	DECLARE @LastDay DATE
+	DECLARE @PreMonth INT
+	DECLARE @PreYear INT 
 
-		DECLARE @Counter INT = 1
-		DECLARE @MaxCount INT = 12
+	DECLARE @Counter INT = 1
+	DECLARE @MaxCount INT = 12
 
-        IF @Month > 0
-		BEGIN
-			SET @Counter = @Month
-			SET @MaxCount = @Month
-		END
-	
-        WHILE @Counter <> @MaxCount + 1
-        BEGIN
-	        SET @LastDay = DATEADD(DAY,-1,DATEADD(MONTH,1,CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Counter AS VARCHAR(2)) + '-01'))
-	        SET @PreMonth = MONTH(DATEADD(MONTH,-1,@LastDay))
-	        SET @PreYear = YEAR(DATEADD(MONTH,-1,@LastDay))
-
-        	INSERT INTO #tmpResult
-	        SELECT CAST(YEAR(@LastDay) AS VARCHAR(4)) + ' ' + DATENAME(MONTH,@LastDay)NameOfTheMonth,Promptness.DistrictName,MainInfo.ProductCode,MainInfo.ProductName
-	        ,CAST(SUM(ISNULL(R.Remunerated,0))AS FLOAT)/ISNULL(AP.Allocated,1) IncurredClaimRatio
-	        ,CAST(ISNULL(PR.Renewals,0) AS FLOAT)/ISNULL(EP.ExpiredPolicies,1)RenewalRatio
-	        ,CAST((ISNULL(NP.Male,0) + ISNULL(NP.Female,0)) AS FLOAT)/ISNULL(TP.Male + TP.Female,1)GrowthRatio
-	        ,Promptness.AverageDays AS Promptness --Still to come
-	        ,SUM(TC.TotalClaims)/ISNULL(PIn.Male + PIn.Female,1)InsureePerClaim
-	        FROM
-	        (SELECT PR.ProdID,PR.ProductCode,PR.ProductName
-	        FROM tblProduct PR 
-	        WHERE PR.ValidityTo IS NULL	
-	        AND (PR.ProdID = @ProductID OR @ProductID = 0)
-	        )MainInfo INNER JOIN
-	        dbo.udfRemunerated(0,@ProductID,@LocationId,@Counter,@Year) R ON MainInfo.ProdID = R.ProdID LEFT OUTER JOIN
-	        dbo.udfAvailablePremium(@ProductID,@LocationId,@Counter,@Year,1)AP ON MainInfo.ProdID = AP.ProdID LEFT OUTER JOIN
-	        dbo.udfPolicyRenewal(@ProductID,@LocationId,@Counter,@Year,1) PR ON MainInfo.ProdID = PR.ProdID LEFT OUTER JOIN
-	        dbo.udfExpiredPolicies(@ProductID,@LocationId,@Counter,@Year,1)EP ON MainInfo.ProdID = EP.ProdID LEFT OUTER JOIN
-	        dbo.udfNewPolicies(@ProductID,@LocationId,@PreMonth,@PreYear,1)NP ON MainInfo.ProdID = NP.ProdID LEFT OUTER JOIN
-	        dbo.udfTotalPolicies(@ProductID,@LocationId,DATEADD(MONTH,-1,@LastDay),1)TP ON MainInfo.ProdID = TP.ProdID LEFT OUTER JOIN
-	        --dbo.udfRejectedClaims(@ProductID,@LocationId,0,@Counter,@Year)RC ON MainInfo.ProdID = RC.ProdID LEFT OUTER JOIN
-	        dbo.udfTotalClaims(@ProductId,0,@LocationId,@Counter,@Year) TC ON MainInfo.ProdID = TC.ProdID LEFT OUTER JOIN
-	        dbo.udfPolicyInsuree(@ProductID,@LocationId,@LastDay,1) PIn ON MainInfo.ProdID = PIn.ProdID LEFT OUTER JOIN
-	        (SELECT Base.ProdID,AVG(DATEDIFF(dd,Base.DateClaimed,Base.RunDate))AverageDays,Base.DistrictName
-		        FROM
-		        (SELECT C.ClaimID,C.DateClaimed,CI.ProdID,B.RunDate,D.DistrictName
-		        FROM tblClaim C INNER JOIN tblClaimItems CI ON C.ClaimID = CI.ClaimID
-		        INNER JOIN tblInsuree I ON C.InsureeId = I.InsureeId 
-		        INNER JOIN tblFamilies F ON I.familyId = F.FamilyId
-		        INNER JOIN tblVillages V ON V.VillageId = F.LocationId
-		        INNER JOIN tblWards W ON W.WardId = V.WardId
-		        INNER JOIN tblDistricts D ON D.DistrictId = W.DistrictId
-		        INNER JOIN tblBatchRun B ON C.RunID = B.RunID
-		        WHERE C.ValidityTo IS NULL AND CI.ValidityTo IS NULL AND I.ValidityTo IS NULL AND F.ValidityTo IS NULL
-		        AND (CI.ProdID = @ProductID OR @ProductID = 0)
-		        AND (D.DistrictId = @LocationId OR @LocationId = 0)
-		        AND C.RunID IN (SELECT  RunID FROM tblBatchRun WHERE ValidityTo IS NULL AND MONTH(RunDate) =@Counter AND YEAR(RunDate) = @Year)
-		        GROUP BY C.ClaimID,C.DateClaimed,CI.ProdID,B.RunDate,D.DistrictName
-		        UNION 
-		        SELECT C.ClaimID,C.DateClaimed,CS.ProdID,B.RunDate, D.DistrictName
-		        FROM tblClaim C INNER JOIN tblClaimItems CS ON C.ClaimID = CS.ClaimID
-		        INNER JOIN tblInsuree I ON C.InsureeId = I.InsureeId 
-		        INNER JOIN tblFamilies F ON I.familyId = F.FamilyId
-		        INNER JOIN tblVillages V ON V.VillageId = F.LocationId
-		        INNER JOIN tblWards W ON W.WardId = V.WardId
-		        INNER JOIN tblDistricts D ON D.DistrictId = W.DistrictId
-		        INNER JOIN tblBatchRun B ON C.RunID = B.RunID
-		        WHERE C.ValidityTo IS NULL AND CS.ValidityTo IS NULL AND I.ValidityTo IS NULL AND F.ValidityTo IS NULL
-		        AND (CS.ProdID = @ProductID OR @ProductID = 0)
-		        AND (D.DistrictId = @LocationId OR @LocationId = 0)
-		        AND C.RunID IN (SELECT  RunDate FROM tblBatchRun WHERE ValidityTo IS NULL AND MONTH(RunDate) =@Counter AND YEAR(RunDate) = @Year)
-		        GROUP BY C.ClaimID,C.DateClaimed,CS.ProdID,B.RunDate, D.DistrictName)Base
-		        GROUP BY Base.ProdID,Base.DistrictName)Promptness ON MainInfo.ProdID = Promptness.ProdID
-	
-	        GROUP BY Promptness.DistrictName,MainInfo.ProductCode,MainInfo.ProductName,AP.Allocated,PR.Renewals,EP.ExpiredPolicies,NP.Male,NP.Female,TP.Male,TP.Female,Promptness.AverageDays,PIn.Male,Pin.Female
-	
-	        SET @Counter = @Counter + 1
-		
-        END
-	    SELECT * FROM #tmpResult
+    IF @Month > 0
+	BEGIN
+		SET @Counter = @Month
+		SET @MaxCount = @Month
 	END
+	
+    WHILE @Counter <> @MaxCount + 1
+    BEGIN
+	    SET @LastDay = DATEADD(DAY,-1,DATEADD(MONTH,1,CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Counter AS VARCHAR(2)) + '-01'))
+	    SET @PreMonth = MONTH(DATEADD(MONTH,-1,@LastDay))
+	    SET @PreYear = YEAR(DATEADD(MONTH,-1,@LastDay))
+
+        INSERT INTO #tmpResult
+	    SELECT CAST(YEAR(@LastDay) AS VARCHAR(4)) + ' ' + DATENAME(MONTH,@LastDay)NameOfTheMonth,Promptness.DistrictName,MainInfo.ProductCode,MainInfo.ProductName
+	    ,CAST(SUM(ISNULL(R.Remunerated,0))AS FLOAT)/ISNULL(AP.Allocated,1) IncurredClaimRatio
+	    ,CAST(ISNULL(PR.Renewals,0) AS FLOAT)/ISNULL(EP.ExpiredPolicies,1)RenewalRatio
+	    ,CAST((ISNULL(NP.Male,0) + ISNULL(NP.Female,0)) AS FLOAT)/ISNULL(TP.Male + TP.Female,1)GrowthRatio
+	    ,Promptness.AverageDays AS Promptness --Still to come
+	    ,SUM(TC.TotalClaims)/ISNULL(PIn.Male + PIn.Female,1)InsureePerClaim
+	    FROM
+	    (SELECT PR.ProdID,PR.ProductCode,PR.ProductName
+	    FROM tblProduct PR 
+	    WHERE PR.ValidityTo IS NULL	
+	    AND (PR.ProdID = @ProductID OR @ProductID = 0)
+	    )MainInfo INNER JOIN
+	    dbo.udfRemunerated(0,@ProductID,@LocationId,@Counter,@Year) R ON MainInfo.ProdID = R.ProdID LEFT OUTER JOIN
+	    dbo.udfAvailablePremium(@ProductID,@LocationId,@Counter,@Year,1)AP ON MainInfo.ProdID = AP.ProdID LEFT OUTER JOIN
+	    dbo.udfPolicyRenewal(@ProductID,@LocationId,@Counter,@Year,1) PR ON MainInfo.ProdID = PR.ProdID LEFT OUTER JOIN
+	    dbo.udfExpiredPolicies(@ProductID,@LocationId,@Counter,@Year,1)EP ON MainInfo.ProdID = EP.ProdID LEFT OUTER JOIN
+	    dbo.udfNewPolicies(@ProductID,@LocationId,@PreMonth,@PreYear,1)NP ON MainInfo.ProdID = NP.ProdID LEFT OUTER JOIN
+	    dbo.udfTotalPolicies(@ProductID,@LocationId,DATEADD(MONTH,-1,@LastDay),1)TP ON MainInfo.ProdID = TP.ProdID LEFT OUTER JOIN
+	    --dbo.udfRejectedClaims(@ProductID,@LocationId,0,@Counter,@Year)RC ON MainInfo.ProdID = RC.ProdID LEFT OUTER JOIN
+	    dbo.udfTotalClaims(@ProductId,0,@LocationId,@Counter,@Year) TC ON MainInfo.ProdID = TC.ProdID LEFT OUTER JOIN
+	    dbo.udfPolicyInsuree(@ProductID,@LocationId,@LastDay,1) PIn ON MainInfo.ProdID = PIn.ProdID LEFT OUTER JOIN
+	    (SELECT Base.ProdID,AVG(DATEDIFF(dd,Base.DateClaimed,Base.RunDate))AverageDays,Base.DistrictName
+		    FROM
+		    (SELECT C.ClaimID,C.DateClaimed,CI.ProdID,B.RunDate,D.DistrictName
+		    FROM tblClaim C INNER JOIN tblClaimItems CI ON C.ClaimID = CI.ClaimID
+		    INNER JOIN tblInsuree I ON C.InsureeId = I.InsureeId 
+		    INNER JOIN tblFamilies F ON I.familyId = F.FamilyId
+		    INNER JOIN tblVillages V ON V.VillageId = F.LocationId
+		    INNER JOIN tblWards W ON W.WardId = V.WardId
+		    INNER JOIN tblDistricts D ON D.DistrictId = W.DistrictId
+		    INNER JOIN tblBatchRun B ON C.RunID = B.RunID
+		    WHERE C.ValidityTo IS NULL AND CI.ValidityTo IS NULL AND I.ValidityTo IS NULL AND F.ValidityTo IS NULL
+		    AND (CI.ProdID = @ProductID OR @ProductID = 0)
+		    AND (D.DistrictId = @LocationId OR @LocationId = 0)
+		    AND C.RunID IN (SELECT  RunID FROM tblBatchRun WHERE ValidityTo IS NULL AND MONTH(RunDate) =@Counter AND YEAR(RunDate) = @Year)
+		    GROUP BY C.ClaimID,C.DateClaimed,CI.ProdID,B.RunDate,D.DistrictName
+		    UNION 
+		    SELECT C.ClaimID,C.DateClaimed,CS.ProdID,B.RunDate, D.DistrictName
+		    FROM tblClaim C INNER JOIN tblClaimItems CS ON C.ClaimID = CS.ClaimID
+		    INNER JOIN tblInsuree I ON C.InsureeId = I.InsureeId 
+		    INNER JOIN tblFamilies F ON I.familyId = F.FamilyId
+		    INNER JOIN tblVillages V ON V.VillageId = F.LocationId
+		    INNER JOIN tblWards W ON W.WardId = V.WardId
+		    INNER JOIN tblDistricts D ON D.DistrictId = W.DistrictId
+		    INNER JOIN tblBatchRun B ON C.RunID = B.RunID
+		    WHERE C.ValidityTo IS NULL AND CS.ValidityTo IS NULL AND I.ValidityTo IS NULL AND F.ValidityTo IS NULL
+		    AND (CS.ProdID = @ProductID OR @ProductID = 0)
+		    AND (D.DistrictId = @LocationId OR @LocationId = 0)
+		    AND C.RunID IN (SELECT  RunDate FROM tblBatchRun WHERE ValidityTo IS NULL AND MONTH(RunDate) =@Counter AND YEAR(RunDate) = @Year)
+		    GROUP BY C.ClaimID,C.DateClaimed,CS.ProdID,B.RunDate, D.DistrictName)Base
+		    GROUP BY Base.ProdID,Base.DistrictName)Promptness ON MainInfo.ProdID = Promptness.ProdID
+	
+	    GROUP BY Promptness.DistrictName,MainInfo.ProductCode,MainInfo.ProductName,AP.Allocated,PR.Renewals,EP.ExpiredPolicies,NP.Male,NP.Female,TP.Male,TP.Female,Promptness.AverageDays,PIn.Male,Pin.Female
+	
+	    SET @Counter = @Counter + 1
+		
+    END
+	SELECT * FROM #tmpResult
+END
 
 GO
 
@@ -2831,103 +2828,103 @@ IF OBJECT_ID('uspSSRSDerivedIndicators2', 'P') IS NOT NULL
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSDerivedIndicators2]
-	(
-		@LocationId INT = 0,
-		@ProductID INT = 0,
-		@HFID INT = 0,
-		@Month INT,
-		@Year INT
-	)	
-	AS
-	BEGIN
-		DECLARE @LastDay DATE
+(
+	@LocationId INT = 0,
+	@ProductID INT = 0,
+	@HFID INT = 0,
+	@Month INT,
+	@Year INT
+)	
+AS
+BEGIN
+	DECLARE @LastDay DATE
 	
-		IF NOT OBJECT_ID('tempdb..#tmpResult') IS NULL DROP TABLE #tmpResult
+	IF NOT OBJECT_ID('tempdb..#tmpResult') IS NULL DROP TABLE #tmpResult
 
-		CREATE TABLE #tmpResult(
-			NameOfTheMonth VARCHAR(15),
-			DistrictName NVARCHAR(50),
-			HFCode NVARCHAR(8),
-			HFName NVARCHAR(100) ,
-			ProductCode NVARCHAR(8), 
-			ProductName NVARCHAR(100),
-			SettlementRatio DECIMAL(18,2),
-			AverageCostPerClaim DECIMAL(18,2),
-			Asessment DECIMAL(18,2),
-			FeedbackResponseRatio DECIMAL(18,2)
+	CREATE TABLE #tmpResult(
+		NameOfTheMonth VARCHAR(15),
+		DistrictName NVARCHAR(50),
+		HFCode NVARCHAR(8),
+		HFName NVARCHAR(100) ,
+		ProductCode NVARCHAR(8), 
+		ProductName NVARCHAR(100),
+		SettlementRatio DECIMAL(18,2),
+		AverageCostPerClaim DECIMAL(18,2),
+		Asessment DECIMAL(18,2),
+		FeedbackResponseRatio DECIMAL(18,2)
 	
-	        )
+	    )
 
-        DECLARE @Counter INT = 1
-        DECLARE @MaxCount INT = 12
+    DECLARE @Counter INT = 1
+    DECLARE @MaxCount INT = 12
 
-        IF @Month > 0
-	        BEGIN
-		        SET @Counter = @Month
-		        SET @MaxCount = @Month
-	        END
+    IF @Month > 0
+	    BEGIN
+		    SET @Counter = @Month
+		    SET @MaxCount = @Month
+	    END
 	
-        WHILE @Counter <> @MaxCount + 1
-        BEGIN
+    WHILE @Counter <> @MaxCount + 1
+    BEGIN
 
-	        SET @LastDay = DATEADD(DAY,-1,DATEADD(MONTH,1,CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Counter AS VARCHAR(2)) + '-01'))
+	    SET @LastDay = DATEADD(DAY,-1,DATEADD(MONTH,1,CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Counter AS VARCHAR(2)) + '-01'))
 	
-	        INSERT INTO #tmpResult
-	        SELECT CAST(YEAR(@LastDay) AS VARCHAR(4)) + ' ' + DATENAME(MONTH,@LastDay)NameOfTheMonth,MainInfo.DistrictName,MainInfo.HFCode,MainInfo.HFName ,MainInfo.ProductCode , MainInfo.ProductName
-	        ,(TC.TotalClaims - ISNULL(RC.RejectedClaims,0))/TC.TotalClaims SettlementRatio
-	        --,CAST(SUM(ISNULL(R.Remunerated,0))/CAST(ISNULL(NULLIF(COUNT(TC.TotalClaims),0),1) AS NUMERIC) AS FLOAT)AverageCostPerClaim
-	        ,CAST(SUM(ISNULL(R.Remunerated,0))/TC.TotalClaims AS FLOAT)AverageCostPerClaim
-	        ,Satisfaction.Asessment
-	        ,FeedbackResponse.FeedbackResponseRatio
-	        FROM
+	    INSERT INTO #tmpResult
+	    SELECT CAST(YEAR(@LastDay) AS VARCHAR(4)) + ' ' + DATENAME(MONTH,@LastDay)NameOfTheMonth,MainInfo.DistrictName,MainInfo.HFCode,MainInfo.HFName ,MainInfo.ProductCode , MainInfo.ProductName
+	    ,(TC.TotalClaims - ISNULL(RC.RejectedClaims,0))/TC.TotalClaims SettlementRatio
+	    --,CAST(SUM(ISNULL(R.Remunerated,0))/CAST(ISNULL(NULLIF(COUNT(TC.TotalClaims),0),1) AS NUMERIC) AS FLOAT)AverageCostPerClaim
+	    ,CAST(SUM(ISNULL(R.Remunerated,0))/TC.TotalClaims AS FLOAT)AverageCostPerClaim
+	    ,Satisfaction.Asessment
+	    ,FeedbackResponse.FeedbackResponseRatio
+	    FROM
 
-	        (SELECT tblDistricts.DistrictName,tblHF.HfID  ,tblHF.HFCode ,tblHF.HFName ,tblProduct.ProdID , tblProduct.ProductCode ,tblProduct.ProductName FROM tblDistricts INNER JOIN tblHF ON tblDistricts.DistrictID = tblHF.LocationId 
-	        INNER JOIN tblProduct ON tblProduct.LocationId = tblDistricts.DistrictID 
-	        WHERE tblDistricts.ValidityTo IS NULL AND tblHF.ValidityTo IS NULL AND tblproduct.ValidityTo IS NULL 
-				        AND (tblDistricts.DistrictID = @LocationId OR @LocationId = 0) 
-				        AND (tblProduct.ProdID = @ProductID OR @ProductID = 0)
-				        AND (tblHF.HFID = @HFID OR @HFID = 0)
-	        ) MainInfo LEFT OUTER JOIN
-	        dbo.udfRejectedClaims(@ProductID,@LocationId,0,@Counter,@Year)RC ON MainInfo.ProdID = RC.ProdID AND MainInfo.HfID = RC.HFID LEFT OUTER JOIN
-	        dbo.udfTotalClaims(@ProductID,@HFID,@LocationId,@Counter,@Year) TC ON MainInfo.ProdID = TC.ProdID AND MainInfo.hfid = TC.HFID LEFT OUTER JOIN
-	        dbo.udfRemunerated(@HFID,@ProductID,@LocationId,@Counter,@Year) R ON MainInfo.ProdID = R.ProdID AND MainInfo.HfID = R.HFID LEFT OUTER JOIN
-	        (SELECT C.LocationId,C.HFID,C.ProdID,AVG(CAST(F.Asessment AS DECIMAL(3, 1)))Asessment 
-	        FROM tblFeedback F INNER JOIN
-	        (SELECT CI.ClaimID,CI.ProdID,C.HFID,PR.LocationId
-	        FROM tblClaim C INNER JOIN tblClaimItems CI ON C.ClaimID = CI.ClaimID
-	        INNER JOIN tblProduct PR ON CI.ProdID = PR.ProdID
-	        WHERE C.ValidityTo IS NULL AND CI.ValidityTo IS NULL AND PR.ValidityTo IS NULL
-	        GROUP BY CI.ClaimID,CI.ProdID,C.HFID,PR.LocationId
-	        UNION 
-	        SELECT CS.ClaimID,CS.ProdID,C.HFID,PR.LocationId
-	        FROM tblClaim C INNER JOIN tblClaimServices CS ON C.ClaimID = CS.ClaimID
-	        INNER JOIN tblProduct PR ON CS.ProdID = PR.ProdID
-	        WHERE C.ValidityTo IS NULL AND CS.ValidityTo IS NULL AND PR.ValidityTo IS NULL
-	        GROUP BY CS.ClaimID,CS.ProdID,C.HFID,PR.LocationId
-	        )C ON F.ClaimID = C.ClaimID
-	        WHERE MONTH(F.FeedbackDate) = @Counter AND YEAR(F.FeedbackDate) = @Year
-	        GROUP BY C.LocationId,C.HFID,C.ProdID)Satisfaction ON MainInfo.ProdID = Satisfaction.ProdID AND MainInfo.HfID = Satisfaction.HFID
-	        LEFT OUTER JOIN
-	        (SELECT PR.LocationId, C.HFID, PR.ProdId, COUNT(F.FeedbackID) / COUNT(C.ClaimID) FeedbackResponseRatio
-	        FROM tblClaim C LEFT OUTER JOIN tblClaimItems CI ON C.ClaimId = CI.ClaimID
-	        LEFT OUTER JOIN tblClaimServices CS ON CS.ClaimID = C.ClaimID
-	        LEFT OUTER JOIN tblFeedback F ON C.ClaimId = F.ClaimID
-	        LEFT OUTER JOIN tblFeedbackPrompt FP ON FP.ClaimID =C.ClaimID
-	        INNER JOIN tblProduct PR ON PR.ProdId = CI.ProdID OR PR.ProdID = CS.ProdID
-	        WHERE C.ValidityTo IS NULL
-	        AND C.FeedbackStatus >= 4
-	        AND F.ValidityTo IS NULL
-	        AND MONTH(FP.FeedbackPromptDate) = @Counter
-	        AND YEAR(FP.FeedbackPromptDate) = @Year
-	        GROUP BY PR.LocationId, C.HFID, PR.ProdId)FeedbackResponse ON MainInfo.ProdID = FeedbackResponse.ProdID AND MainInfo.HfID = FeedbackResponse.HFID
+	    (SELECT tblDistricts.DistrictName,tblHF.HfID  ,tblHF.HFCode ,tblHF.HFName ,tblProduct.ProdID , tblProduct.ProductCode ,tblProduct.ProductName FROM tblDistricts INNER JOIN tblHF ON tblDistricts.DistrictID = tblHF.LocationId 
+	    INNER JOIN tblProduct ON tblProduct.LocationId = tblDistricts.DistrictID 
+	    WHERE tblDistricts.ValidityTo IS NULL AND tblHF.ValidityTo IS NULL AND tblproduct.ValidityTo IS NULL 
+				    AND (tblDistricts.DistrictID = @LocationId OR @LocationId = 0) 
+				    AND (tblProduct.ProdID = @ProductID OR @ProductID = 0)
+				    AND (tblHF.HFID = @HFID OR @HFID = 0)
+	    ) MainInfo LEFT OUTER JOIN
+	    dbo.udfRejectedClaims(@ProductID,@LocationId,0,@Counter,@Year)RC ON MainInfo.ProdID = RC.ProdID AND MainInfo.HfID = RC.HFID LEFT OUTER JOIN
+	    dbo.udfTotalClaims(@ProductID,@HFID,@LocationId,@Counter,@Year) TC ON MainInfo.ProdID = TC.ProdID AND MainInfo.hfid = TC.HFID LEFT OUTER JOIN
+	    dbo.udfRemunerated(@HFID,@ProductID,@LocationId,@Counter,@Year) R ON MainInfo.ProdID = R.ProdID AND MainInfo.HfID = R.HFID LEFT OUTER JOIN
+	    (SELECT C.LocationId,C.HFID,C.ProdID,AVG(CAST(F.Asessment AS DECIMAL(3, 1)))Asessment 
+	    FROM tblFeedback F INNER JOIN
+	    (SELECT CI.ClaimID,CI.ProdID,C.HFID,PR.LocationId
+	    FROM tblClaim C INNER JOIN tblClaimItems CI ON C.ClaimID = CI.ClaimID
+	    INNER JOIN tblProduct PR ON CI.ProdID = PR.ProdID
+	    WHERE C.ValidityTo IS NULL AND CI.ValidityTo IS NULL AND PR.ValidityTo IS NULL
+	    GROUP BY CI.ClaimID,CI.ProdID,C.HFID,PR.LocationId
+	    UNION 
+	    SELECT CS.ClaimID,CS.ProdID,C.HFID,PR.LocationId
+	    FROM tblClaim C INNER JOIN tblClaimServices CS ON C.ClaimID = CS.ClaimID
+	    INNER JOIN tblProduct PR ON CS.ProdID = PR.ProdID
+	    WHERE C.ValidityTo IS NULL AND CS.ValidityTo IS NULL AND PR.ValidityTo IS NULL
+	    GROUP BY CS.ClaimID,CS.ProdID,C.HFID,PR.LocationId
+	    )C ON F.ClaimID = C.ClaimID
+	    WHERE MONTH(F.FeedbackDate) = @Counter AND YEAR(F.FeedbackDate) = @Year
+	    GROUP BY C.LocationId,C.HFID,C.ProdID)Satisfaction ON MainInfo.ProdID = Satisfaction.ProdID AND MainInfo.HfID = Satisfaction.HFID
+	    LEFT OUTER JOIN
+	    (SELECT PR.LocationId, C.HFID, PR.ProdId, COUNT(F.FeedbackID) / COUNT(C.ClaimID) FeedbackResponseRatio
+	    FROM tblClaim C LEFT OUTER JOIN tblClaimItems CI ON C.ClaimId = CI.ClaimID
+	    LEFT OUTER JOIN tblClaimServices CS ON CS.ClaimID = C.ClaimID
+	    LEFT OUTER JOIN tblFeedback F ON C.ClaimId = F.ClaimID
+	    LEFT OUTER JOIN tblFeedbackPrompt FP ON FP.ClaimID =C.ClaimID
+	    INNER JOIN tblProduct PR ON PR.ProdId = CI.ProdID OR PR.ProdID = CS.ProdID
+	    WHERE C.ValidityTo IS NULL
+	    AND C.FeedbackStatus >= 4
+	    AND F.ValidityTo IS NULL
+	    AND MONTH(FP.FeedbackPromptDate) = @Counter
+	    AND YEAR(FP.FeedbackPromptDate) = @Year
+	    GROUP BY PR.LocationId, C.HFID, PR.ProdId)FeedbackResponse ON MainInfo.ProdID = FeedbackResponse.ProdID AND MainInfo.HfID = FeedbackResponse.HFID
 	
-	        GROUP BY MainInfo.DistrictName,MainInfo.HFCode,MainInfo.HFName,MainInfo.ProductCode,MainInfo.ProductName,RC.RejectedClaims,Satisfaction.Asessment,FeedbackResponse.FeedbackResponseRatio, TC.TotalClaims
-	        SET @Counter = @Counter + 1
+	    GROUP BY MainInfo.DistrictName,MainInfo.HFCode,MainInfo.HFName,MainInfo.ProductCode,MainInfo.ProductName,RC.RejectedClaims,Satisfaction.Asessment,FeedbackResponse.FeedbackResponseRatio, TC.TotalClaims
+	    SET @Counter = @Counter + 1
 
-        END
+    END
 
-	        SELECT * FROM #tmpResult
-	END
+	    SELECT * FROM #tmpResult
+END
 
 GO
 
@@ -3525,70 +3522,70 @@ CREATE PROCEDURE [dbo].[uspSSRSStatusRegister]
 		    GROUP BY L.LocationId) PLServices ON Locations.LocationId = PLServices.LocationId
 
 		    LEFT OUTER JOIN
-		    (SELECT COUNT(ItemId)TotalItems, LocationId
-		    FROM (
-			    SELECT I.ItemID, ISNULL(L.LocationId, -1)LocationId
-			    FROM Locations L
-			    LEFT OUTER JOIN tblPLItems PL ON ISNULL(PL.LocationId, -1) = L.LocationId AND PL.ValidityTo IS NULL
-			    LEFT OUTER JOIN tblPLItemsDetail I ON I.PLItemID = PL.PLItemID
-			    GROUP BY I.ItemId, L.LocationId
-		    )x
-		    GROUP BY LocationId)PLItemDetails ON Locations.LocationId = PLItemDetails.LocationId
+		(SELECT COUNT(ItemId)TotalItems, LocationId
+		FROM (
+			SELECT I.ItemID, ISNULL(L.LocationId, -1)LocationId
+			FROM Locations L
+			LEFT OUTER JOIN tblPLItems PL ON ISNULL(PL.LocationId, -1) = L.LocationId AND PL.ValidityTo IS NULL
+			LEFT OUTER JOIN tblPLItemsDetail I ON I.PLItemID = PL.PLItemID
+			GROUP BY I.ItemId, L.LocationId
+		)x
+		GROUP BY LocationId)PLItemDetails ON Locations.LocationId = PLItemDetails.LocationId
 
-		    LEFT OUTER JOIN
-		    (SELECT COUNT(ServiceID)TotalServices, LocationId
-		    FROM (
-			    SELECT S.ServiceId, ISNULL(L.LocationId, -1)LocationId
-			    FROM Locations L
-			    LEFT OUTER JOIN tblPLServices PL ON ISNULL(PL.LocationId, -1) = L.LocationId AND PL.ValidityTo IS NULL
-			    LEFT OUTER JOIN tblPLServicesDetail S ON S.PLServiceID = PL.PLServiceID 
-			    GROUP BY S.ServiceID, L.LocationId
-		    )x
-		    GROUP BY LocationId)PLServiceDetails ON Locations.LocationId = PLServiceDetails.LocationId
+		LEFT OUTER JOIN
+		(SELECT COUNT(ServiceID)TotalServices, LocationId
+		FROM (
+			SELECT S.ServiceId, ISNULL(L.LocationId, -1)LocationId
+			FROM Locations L
+			LEFT OUTER JOIN tblPLServices PL ON ISNULL(PL.LocationId, -1) = L.LocationId AND PL.ValidityTo IS NULL
+			LEFT OUTER JOIN tblPLServicesDetail S ON S.PLServiceID = PL.PLServiceID 
+			GROUP BY S.ServiceID, L.LocationId
+		)x
+		GROUP BY LocationId)PLServiceDetails ON Locations.LocationId = PLServiceDetails.LocationId
 
-		    LEFT OUTER JOIN
-		    (SELECT COUNT(P.PayerId)TotalPayers,ISNULL(L.LocationId, -1)LocationId 
-		    FROM Locations L 
-		    LEFT OUTER JOIN tblPayer P ON ISNULL(P.LocationId, -1) = L.LocationId AND P.ValidityTo IS NULL 
-		    GROUP BY L.LocationId)Payers ON Locations.LocationId = Payers.LocationId
+		LEFT OUTER JOIN
+		(SELECT COUNT(P.PayerId)TotalPayers,ISNULL(L.LocationId, -1)LocationId 
+		FROM Locations L 
+		LEFT OUTER JOIN tblPayer P ON ISNULL(P.LocationId, -1) = L.LocationId AND P.ValidityTo IS NULL 
+		GROUP BY L.LocationId)Payers ON Locations.LocationId = Payers.LocationId
 
-	    IF @LocationId = 0
-	    BEGIN
-		    ;WITH Results AS
-		    (
-			    SELECT 0 [Level],LocationId, ParentLocationId, Locationname, LocationType,
-			    TotalActiveOfficers, TotalNonActiveOfficers, TotalUsers, TotalProducts, TotalHealthFacilities, TotalItemPriceLists, TotalServicePriceLists, TotalItems, TotalServices, TotalPayers
-			    FROM @tblResult 
-			    UNION ALL
-			    SELECT Results.[Level] + 1, R.LocationId, R.ParentLocationId, R.LocationName, R.LocationType,
-			    Results.TotalActiveOfficers, Results.TotalNonActiveOfficers, Results.TotalUsers, Results.TotalProducts, Results.TotalHealthFacilities, Results.TotalItemPriceLists, Results.TotalServicePriceLists, Results.TotalItems, Results.TotalServices, Results.TotalPayers
-			    FROM @tblResult R
-			    INNER JOIN Results ON R.LocationId = Results.ParentLocationId
-		    )
-		    SELECT LocationId, LocationName
-		    , NULLIF(SUM(TotalActiveOfficers), 0) TotalActiveOfficers
-		    , NULLIF(SUM(TotalNonActiveOfficers), 0)TotalNonActiveOfficers
-		    , NULLIF(SUM(TotalUsers), 0)TotalUsers
-		    , NULLIF(SUM(TotalProducts), 0)TotalProducts
-		    , NULLIF(SUM(TotalHealthFacilities), 0) TotalHealthFacilities
-		    , NULLIF(SUM(TotalItemPriceLists) , 0)TotalItemPriceLists
-		    , NULLIF(SUM(TotalServicePriceLists), 0) TotalServicePriceLists
-		    , NULLIF(SUM(TotalItems), 0)TotalItems
-		    , NULLIF(SUM(TotalServices), 0) TotalServices
-		    , NULLIF(SUM(TotalPayers), 0)TotalPayers
+	IF @LocationId = 0
+	BEGIN
+		;WITH Results AS
+		(
+			SELECT 0 [Level],LocationId, ParentLocationId, Locationname, LocationType,
+			TotalActiveOfficers, TotalNonActiveOfficers, TotalUsers, TotalProducts, TotalHealthFacilities, TotalItemPriceLists, TotalServicePriceLists, TotalItems, TotalServices, TotalPayers
+			FROM @tblResult 
+			UNION ALL
+			SELECT Results.[Level] + 1, R.LocationId, R.ParentLocationId, R.LocationName, R.LocationType,
+			Results.TotalActiveOfficers, Results.TotalNonActiveOfficers, Results.TotalUsers, Results.TotalProducts, Results.TotalHealthFacilities, Results.TotalItemPriceLists, Results.TotalServicePriceLists, Results.TotalItems, Results.TotalServices, Results.TotalPayers
+			FROM @tblResult R
+			INNER JOIN Results ON R.LocationId = Results.ParentLocationId
+		)
+		SELECT LocationId, LocationName
+		, NULLIF(SUM(TotalActiveOfficers), 0) TotalActiveOfficers
+		, NULLIF(SUM(TotalNonActiveOfficers), 0)TotalNonActiveOfficers
+		, NULLIF(SUM(TotalUsers), 0)TotalUsers
+		, NULLIF(SUM(TotalProducts), 0)TotalProducts
+		, NULLIF(SUM(TotalHealthFacilities), 0) TotalHealthFacilities
+		, NULLIF(SUM(TotalItemPriceLists) , 0)TotalItemPriceLists
+		, NULLIF(SUM(TotalServicePriceLists), 0) TotalServicePriceLists
+		, NULLIF(SUM(TotalItems), 0)TotalItems
+		, NULLIF(SUM(TotalServices), 0) TotalServices
+		, NULLIF(SUM(TotalPayers), 0)TotalPayers
 
-		    FROM Results
-		    WHERE LocationType = 'R' OR LocationType IS NULL
-		    GROUP BY LocationId, LocationName
-		    ORDER BY LocationId
-	    END
-	    ELSE
-	    BEGIN
-		    SELECT LocationId, LocationName, NULLIF(TotalActiveOfficers, 0)TotalActiveOfficers, NULLIF(TotalNonActiveOfficers, 0)TotalNonActiveOfficers, NULLIF(TotalUsers, 0)TotalUsers, NULLIF(TotalProducts, 0)TotalProducts, NULLIF(TotalHealthFacilities, 0)TotalHealthFacilities, NULLIF(TotalItemPriceLists, 0)TotalItemPriceLists, NULLIF(TotalServicePriceLists, 0)TotalServicePriceLists, NULLIF(TotalItems, 0)TotalItems, NULLIF(TotalServices, 0)TotalServices, NULLIF(TotalPayers, 0)TotalPayers  
-		    FROM @tblResult
-		    WHERE LocationId <> -1;
-	    END
+		FROM Results
+		WHERE LocationType = 'R' OR LocationType IS NULL
+		GROUP BY LocationId, LocationName
+		ORDER BY LocationId
 	END
+	ELSE
+	BEGIN
+		SELECT LocationId, LocationName, NULLIF(TotalActiveOfficers, 0)TotalActiveOfficers, NULLIF(TotalNonActiveOfficers, 0)TotalNonActiveOfficers, NULLIF(TotalUsers, 0)TotalUsers, NULLIF(TotalProducts, 0)TotalProducts, NULLIF(TotalHealthFacilities, 0)TotalHealthFacilities, NULLIF(TotalItemPriceLists, 0)TotalItemPriceLists, NULLIF(TotalServicePriceLists, 0)TotalServicePriceLists, NULLIF(TotalItems, 0)TotalItems, NULLIF(TotalServices, 0)TotalServices, NULLIF(TotalPayers, 0)TotalPayers  
+		FROM @tblResult
+		WHERE LocationId <> -1;
+	END
+END
 GO
 
 IF OBJECT_ID('uspSSRSPaymentCategoryOverview', 'P') IS NOT NULL
@@ -3887,55 +3884,55 @@ CREATE PROCEDURE [dbo].[uspSSRSProcessBatchWithClaim]
 	    END
 
 	    ;WITH CDetails AS
-	    (
-		    SELECT CI.ClaimId, CI.ProdId,
-		    SUM(ISNULL(CI.PriceApproved, CI.PriceAsked) * ISNULL(CI.QtyApproved, CI.QtyProvided)) PriceApproved,
-		    SUM(CI.PriceValuated) PriceAdjusted, SUM(CI.RemuneratedAmount)RemuneratedAmount
-		    FROM tblClaimItems CI
-		    WHERE CI.ValidityTo IS NULL
-		    AND CI.ClaimItemStatus = 1
-		    GROUP BY CI.ClaimId, CI.ProdId
-		    UNION ALL
+	(
+		SELECT CI.ClaimId, CI.ProdId,
+		SUM(ISNULL(CI.PriceApproved, CI.PriceAsked) * ISNULL(CI.QtyApproved, CI.QtyProvided)) PriceApproved,
+		SUM(CI.PriceValuated) PriceAdjusted, SUM(CI.RemuneratedAmount)RemuneratedAmount
+		FROM tblClaimItems CI
+		WHERE CI.ValidityTo IS NULL
+		AND CI.ClaimItemStatus = 1
+		GROUP BY CI.ClaimId, CI.ProdId
+		UNION ALL
 
-		    SELECT CS.ClaimId, CS.ProdId,
-		    SUM(ISNULL(CS.PriceApproved, CS.PriceAsked) * ISNULL(CS.QtyApproved, CS.QtyProvided)) PriceApproved,
-		    SUM(CS.PriceValuated) PriceValuated, SUM(CS.RemuneratedAmount) RemuneratedAmount
+		SELECT CS.ClaimId, CS.ProdId,
+		SUM(ISNULL(CS.PriceApproved, CS.PriceAsked) * ISNULL(CS.QtyApproved, CS.QtyProvided)) PriceApproved,
+		SUM(CS.PriceValuated) PriceValuated, SUM(CS.RemuneratedAmount) RemuneratedAmount
 
-		    FROM tblClaimServices CS
-		    WHERE CS.ValidityTo IS NULL
-		    AND CS.ClaimServiceStatus = 1
-		    GROUP BY CS.CLaimId, CS.ProdId
-	    )
-	    SELECT C.ClaimCode, C.DateClaimed, CA.OtherNames OtherNamesAdmin, CA.LastName LastNameAdmin, C.DateFrom, C.DateTo, I.CHFID, I.OtherNames,
-	    I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
-	    C.Claimed PriceAsked, SUM(CDetails.PriceApproved)PriceApproved, SUM(CDetails.PriceAdjusted)PriceAdjusted, SUM(CDetails.RemuneratedAmount)RemuneratedAmount,
-	    D.DistrictID, D.DistrictName, R.RegionId, R.RegionName
+		FROM tblClaimServices CS
+		WHERE CS.ValidityTo IS NULL
+		AND CS.ClaimServiceStatus = 1
+		GROUP BY CS.CLaimId, CS.ProdId
+	)
+	SELECT C.ClaimCode, C.DateClaimed, CA.OtherNames OtherNamesAdmin, CA.LastName LastNameAdmin, C.DateFrom, C.DateTo, I.CHFID, I.OtherNames,
+	I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
+	C.Claimed PriceAsked, SUM(CDetails.PriceApproved)PriceApproved, SUM(CDetails.PriceAdjusted)PriceAdjusted, SUM(CDetails.RemuneratedAmount)RemuneratedAmount,
+	D.DistrictID, D.DistrictName, R.RegionId, R.RegionName
 
-	    FROM tblClaim C
-	    LEFT OUTER JOIN tblClaimAdmin CA ON CA.ClaimAdminId = C.ClaimAdminId
-	    INNER JOIN tblInsuree I ON I.InsureeId = C.InsureeID
-	    INNER JOIN tblHF HF ON HF.HFID = C.HFID
-	    INNER JOIN CDetails ON CDetails.ClaimId = C.ClaimID
-	    INNER JOIN tblProduct Prod ON Prod.ProdId = CDetails.ProdID
-	    INNER JOIN tblFamilies F ON F.FamilyId = I.FamilyID
-	    INNER JOIN tblVillages V ON V.VillageID = F.LocationId
-	    INNER JOIN tblWards W ON W.WardId = V.WardId
-	    INNER JOIN tblDistricts D ON D.DistrictID = W.DistrictId
-	    INNER JOIN tblRegions R ON R.RegionId = D.Region
+	FROM tblClaim C
+	LEFT OUTER JOIN tblClaimAdmin CA ON CA.ClaimAdminId = C.ClaimAdminId
+	INNER JOIN tblInsuree I ON I.InsureeId = C.InsureeID
+	INNER JOIN tblHF HF ON HF.HFID = C.HFID
+	INNER JOIN CDetails ON CDetails.ClaimId = C.ClaimID
+	INNER JOIN tblProduct Prod ON Prod.ProdId = CDetails.ProdID
+	INNER JOIN tblFamilies F ON F.FamilyId = I.FamilyID
+	INNER JOIN tblVillages V ON V.VillageID = F.LocationId
+	INNER JOIN tblWards W ON W.WardId = V.WardId
+	INNER JOIN tblDistricts D ON D.DistrictID = W.DistrictId
+	INNER JOIN tblRegions R ON R.RegionId = D.Region
 
-	    WHERE C.ValidityTo IS NULL
-	    AND (Prod.LocationId = @LocationId OR @LocationId = 0 OR Prod.LocationId IS NULL)
-	    AND(Prod.ProdId = @ProdId OR @ProdId = 0)
-	    AND (C.RunId = @RunId OR @RunId = 0)
-	    AND (HF.HFId = @HFID OR @HFId = 0)
-	    AND (HF.HFLevel = @HFLevel OR @HFLevel = N'')
-	    AND (C.DateTo BETWEEN @DateFrom AND @DateTo)
+	WHERE C.ValidityTo IS NULL
+	AND (Prod.LocationId = @LocationId OR @LocationId = 0 OR Prod.LocationId IS NULL)
+	AND(Prod.ProdId = @ProdId OR @ProdId = 0)
+	AND (C.RunId = @RunId OR @RunId = 0)
+	AND (HF.HFId = @HFID OR @HFId = 0)
+	AND (HF.HFLevel = @HFLevel OR @HFLevel = N'')
+	AND (C.DateTo BETWEEN @DateFrom AND @DateTo)
 
-	    GROUP BY C.ClaimCode, C.DateClaimed, CA.OtherNames, CA.LastName , C.DateFrom, C.DateTo, I.CHFID, I.OtherNames,
-	    I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, C.Claimed,
-	    D.DistrictId, D.DistrictName, R.RegionId, R.RegionName
-	END
-Go
+	GROUP BY C.ClaimCode, C.DateClaimed, CA.OtherNames, CA.LastName , C.DateFrom, C.DateTo, I.CHFID, I.OtherNames,
+	I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, C.Claimed,
+	D.DistrictId, D.DistrictName, R.RegionId, R.RegionName
+END
+GO
 
 IF OBJECT_ID('uspSSRSEnroledFamilies', 'P') IS NOT NULL
     DROP PROCEDURE uspSSRSEnroledFamilies
@@ -3976,174 +3973,174 @@ CREATE PROCEDURE [dbo].[uspSSRSEnroledFamilies]
 			INNER JOIN Locations ON Locations.LocationId = L.ParentLocationId
 			WHERE L.ValidityTo IS NULL
 		),Policies AS
-		(
-			SELECT ROW_NUMBER() OVER(PARTITION BY PL.FamilyId ORDER BY PL.FamilyId, PL.PolicyStatus)RNo,PL.FamilyId,PL.PolicyStatus
-			FROM tblPolicy PL
-			WHERE PL.ValidityTo IS NULL
-			--AND (PL.PolicyStatus = @PolicyStatus OR @PolicyStatus IS NULL)
-			GROUP BY PL.FamilyId, PL.PolicyStatus
-		) 
-		SELECT MainDetails.*, Policies.PolicyStatus, 
-		--CASE Policies.PolicyStatus WHEN 1 THEN N'Idle' WHEN 2 THEN N'Active' WHEN 4 THEN N'Suspended' WHEN 8 THEN N'Expired' ELSE N'No Policy' END 
-		PS.Name PolicyStatusDesc
-		FROM  MainDetails 
-		INNER JOIN Locations ON Locations.LocationId = MainDetails.LocationId
-		LEFT OUTER JOIN Policies ON MainDetails.FamilyID = Policies.FamilyID
-		LEFT OUTER JOIN @dtPolicyStatus PS ON PS.ID = ISNULL(Policies.PolicyStatus, 0)
-		WHERE (Policies.RNo = 1 OR Policies.PolicyStatus IS NULL) 
-		AND (Policies.PolicyStatus = @PolicyStatus OR @PolicyStatus IS NULL)
-		ORDER BY MainDetails.LocationId;
-	END
-Go
+	(
+		SELECT ROW_NUMBER() OVER(PARTITION BY PL.FamilyId ORDER BY PL.FamilyId, PL.PolicyStatus)RNo,PL.FamilyId,PL.PolicyStatus
+		FROM tblPolicy PL
+		WHERE PL.ValidityTo IS NULL
+		--AND (PL.PolicyStatus = @PolicyStatus OR @PolicyStatus IS NULL)
+		GROUP BY PL.FamilyId, PL.PolicyStatus
+	) 
+	SELECT MainDetails.*, Policies.PolicyStatus, 
+	--CASE Policies.PolicyStatus WHEN 1 THEN N'Idle' WHEN 2 THEN N'Active' WHEN 4 THEN N'Suspended' WHEN 8 THEN N'Expired' ELSE N'No Policy' END 
+	PS.Name PolicyStatusDesc
+	FROM  MainDetails 
+	INNER JOIN Locations ON Locations.LocationId = MainDetails.LocationId
+	LEFT OUTER JOIN Policies ON MainDetails.FamilyID = Policies.FamilyID
+	LEFT OUTER JOIN @dtPolicyStatus PS ON PS.ID = ISNULL(Policies.PolicyStatus, 0)
+	WHERE (Policies.RNo = 1 OR Policies.PolicyStatus IS NULL) 
+	AND (Policies.PolicyStatus = @PolicyStatus OR @PolicyStatus IS NULL)
+	ORDER BY MainDetails.LocationId;
+END
+GO
 
 IF OBJECT_ID('uspSSRSOverviewOfCommissions', 'P') IS NOT NULL
     DROP PROCEDURE uspSSRSOverviewOfCommissions
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSOverviewOfCommissions]
-	(
-		@Month INT,
-		@Year INT, 
-		@Mode INT=NULL,
-		@OfficerId INT =NULL,
-		@LocationId INT, 
-		@ProdId INT = NULL,
-		@PayerId INT = NULL,
-		@ReportingId INT = NULL,
-		@Scope INT = NULL,
-		@CommissionRate DECIMAL(18,2) = NULL,
-		@ErrorMessage NVARCHAR(200) = N'' OUTPUT
+(
+	@Month INT,
+	@Year INT, 
+	@Mode INT=NULL,
+	@OfficerId INT =NULL,
+	@LocationId INT, 
+	@ProdId INT = NULL,
+	@PayerId INT = NULL,
+	@ReportingId INT = NULL,
+	@Scope INT = NULL,
+	@CommissionRate DECIMAL(18,2) = NULL,
+	@ErrorMessage NVARCHAR(200) = N'' OUTPUT
 
-	)
-	AS
-	BEGIN
-		IF @ReportingId IS NULL
+)
+AS
+BEGIN
+	IF @ReportingId IS NULL
 
-        BEGIN
-			DECLARE @RecordFound INT = 0
-			DECLARE @Rate DECIMAL(18,2)
+    BEGIN
+		DECLARE @RecordFound INT = 0
+		DECLARE @Rate DECIMAL(18,2)
           
 		
-			IF @CommissionRate IS NOT NULL
-				BEGIN
-					 SET @Rate = @CommissionRate / 100
-				END
-		ELSE
+		IF @CommissionRate IS NOT NULL
+			BEGIN
+					SET @Rate = @CommissionRate / 100
+			END
+	ELSE
 
-	  		DECLARE @FirstDay DATE = CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Month AS VARCHAR(2)) + '-01'; 
-			DECLARE @LastDay DATE = EOMONTH(CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Month AS VARCHAR(2)) + '-01', 0)
+	  	DECLARE @FirstDay DATE = CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Month AS VARCHAR(2)) + '-01'; 
+		DECLARE @LastDay DATE = EOMONTH(CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Month AS VARCHAR(2)) + '-01', 0)
 			
 	
 	
 		
-			BEGIN TRY
-					BEGIN TRAN
+		BEGIN TRY
+				BEGIN TRAN
 
 			  
 				
-					INSERT INTO tblReporting(ReportingDate,LocationId, ProdId, PayerId, StartDate, EndDate, RecordFound,OfficerID,ReportType,CommissionRate,ReportMode,Scope)
+				INSERT INTO tblReporting(ReportingDate,LocationId, ProdId, PayerId, StartDate, EndDate, RecordFound,OfficerID,ReportType,CommissionRate,ReportMode,Scope)
 			
-					SELECT GETDATE(),@LocationId,ISNULL(@ProdId,0), @PayerId, @FirstDay, @LastDay, 0,@OfficerId,2,@Rate,@Mode,@Scope; 
-					--Get the last inserted reporting Id
-					SELECT @ReportingId =  SCOPE_IDENTITY();
+				SELECT GETDATE(),@LocationId,ISNULL(@ProdId,0), @PayerId, @FirstDay, @LastDay, 0,@OfficerId,2,@Rate,@Mode,@Scope; 
+				--Get the last inserted reporting Id
+				SELECT @ReportingId =  SCOPE_IDENTITY();
 				
-					IF @Mode = 1 
-						UPDATE tblPremium SET ReportingCommissionID = @ReportingId
-						WHERE PremiumId IN (
-							SELECT  Pr.PremiumId
-					FROM tblPremium Pr INNER JOIN tblPolicy PL ON Pr.PolicyID = PL.PolicyID AND (PL.PolicyStatus=1 OR PL.PolicyStatus=2)
-					LEFT JOIN tblPaymentDetails PD ON PD.PremiumID = Pr.PremiumId
-					LEFT JOIN tblPayment PY ON PY.PaymentID = PD.PaymentID 
-					INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID
-					INNER JOIN tblFamilies F ON PL.FamilyID = F.FamilyID
-					INNER JOIN tblVillages V ON V.VillageId = F.LocationId
-					INNER JOIN tblWards W ON W.WardId = V.WardId
-					INNER JOIN tblDistricts D ON D.DistrictId = W.DistrictId
-					INNER JOIN tblOfficer O ON O.LocationId = D.DistrictId
-					INNER JOIN tblInsuree Ins ON F.FamilyID = Ins.FamilyID  AND Ins.ValidityTo IS NULL
-					LEFT OUTER JOIN tblPayer Payer ON Pr.PayerId = Payer.PayerID 
-					WHERE PD.Amount >=  0
-					AND Year(Pr.PayDate) = @Year AND Month(Pr.paydate) = @Month
-					AND D.DistrictId = @LocationId					
-					AND (ISNULL(Prod.ProdID,0) = ISNULL(@ProdId,0) OR @ProdId is null)
-					AND (ISNULL(O.OfficerID,0) = ISNULL(@OfficerId,0) OR @OfficerId IS NULL)
-					AND (ISNULL(Payer.PayerID,0) = ISNULL(@PayerId,0) OR @PayerId IS NULL)
-					AND Pr.ReportingId IS NULL
-					AND PR.PayType <> N'F'
-					AND Pr.ReportingCommissionID IS NULL
+				IF @Mode = 1 
+					UPDATE tblPremium SET ReportingCommissionID = @ReportingId
+					WHERE PremiumId IN (
+						SELECT  Pr.PremiumId
+				FROM tblPremium Pr INNER JOIN tblPolicy PL ON Pr.PolicyID = PL.PolicyID AND (PL.PolicyStatus=1 OR PL.PolicyStatus=2)
+				LEFT JOIN tblPaymentDetails PD ON PD.PremiumID = Pr.PremiumId
+				LEFT JOIN tblPayment PY ON PY.PaymentID = PD.PaymentID 
+				INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID
+				INNER JOIN tblFamilies F ON PL.FamilyID = F.FamilyID
+				INNER JOIN tblVillages V ON V.VillageId = F.LocationId
+				INNER JOIN tblWards W ON W.WardId = V.WardId
+				INNER JOIN tblDistricts D ON D.DistrictId = W.DistrictId
+				INNER JOIN tblOfficer O ON O.LocationId = D.DistrictId
+				INNER JOIN tblInsuree Ins ON F.FamilyID = Ins.FamilyID  AND Ins.ValidityTo IS NULL
+				LEFT OUTER JOIN tblPayer Payer ON Pr.PayerId = Payer.PayerID 
+				WHERE PD.Amount >=  0
+				AND Year(Pr.PayDate) = @Year AND Month(Pr.paydate) = @Month
+				AND D.DistrictId = @LocationId					
+				AND (ISNULL(Prod.ProdID,0) = ISNULL(@ProdId,0) OR @ProdId is null)
+				AND (ISNULL(O.OfficerID,0) = ISNULL(@OfficerId,0) OR @OfficerId IS NULL)
+				AND (ISNULL(Payer.PayerID,0) = ISNULL(@PayerId,0) OR @PayerId IS NULL)
+				AND Pr.ReportingId IS NULL
+				AND PR.PayType <> N'F'
+				AND Pr.ReportingCommissionID IS NULL
 					
-					GROUP BY Pr.PremiumId
-						)
-					ELSE --@Mode = 0
-						UPDATE tblPremium SET ReportingCommissionID = @ReportingId
-						WHERE PremiumId IN (
-							SELECT  Pr.PremiumId
-								FROM tblPremium Pr INNER JOIN tblPolicy PL ON Pr.PolicyID = PL.PolicyID AND (PL.PolicyStatus=1 OR PL.PolicyStatus=2)
-								INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID AND Prod.ValidityTo IS NULL
-								INNER JOIN tblFamilies F ON PL.FamilyID = F.FamilyID AND F.ValidityTo IS NULL
-								INNER JOIN tblVillages V ON V.VillageId = F.LocationId AND V.ValidityTo IS NULL
-								INNER JOIN tblWards W ON W.WardId = V.WardId AND W.ValidityTo IS NULL
-								INNER JOIN tblDistricts D ON D.DistrictId = W.DistrictId
-								INNER JOIN tblOfficer O ON O.Officerid = PL.OfficerID AND  O.LocationId = D.DistrictId AND O.ValidityTo IS NULL
-								INNER JOIN tblInsuree Ins ON F.FamilyID = Ins.FamilyID  AND Ins.ValidityTo IS NULL
-								LEFT OUTER JOIN tblPayer Payer ON Pr.PayerId = Payer.PayerID 
-								WHERE 
-								 Year(Pr.PayDate) = @Year AND Month(Pr.paydate) = @Month
-								AND D.DistrictId = @LocationId					
-								AND (ISNULL(Prod.ProdID,0) = ISNULL(@ProdId,0) OR @ProdId is null)
-								AND (ISNULL(O.OfficerID,0) = ISNULL(@OfficerId,0) OR @OfficerId IS NULL)
-								AND (ISNULL(Payer.PayerID,0) = ISNULL(@PayerId,0) OR @PayerId IS NULL)
-								AND Pr.ReportingId IS NULL
-								AND PR.PayType <> N'F'
-								AND Pr.ReportingCommissionID IS NULL					
-								GROUP BY Pr.PremiumId
-						)
-					SELECT @RecordFound = @@ROWCOUNT;
-					IF @RecordFound = 0 
-						BEGIN
-							SELECT @ErrorMessage = 'No Data'
-							ROLLBACK;
+				GROUP BY Pr.PremiumId
+					)
+				ELSE --@Mode = 0
+					UPDATE tblPremium SET ReportingCommissionID = @ReportingId
+					WHERE PremiumId IN (
+						SELECT  Pr.PremiumId
+							FROM tblPremium Pr INNER JOIN tblPolicy PL ON Pr.PolicyID = PL.PolicyID AND (PL.PolicyStatus=1 OR PL.PolicyStatus=2)
+							INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID AND Prod.ValidityTo IS NULL
+							INNER JOIN tblFamilies F ON PL.FamilyID = F.FamilyID AND F.ValidityTo IS NULL
+							INNER JOIN tblVillages V ON V.VillageId = F.LocationId AND V.ValidityTo IS NULL
+							INNER JOIN tblWards W ON W.WardId = V.WardId AND W.ValidityTo IS NULL
+							INNER JOIN tblDistricts D ON D.DistrictId = W.DistrictId
+							INNER JOIN tblOfficer O ON O.Officerid = PL.OfficerID AND  O.LocationId = D.DistrictId AND O.ValidityTo IS NULL
+							INNER JOIN tblInsuree Ins ON F.FamilyID = Ins.FamilyID  AND Ins.ValidityTo IS NULL
+							LEFT OUTER JOIN tblPayer Payer ON Pr.PayerId = Payer.PayerID 
+							WHERE 
+								Year(Pr.PayDate) = @Year AND Month(Pr.paydate) = @Month
+							AND D.DistrictId = @LocationId					
+							AND (ISNULL(Prod.ProdID,0) = ISNULL(@ProdId,0) OR @ProdId is null)
+							AND (ISNULL(O.OfficerID,0) = ISNULL(@OfficerId,0) OR @OfficerId IS NULL)
+							AND (ISNULL(Payer.PayerID,0) = ISNULL(@PayerId,0) OR @PayerId IS NULL)
+							AND Pr.ReportingId IS NULL
+							AND PR.PayType <> N'F'
+							AND Pr.ReportingCommissionID IS NULL					
+							GROUP BY Pr.PremiumId
+					)
+				SELECT @RecordFound = @@ROWCOUNT;
+				IF @RecordFound = 0 
+					BEGIN
+						SELECT @ErrorMessage = 'No Data'
+						ROLLBACK;
 							 
-						END
-					UPDATE tblReporting SET RecordFound = @RecordFound WHERE ReportingId = @ReportingId;
+					END
+				UPDATE tblReporting SET RecordFound = @RecordFound WHERE ReportingId = @ReportingId;
 
-                    UPDATE tblPremium SET OverviewCommissionReport = GETDATE() WHERE ReportingCommissionID = @ReportingId AND @Scope = 0 AND OverviewCommissionReport IS NULL;
+                UPDATE tblPremium SET OverviewCommissionReport = GETDATE() WHERE ReportingCommissionID = @ReportingId AND @Scope = 0 AND OverviewCommissionReport IS NULL;
 
-					UPDATE tblPremium SET AllDetailsCommissionReport = GETDATE() WHERE ReportingCommissionID = @ReportingId AND @Scope = 1 AND AllDetailsCommissionReport IS NULL;
+				UPDATE tblPremium SET AllDetailsCommissionReport = GETDATE() WHERE ReportingCommissionID = @ReportingId AND @Scope = 1 AND AllDetailsCommissionReport IS NULL;
 
-				COMMIT TRAN;
-			END TRY
-			BEGIN CATCH
-				--SELECT @ErrorMessage = ERROR_MESSAGE(); ERROR MESSAGE WAS COMMENTED BY SALUMU ON 12-11-2019
-				ROLLBACK;
-				--RETURN -2 RETURN WAS COMMENTED BY SALUMU ON 12-11-2019
-			END CATCH
-		  END
+			COMMIT TRAN;
+		END TRY
+		BEGIN CATCH
+			--SELECT @ErrorMessage = ERROR_MESSAGE(); ERROR MESSAGE WAS COMMENTED BY SALUMU ON 12-11-2019
+			ROLLBACK;
+			--RETURN -2 RETURN WAS COMMENTED BY SALUMU ON 12-11-2019
+		END CATCH
+		END
 	      
 					    
 				 
-		SELECT  Pr.PremiumId,Prod.ProductCode,Prod.ProdID,Prod.ProductName,prod.ProductCode +' ' + prod.ProductName Product,PL.PolicyID,F.FamilyID,D.DistrictName,o.OfficerID , Ins.CHFID, Ins.LastName + ' ' + Ins.OtherNames InsName,O.Code + ' ' + O.LastName Officer,
-		Ins.DOB, Ins.IsHead, PL.EnrollDate,REP.ReportMode,Month(REP.StartDate)  [Month], Pr.Paydate, Pr.Receipt,CASE WHEN Ins.IsHead = 1 THEN ISNULL(Pr.Amount,0) ELSE NULL END Amount,CASE WHEN Ins.IsHead = 1 THEN Pr.Amount ELSE NULL END  PrescribedContribution, CASE WHEN Ins.IsHead = 1 THEN ISNULL(PD.Amount,0) ELSE NULL END ActualPayment, Payer.PayerName,PY.PaymentDate,CASE WHEN IsHead = 1 THEN SUM(ISNULL(Pr.Amount,0.00)) * ISNULL(rep.CommissionRate,0.00) ELSE NULL END  CommissionRate,PY.ExpectedAmount PaymentAmount,OfficerCode,VillageName,WardName,PL.PolicyStage,TransactionNo,O.Phone PhoneNumber
-		FROM tblPremium Pr INNER JOIN tblPolicy PL ON Pr.PolicyID = PL.PolicyID AND (PL.PolicyStatus=1 OR PL.PolicyStatus=2) AND PL.ValidityTo IS NULL
-		LEFT JOIN tblPaymentDetails PD ON PD.PremiumID = Pr.PremiumId AND PD.ValidityTo IS NULl AND PR.ValidityTo IS NULL
-		LEFT JOIN tblPayment PY ON PY.PaymentID = PD.PaymentID AND PY.ValidityTo IS NULL
-		INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID AND Prod.ValidityTo IS NULL
-		INNER JOIN tblFamilies F ON PL.FamilyID = F.FamilyID AND F.ValidityTo IS NULL
-		INNER JOIN tblVillages V ON V.VillageId = F.LocationId AND V.ValidityTo IS NULL
-		INNER JOIN tblWards W ON W.WardId = V.WardId AND W.ValidityTo IS NULL
-		INNER JOIN tblDistricts D ON D.DistrictId = W.DistrictId
-		INNER JOIN tblOfficer O ON O.Officerid = PL.OfficerID AND  O.LocationId = D.DistrictId AND O.ValidityTo IS NULL
-		INNER JOIN tblInsuree Ins ON F.FamilyID = Ins.FamilyID  AND Ins.ValidityTo IS NULL
-		INNER JOIN tblReporting REP ON REP.ReportingId = @ReportingId
-		LEFT OUTER JOIN tblPayer Payer ON Pr.PayerId = Payer.PayerID
-		WHERE Pr.ReportingCommissionID = @ReportingId
-        AND (Pr.OverviewCommissionReport IS NULL OR Pr.AllDetailsCommissionReport IS NULL)
+	SELECT  Pr.PremiumId,Prod.ProductCode,Prod.ProdID,Prod.ProductName,prod.ProductCode +' ' + prod.ProductName Product,PL.PolicyID,F.FamilyID,D.DistrictName,o.OfficerID , Ins.CHFID, Ins.LastName + ' ' + Ins.OtherNames InsName,O.Code + ' ' + O.LastName Officer,
+	Ins.DOB, Ins.IsHead, PL.EnrollDate,REP.ReportMode,Month(REP.StartDate)  [Month], Pr.Paydate, Pr.Receipt,CASE WHEN Ins.IsHead = 1 THEN ISNULL(Pr.Amount,0) ELSE NULL END Amount,CASE WHEN Ins.IsHead = 1 THEN Pr.Amount ELSE NULL END  PrescribedContribution, CASE WHEN Ins.IsHead = 1 THEN ISNULL(PD.Amount,0) ELSE NULL END ActualPayment, Payer.PayerName,PY.PaymentDate,CASE WHEN IsHead = 1 THEN SUM(ISNULL(Pr.Amount,0.00)) * ISNULL(rep.CommissionRate,0.00) ELSE NULL END  CommissionRate,PY.ExpectedAmount PaymentAmount,OfficerCode,VillageName,WardName,PL.PolicyStage,TransactionNo,O.Phone PhoneNumber
+	FROM tblPremium Pr INNER JOIN tblPolicy PL ON Pr.PolicyID = PL.PolicyID AND (PL.PolicyStatus=1 OR PL.PolicyStatus=2) AND PL.ValidityTo IS NULL
+	LEFT JOIN tblPaymentDetails PD ON PD.PremiumID = Pr.PremiumId AND PD.ValidityTo IS NULl AND PR.ValidityTo IS NULL
+	LEFT JOIN tblPayment PY ON PY.PaymentID = PD.PaymentID AND PY.ValidityTo IS NULL
+	INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID AND Prod.ValidityTo IS NULL
+	INNER JOIN tblFamilies F ON PL.FamilyID = F.FamilyID AND F.ValidityTo IS NULL
+	INNER JOIN tblVillages V ON V.VillageId = F.LocationId AND V.ValidityTo IS NULL
+	INNER JOIN tblWards W ON W.WardId = V.WardId AND W.ValidityTo IS NULL
+	INNER JOIN tblDistricts D ON D.DistrictId = W.DistrictId
+	INNER JOIN tblOfficer O ON O.Officerid = PL.OfficerID AND  O.LocationId = D.DistrictId AND O.ValidityTo IS NULL
+	INNER JOIN tblInsuree Ins ON F.FamilyID = Ins.FamilyID  AND Ins.ValidityTo IS NULL
+	INNER JOIN tblReporting REP ON REP.ReportingId = @ReportingId
+	LEFT OUTER JOIN tblPayer Payer ON Pr.PayerId = Payer.PayerID
+	WHERE Pr.ReportingCommissionID = @ReportingId
+    AND (Pr.OverviewCommissionReport IS NULL OR Pr.AllDetailsCommissionReport IS NULL)
 		
-		GROUP BY Pr.PremiumId,Prod.ProductCode,Prod.ProdID,Prod.ProductName,prod.ProductCode +' ' + prod.ProductName , PL.PolicyID ,  F.FamilyID, D.DistrictName,o.OfficerID , Ins.CHFID, Ins.LastName + ' ' + Ins.OtherNames ,O.Code + ' ' + O.LastName ,
-		Ins.DOB, Ins.IsHead, PL.EnrollDate,REP.ReportMode,Month(REP.StartDate), Pr.Paydate, Pr.Receipt,Pr.Amount,Pr.Amount, PD.Amount , Payer.PayerName,PY.PaymentDate, PY.ExpectedAmount,OfficerCode,VillageName,WardName,PL.PolicyStage,TransactionNo,CommissionRate,O.Phone
-		ORDER BY PremiumId, O.OfficerID,F.FamilyID,IsHead DESC;
-	END
-Go
+	GROUP BY Pr.PremiumId,Prod.ProductCode,Prod.ProdID,Prod.ProductName,prod.ProductCode +' ' + prod.ProductName , PL.PolicyID ,  F.FamilyID, D.DistrictName,o.OfficerID , Ins.CHFID, Ins.LastName + ' ' + Ins.OtherNames ,O.Code + ' ' + O.LastName ,
+	Ins.DOB, Ins.IsHead, PL.EnrollDate,REP.ReportMode,Month(REP.StartDate), Pr.Paydate, Pr.Receipt,Pr.Amount,Pr.Amount, PD.Amount , Payer.PayerName,PY.PaymentDate, PY.ExpectedAmount,OfficerCode,VillageName,WardName,PL.PolicyStage,TransactionNo,CommissionRate,O.Phone
+	ORDER BY PremiumId, O.OfficerID,F.FamilyID,IsHead DESC;
+END
+GO
 
 IF OBJECT_ID('uspSSRSGetClaimHistory', 'P') IS NOT NULL
     DROP PROCEDURE uspSSRSGetClaimHistory
@@ -4248,7 +4245,7 @@ CREATE PROCEDURE [dbo].[uspSSRSGetClaimHistory]
 Go
 
 
--- OTC-144: Set isOffline status to 0 for insurees in database 
+-- OP-281: Set isOffline status to 0 for insurees in database 
 IF NOT EXISTS (SELECT 1 FROM tblIMISDefaults where OfflineCHF = 1 OR OfflineHF = 1)
 BEGIN
 	UPDATE tblInsuree SET isOffline=0 

@@ -4427,9 +4427,7 @@ BEGIN TRY
 			INSERT INTO @tblFeedback(fdMsg, fdType )
 			SELECT 'No Payment matched  ', 'I' FROM @tblHeader P
 
-		--DISTRIBUTE PAYMENTS EVENLY
-		UPDATE PD SET PD.DistributedValue = PH.ReceivedAmount*( PD.PolicyValue/PH.TotalPolicyValue) FROM @tblDetail PD
-		INNER JOIN @tblHeader PH ON PH.PaymentID = PD.PaymentID
+		--DISTRIBUTE PAYMENTS 		DECLARE @curPaymentID int, @ReceivedAmount FLOAT, @TotalPolicyValue FLOAT, @AmountAvailable float		DECLARE CUR_Pay CURSOR FAST_FORWARD FOR		SELECT PH.PaymentID, ReceivedAmount, TotalPolicyValue FROM @tblHeader PH		OPEN CUR_Pay		FETCH NEXT FROM CUR_Pay INTO  @curPaymentID, @ReceivedAmount		WHILE @@FETCH_STATUS = 0		BEGIN			SET @AmountAvailable = @ReceivedAmount			SELECT @TotalPolicyValue = SUM(PD.PolicyValue-PD.DistributedValue ) FROM @tblDetail pd WHERE pd.PaymentID = @curPaymentID and PD.PolicyValue > PD.DistributedValue			WHILE @AmountAvailable > 0 or @AmountAvailable =   @ReceivedAmount - @TotalPolicyValue			begin				UPDATE PD SET PD.DistributedValue = CASE WHEN @TotalPolicyValue <=  @AmountAvailable THEN PD.PolicyValue 					WHEN @AmountAvailable*( PD.PolicyValue/@TotalPolicyValue)< PD.PolicyValue THEN @AmountAvailable*( PD.PolicyValue/@TotalPolicyValue) 					ELSE PD.PolicyValue END  FROM @tblDetail PD where pd.PaymentID = @curPaymentID and PD.PolicyValue > PD.DistributedValue				SELECT @AmountAvailable = (@ReceivedAmount - SUM(PD.DistributedValue)) FROM @tblDetail pd WHERE pd.PaymentID = @curPaymentID				-- update the remainig policyvalue				SELECT @TotalPolicyValue = SUM(PD.PolicyValue-PD.DistributedValue ) FROM @tblDetail pd WHERE pd.PaymentID = @curPaymentID and PD.PolicyValue > PD.DistributedValue			END			FETCH NEXT FROM CUR_Pay INTO  @curPaymentID, @ReceivedAmount		END
 
 		--INSERT ONLY RENEWALS
 		DECLARE @DistributedValue DECIMAL(18, 2)

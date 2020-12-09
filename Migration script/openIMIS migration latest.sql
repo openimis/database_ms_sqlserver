@@ -4282,7 +4282,7 @@ BEGIN TRY
 	
 
 	DECLARE @tblHeader TABLE(PaymentID BIGINT, officerCode nvarchar(12),PhoneNumber nvarchar(12),paymentDate DATE,ReceivedAmount DECIMAL(18,2),TotalPolicyValue DECIMAL(18,2), isValid BIT, TransactionNo NVARCHAR(50))
-	DECLARE @tblDetail TABLE(PaymentDetailsID BIGINT, PaymentID BIGINT, InsuranceNumber nvarchar(12),productCode nvarchar(8),  enrollmentDate DATE,PolicyStage CHAR(1), MatchedDate DATE, PolicyValue DECIMAL(18,2),DistributedValue DECIMAL(18,2), policyID INT, RenewalpolicyID INT, PremiumID INT, PolicyStatus INT)
+	DECLARE @tblDetail TABLE(PaymentDetailsID BIGINT, PaymentID BIGINT, InsuranceNumber nvarchar(12),productCode nvarchar(8),  enrollmentDate DATE,PolicyStage CHAR(1), MatchedDate DATE, PolicyValue DECIMAL(18,2),DistributedValue DECIMAL(18,2), policyID INT, RenewalpolicyID INT, PremiumID INT, PolicyStatus INT,AlreadyPaidDValue DECIMAL(18,2))
 	DECLARE @tblResult TABLE(policyID INT, PremiumId INT)
 	DECLARE @tblFeedback TABLE(fdMsg NVARCHAR(MAX), fdType NVARCHAR(1),paymentID INT,InsuranceNumber nvarchar(12),PhoneNumber nvarchar(12),productCode nvarchar(8), Balance DECIMAL(18,2), isActivated BIT, PaymentFound INT, PaymentMatched INT, APIKey NVARCHAR(100))
 	DECLARE @tblPaidPolicies TABLE(PolicyID INT, Amount DECIMAL(18,2), PolicyValue DECIMAL(18,2))
@@ -4292,9 +4292,10 @@ BEGIN TRY
 
 
 	--GET ALL UNMATCHED RECEIVED PAYMENTS
-	INSERT INTO @tblDetail(PaymentDetailsID, PaymentID, InsuranceNumber, ProductCode, enrollmentDate, policyID, PolicyStage, PolicyValue, PremiumID,PolicyStatus)
-	SELECT PaymentDetailsID, PaymentID, InsuranceNumber, ProductCode, EnrollDate,  PolicyID, PolicyStage, PolicyValue, PremiumId, PolicyStatus FROM(
-	SELECT ROW_NUMBER() OVER(PARTITION BY PR.ProductCode,I.CHFID ORDER BY PL.EnrollDate DESC) RN, PD.PaymentDetailsID, PY.PaymentID,PD.InsuranceNumber, PD.ProductCode,PL.EnrollDate,  PL.PolicyID, PD.PolicyStage, PL.PolicyValue, PRM.PremiumId, PL.PolicyStatus FROM tblPaymentDetails PD 
+	INSERT INTO @tblDetail(PaymentDetailsID, PaymentID, InsuranceNumber, ProductCode, enrollmentDate, policyID, PolicyStage, PolicyValue, PremiumID,PolicyStatus, AlreadyPaidDValue)
+	SELECT PaymentDetailsID, PaymentID, InsuranceNumber, ProductCode, EnrollDate,  PolicyID, PolicyStage, PolicyValue, PremiumId, PolicyStatus, AlreadyPaidDValue FROM(
+	SELECT ROW_NUMBER() OVER(PARTITION BY PR.ProductCode,I.CHFID ORDER BY PL.EnrollDate DESC) RN, PD.PaymentDetailsID, PY.PaymentID,PD.InsuranceNumber, PD.ProductCode,PL.EnrollDate,  PL.PolicyID, PD.PolicyStage, PL.PolicyValue, PRM.PremiumId, PL.PolicyStatus, 
+	(SELECT SUM(PDD.Amount) FROM tblPaymentDetails PDD INNER JOIN tblPayment PYY ON PDD.PaymentID = PYY.PaymentID WHERE PYY.MatchedDate IS NOT NULL ) AlreadyPaidDValue FROM tblPaymentDetails PD 
 	LEFT OUTER JOIN tblInsuree I ON I.CHFID = PD.InsuranceNumber
 	LEFT OUTER JOIN tblFamilies F ON F.FamilyID = I.FamilyID
 	LEFT OUTER JOIN tblProduct PR ON PR.ProductCode = PD.ProductCode
@@ -4427,7 +4428,29 @@ BEGIN TRY
 			INSERT INTO @tblFeedback(fdMsg, fdType )
 			SELECT 'No Payment matched  ', 'I' FROM @tblHeader P
 
-		--DISTRIBUTE PAYMENTS 		DECLARE @curPaymentID int, @ReceivedAmount FLOAT, @TotalPolicyValue FLOAT, @AmountAvailable float		DECLARE CUR_Pay CURSOR FAST_FORWARD FOR		SELECT PH.PaymentID, ReceivedAmount, TotalPolicyValue FROM @tblHeader PH		OPEN CUR_Pay		FETCH NEXT FROM CUR_Pay INTO  @curPaymentID, @ReceivedAmount		WHILE @@FETCH_STATUS = 0		BEGIN			SET @AmountAvailable = @ReceivedAmount			SELECT @TotalPolicyValue = SUM(PD.PolicyValue-PD.DistributedValue ) FROM @tblDetail pd WHERE pd.PaymentID = @curPaymentID and PD.PolicyValue > PD.DistributedValue			WHILE @AmountAvailable > 0 or @AmountAvailable =   @ReceivedAmount - @TotalPolicyValue			begin				UPDATE PD SET PD.DistributedValue = CASE WHEN @TotalPolicyValue <=  @AmountAvailable THEN PD.PolicyValue 					WHEN @AmountAvailable*( PD.PolicyValue/@TotalPolicyValue)< PD.PolicyValue THEN @AmountAvailable*( PD.PolicyValue/@TotalPolicyValue) 					ELSE PD.PolicyValue END  FROM @tblDetail PD where pd.PaymentID = @curPaymentID and PD.PolicyValue > PD.DistributedValue				SELECT @AmountAvailable = (@ReceivedAmount - SUM(PD.DistributedValue)) FROM @tblDetail pd WHERE pd.PaymentID = @curPaymentID				-- update the remainig policyvalue				SELECT @TotalPolicyValue = SUM(PD.PolicyValue-PD.DistributedValue ) FROM @tblDetail pd WHERE pd.PaymentID = @curPaymentID and PD.PolicyValue > PD.DistributedValue			END			FETCH NEXT FROM CUR_Pay INTO  @curPaymentID, @ReceivedAmount		END
+		--DISTRIBUTE PAYMENTS 
+		DECLARE @curPaymentID int, @ReceivedAmount DECIMAL(18,2), @TotalPolicyValue DECIMAL(18,2), @AmountAvailable DECIMAL(18,2)
+		DECLARE CUR_Pay CURSOR FAST_FORWARD FOR
+		SELECT PH.PaymentID, ReceivedAmount, TotalPolicyValue FROM @tblHeader PH
+		OPEN CUR_Pay
+		FETCH NEXT FROM CUR_Pay INTO  @curPaymentID, @ReceivedAmount
+		WHILE @@FETCH_STATUS = 0
+		BEGIN
+			SET @AmountAvailable = @ReceivedAmount
+			SELECT @TotalPolicyValue = SUM(PD.PolicyValue-PD.DistributedValue-PD.AlreadyPaidDValue ) FROM @tblDetail PD WHERE pd.PaymentID = @curPaymentID and PD.PolicyValue > (PD.DistributedValue + PD.AlreadyPaidDValue)
+			WHILE @AmountAvailable > 0 or @AmountAvailable =   @ReceivedAmount - @TotalPolicyValue
+			begin
+				UPDATE PD SET PD.DistributedValue = CASE WHEN @TotalPolicyValue <=  @AmountAvailable THEN PD.PolicyValue 
+					WHEN @AmountAvailable*( PD.PolicyValue/@TotalPolicyValue)< PD.PolicyValue THEN @AmountAvailable*( PD.PolicyValue/@TotalPolicyValue) 
+					ELSE PD.PolicyValue END  FROM @tblDetail PD where pd.PaymentID = @curPaymentID and PD.PolicyValue > PD.DistributedValue
+				SELECT @AmountAvailable = (@ReceivedAmount - SUM(PD.DistributedValue)) FROM @tblDetail pd WHERE pd.PaymentID = @curPaymentID
+				-- update the remainig policyvalue
+				SELECT @TotalPolicyValue = SUM(PD.PolicyValue-PD.DistributedValue-Pd.AlreadyPaidDValue ) FROM @tblDetail pd WHERE pd.PaymentID = @curPaymentID and PD.PolicyValue > (PD.DistributedValue + PD.AlreadyPaidDValue)
+			END
+			FETCH NEXT FROM CUR_Pay INTO  @curPaymentID, @ReceivedAmount
+		END
+
+		
 
 		--INSERT ONLY RENEWALS
 		DECLARE @DistributedValue DECIMAL(18, 2)

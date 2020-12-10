@@ -4295,7 +4295,7 @@ BEGIN TRY
 	INSERT INTO @tblDetail(PaymentDetailsID, PaymentID, InsuranceNumber, ProductCode, enrollmentDate, policyID, PolicyStage, PolicyValue, PremiumID,PolicyStatus, AlreadyPaidDValue)
 	SELECT PaymentDetailsID, PaymentID, InsuranceNumber, ProductCode, EnrollDate,  PolicyID, PolicyStage, PolicyValue, PremiumId, PolicyStatus, AlreadyPaidDValue FROM(
 	SELECT ROW_NUMBER() OVER(PARTITION BY PR.ProductCode,I.CHFID ORDER BY PL.EnrollDate DESC) RN, PD.PaymentDetailsID, PY.PaymentID,PD.InsuranceNumber, PD.ProductCode,PL.EnrollDate,  PL.PolicyID, PD.PolicyStage, PL.PolicyValue, PRM.PremiumId, PL.PolicyStatus, 
-	(SELECT SUM(PDD.Amount) FROM tblPaymentDetails PDD INNER JOIN tblPayment PYY ON PDD.PaymentID = PYY.PaymentID WHERE PYY.MatchedDate IS NOT NULL ) AlreadyPaidDValue FROM tblPaymentDetails PD 
+	(SELECT SUM(PDD.Amount) FROM tblPaymentDetails PDD INNER JOIN tblPayment PYY ON PDD.PaymentID = PYY.PaymentID WHERE PYY.MatchedDate IS NOT NULL  and PDD.ValidityTo is NULL) AlreadyPaidDValue FROM tblPaymentDetails PD 
 	LEFT OUTER JOIN tblInsuree I ON I.CHFID = PD.InsuranceNumber
 	LEFT OUTER JOIN tblFamilies F ON F.FamilyID = I.FamilyID
 	LEFT OUTER JOIN tblProduct PR ON PR.ProductCode = PD.ProductCode
@@ -4437,7 +4437,7 @@ BEGIN TRY
 		WHILE @@FETCH_STATUS = 0
 		BEGIN
 			SET @AmountAvailable = @ReceivedAmount
-			SELECT @TotalPolicyValue = SUM(PD.PolicyValue-PD.DistributedValue-PD.AlreadyPaidDValue ) FROM @tblDetail PD WHERE pd.PaymentID = @curPaymentID and PD.PolicyValue > (PD.DistributedValue + PD.AlreadyPaidDValue)
+			SELECT @TotalPolicyValue = SUM(PD.PolicyValue-PD.DistributedValue-Pd.AlreadyPaidDValue ) FROM @tblDetail pd WHERE pd.PaymentID = @curPaymentID and PD.PolicyValue > (PD.DistributedValue + PD.AlreadyPaidDValue)
 			WHILE @AmountAvailable > 0 or @AmountAvailable =   @ReceivedAmount - @TotalPolicyValue
 			begin
 				UPDATE PD SET PD.DistributedValue = CASE WHEN @TotalPolicyValue <=  @AmountAvailable THEN PD.PolicyValue 
@@ -4452,7 +4452,7 @@ BEGIN TRY
 
 		
 
-		--INSERT ONLY RENEWALS
+		-- UPDATE POLICY STATUS
 		DECLARE @DistributedValue DECIMAL(18, 2)
 		DECLARE @InsuranceNumber NVARCHAR(12)
 		DECLARE @productCode NVARCHAR(8)
@@ -4460,21 +4460,26 @@ BEGIN TRY
 		DECLARE @PaymentDetailsID INT
 		DECLARE @Ready INT = 16
 		DECLARe @PolicyStage INT
-
-		--loop below only for SELF PAYER (stage R no office)  or  contribution without payment (Stage N status @ready with office)
 		DECLARE @PreviousPolicyID INT
+		DECLARE @PolicyProcessed TABLE(id int, matchedPayment int)
+		DECLARE @AlreadyPaidDValue DECIMAL(18, 2)
+		DECLARE @PremiumId INT
+		-- loop below only INSERT for :
+		-- SELF PAYER RENEW (stage R no officer)
+		-- contribution without payment (Stage N status @ready status with officer) 
+		-- PolicyID and PhoneNumber required in both cases
 		IF EXISTS(SELECT 1 FROM @tblDetail PD INNER JOIN @tblHeader P ON PD.PaymentID = P.PaymentID WHERE ((PD.PolicyStage ='R' AND P.officerCode IS NULL ) OR (PD.PolicyStatus=@Ready AND PD.PolicyStage ='N' AND P.officerCode IS NOT NULL))AND P.PhoneNumber IS NOT NULL  AND PD.policyID IS NOT NULL)
 			BEGIN
-			DECLARE CurPolicies CURSOR FOR SELECT PaymentDetailsID, InsuranceNumber, productCode, PhoneNumber, DistributedValue, policyID, PolicyStage FROM @tblDetail PD INNER JOIN @tblHeader P ON PD.PaymentID = P.PaymentID 
+			DECLARE CurPolicies CURSOR FOR SELECT PaymentDetailsID, InsuranceNumber, productCode, PhoneNumber, DistributedValue, policyID, PolicyStage, AlreadyPaidDValue,PremiumID FROM @tblDetail PD INNER JOIN @tblHeader P ON PD.PaymentID = P.PaymentID 
 			OPEN CurPolicies;
-			FETCH NEXT FROM CurPolicies INTO @PaymentDetailsID,  @InsuranceNumber, @productCode, @PhoneNumber, @DistributedValue, @PreviousPolicyID, @PolicyStage
+			FETCH NEXT FROM CurPolicies INTO @PaymentDetailsID,  @InsuranceNumber, @productCode, @PhoneNumber, @DistributedValue, @PreviousPolicyID, @PolicyStage, @AlreadyPaidDValue, @PremiumID
 			WHILE @@FETCH_STATUS = 0
 			BEGIN			
 						DECLARE @ProdId INT
 						DECLARE @FamilyId INT
 						DECLARE @OfficerID INT
 						DECLARE @PolicyId INT
-						DECLARE @PremiumId INT
+						
 						DECLARE @StartDate DATE
 						DECLARE @ExpiryDate DATE
 						DECLARE @EffectiveDate DATE
@@ -4488,6 +4493,7 @@ BEGIN TRY
 						DECLARE @HasCycle BIT
 						DECLARE @isActivated BIT = 0
 						DECLARE @TransactionNo NVARCHAR(50)
+						
 						-- DECLARE @PolicyStage INT
 						SELECT @ProdId = ProdID, @FamilyId = FamilyID, @OfficerID = OfficerID, @PreviousPolicyStatus = PolicyStatus  FROM tblPolicy WHERE PolicyID = @PreviousPolicyID AND ValidityTo IS NULL
 						-- execute the storeProc for PolicyID unknown
@@ -4502,51 +4508,56 @@ BEGIN TRY
 							DECLARE @ActivationOption INT
 
 							SELECT @ActivationOption = ActivationOption FROM tblIMISDefaults
+							-- Get the previous paid amount
+							SELECT @PaidAmount =  (SUM(PD.DistributedValue))  FROM @tblDetail pd WHERE Pd.PolicyID = @PreviousPolicyID 		--  support multiple payment; FIXME should we support hybrid payment (contribution and payment)	
 							
-							IF (@PreviousPolicyStatus = @Idle AND @PolicyStage = 'R') OR (@PreviousPolicyStatus = @Ready AND @ActivationOption = 3 AND @PolicyStage = 'N')
+							IF ((@PreviousPolicyStatus = @Idle AND @PolicyStage = 'R') OR (@PreviousPolicyStatus = @Ready AND @ActivationOption = 3 AND @PolicyStage = 'N')) AND (SELECT COUNT(id) FROM @PolicyProcessed WHERE id=@PreviousPolicyID )=0
 								BEGIN
-									--Get the previous paid amount for only Iddle policy
-									SELECT @PaidAmount =  ISNULL(SUM(Amount),0) FROM tblPremium  PR 
-									LEFT OUTER JOIN tblPolicy PL ON PR.PolicyID = PL.PolicyID  
-									WHERE PR.PolicyID = @PreviousPolicyID 
-									AND PR.ValidityTo IS NULL 
-									AND PL.ValidityTo IS NULL
-									AND PL.PolicyStatus = @Idle
-									
+									--Get the previous paid amount for only Idle policy
+									-- SELECT @PaidAmount =  ISNULL(SUM(Amount),0) FROM tblPremium  PR 
+									-- LEFT OUTER JOIN tblPolicy PL ON PR.PolicyID = PL.PolicyID  
+									-- WHERE PR.PolicyID = @PreviousPolicyID 
+									-- AND PR.ValidityTo IS NULL 
+									--  AND PL.ValidityTo IS NULL
+									-- AND PL.PolicyStatus = @Idle								
 									SELECT @PolicyValue = ISNULL(PolicyValue,0) FROM tblPolicy WHERE PolicyID = @PreviousPolicyID AND ValidityTo IS NULL
+									-- if the policy value is covered and
+									IF ( @AlreadyPaidDValue + ISNULL(@PaidAmount,0)) - ISNULL(@PolicyValue,0) >= 0 
+									BEGIN
+										SET @PolicyStatus = @Active
+										SET @EffectiveDate = (SELECT StartDate FROM tblPolicy WHERE PolicyID = @PreviousPolicyID AND ValidityTo IS NULL)
+										SET @isActivated = 1
+										SET @Balance = 0
+		
+										INSERT INTO tblPolicy(FamilyID,EnrollDate,StartDate,EffectiveDate,ExpiryDate,PolicyStatus,PolicyValue,ProdID,OfficerID,PolicyStage,ValidityFrom, ValidityTo, LegacyID,  AuditUserID, isOffline)
+													 SELECT FamilyID,EnrollDate,StartDate,EffectiveDate,ExpiryDate,PolicyStatus,PolicyValue,ProdID,OfficerID,PolicyStage,ValidityFrom,GETDATE(), PolicyID, AuditUserID, isOffline FROM tblPolicy WHERE PolicyID = @PreviousPolicyID
+											
+										
+										INSERT INTO tblInsureePolicy
+										(InsureeId,PolicyId,EnrollmentDate,StartDate,EffectiveDate,ExpiryDate,ValidityFrom,ValidityTo,LegacyId,AuditUserId,isOffline)
+										SELECT InsureeId, PolicyId, EnrollmentDate, StartDate, EffectiveDate,ExpiryDate,ValidityFrom,GETDATE(),PolicyId,AuditUserId,isOffline FROM tblInsureePolicy 
+										WHERE PolicyID = @PreviousPolicyID AND ValidityTo IS NULL
 
-									IF (ISNULL(@DistributedValue,0) + ISNULL(@PaidAmount,0)) - ISNULL(@PolicyValue,0) >= 0
-										BEGIN
-											SET @PolicyStatus = @Active
-											SET @EffectiveDate = (SELECT StartDate FROM tblPolicy WHERE PolicyID = @PreviousPolicyID AND ValidityTo IS NULL)
-											SET @isActivated = 1
-											SET @Balance = 0
+										UPDATE tblPolicy SET PolicyStatus = @PolicyStatus,  EffectiveDate  = @EffectiveDate, ExpiryDate = @ExpiryDate, ValidityFrom = GETDATE(), AuditUserID = @AuditUserId WHERE PolicyID = @PreviousPolicyID
 
-											INSERT INTO tblPolicy(FamilyID,EnrollDate,StartDate,EffectiveDate,ExpiryDate,PolicyStatus,PolicyValue,ProdID,OfficerID,PolicyStage,ValidityFrom, ValidityTo, LegacyID,  AuditUserID, isOffline)
-														 SELECT FamilyID,EnrollDate,StartDate,EffectiveDate,ExpiryDate,PolicyStatus,PolicyValue,ProdID,OfficerID,PolicyStage,ValidityFrom,GETDATE(), PolicyID, AuditUserID, isOffline FROM tblPolicy WHERE PolicyID = @PreviousPolicyID
-
-									
-											INSERT INTO tblInsureePolicy
-											(InsureeId,PolicyId,EnrollmentDate,StartDate,EffectiveDate,ExpiryDate,ValidityFrom,ValidityTo,LegacyId,AuditUserId,isOffline)
-											SELECT InsureeId, PolicyId, EnrollmentDate, StartDate, EffectiveDate,ExpiryDate,ValidityFrom,GETDATE(),PolicyId,AuditUserId,isOffline FROM tblInsureePolicy 
-											WHERE PolicyID = @PreviousPolicyID AND ValidityTo IS NULL
-
-											UPDATE tblPolicy SET PolicyStatus = @PolicyStatus,  EffectiveDate  = @EffectiveDate, ExpiryDate = @ExpiryDate, ValidityFrom = GETDATE(), AuditUserID = @AuditUserId WHERE PolicyID = @PreviousPolicyID
-
-											UPDATE tblInsureePolicy SET EffectiveDate = @EffectiveDate, ValidityFrom = GETDATE(), AuditUserID = @AuditUserId WHERE ValidityTo IS NULL AND PolicyId = @PreviousPolicyID  AND EffectiveDate IS NULL
-											SET @PolicyId = @PreviousPolicyID
-
-										END
+										UPDATE tblInsureePolicy SET EffectiveDate = @EffectiveDate, ValidityFrom = GETDATE(), AuditUserID = @AuditUserId WHERE ValidityTo IS NULL AND PolicyId = @PreviousPolicyID  AND EffectiveDate IS NULL
+										SET @PolicyId = @PreviousPolicyID
+										
+										
+									END
 									ELSE
-										BEGIN
-											SET @Balance = ISNULL(@PolicyValue,0) - (ISNULL(@DistributedValue,0) + ISNULL(@PaidAmount,0))
-											SET @isActivated = 0
-											SET @PolicyId = @PreviousPolicyID
-										END
+									BEGIN
+										SET @Balance = ISNULL(@PolicyValue,0) - (ISNULL(@DistributedValue,0) + ISNULL(@PaidAmount,0))
+										SET @isActivated = 0
+										SET @PolicyId = @PreviousPolicyID
+									END
+									-- mark the policy as processed
+									INSERT INTO @PolicyProcessed (id,matchedpayment) VALUES (@PreviousPolicyID,1)
+									
 								END
-							ELSE
+							ELSE IF @PreviousPolicyStatus  NOT IN ( @Idle, @Ready) AND (SELECT COUNT(id) FROM @PolicyProcessed WHERE id=@PreviousPolicyID )=0 -- FIXME should we renew suspended ?
 								BEGIN --insert new Renewals if the policy is not Iddle
-								DECLARE @StartCycle NVARCHAR(5)
+									DECLARE @StartCycle NVARCHAR(5)
 									SELECT @StartCycle= ISNULL(StartCycle1, ISNULL(StartCycle2,ISNULL(StartCycle3,StartCycle4))) FROM tblProduct WHERE ProdID = @PreviousPolicyID
 									IF @StartCycle IS NOT NULL
 									SET @HasCycle = 1
@@ -4557,7 +4568,8 @@ BEGIN TRY
 									EXEC uspGetPolicyPeriod @ProdId, @EnrollmentDate, @HasCycle;
 									SET @StartDate = (SELECT startDate FROM @tblPeriod)
 									SET @ExpiryDate =(SELECT expiryDate FROM @tblPeriod)
-									IF ISNULL(@DistributedValue,0) - ISNULL(@PolicyValue,0) >= 0
+									
+									IF ISNULL(@PaidAmount,0) - ISNULL(@PolicyValue,0) >= 0
 										BEGIN
 											SET @PolicyStatus = @Active
 											SET @EffectiveDate = @StartDate
@@ -4566,7 +4578,7 @@ BEGIN TRY
 										END
 										ELSE
 										BEGIN
-											SET @Balance = ISNULL(@PolicyValue,0) - (ISNULL(@DistributedValue,0))
+											SET @Balance = ISNULL(@PolicyValue,0) - (ISNULL(@PaidAmount,0))
 											SET @isActivated = 0
 											SET @PolicyStatus = @Idle
 
@@ -4589,21 +4601,29 @@ BEGIN TRY
 									END
 									CLOSE CurNewPolicy;
 									DEALLOCATE CurNewPolicy; 
-
-									
+									INSERT INTO @PolicyProcessed (id,matchedpayment) VALUES (@PreviousPolicyID,1)
 								END	
+							ELSE If  (SELECT SUM(matchedpayment) FROM @PolicyProcessed WHERE id=@PreviousPolicyID )>0
+									UPDATE @PolicyProcessed SET matchedpayment = matchedpayment +1  WHERE id = @PreviousPolicyID	
+								
+								
+								--INSERT PREMIUMS FOR INDIVIDUAL RENEWALS ONLY
+								if ISNULL(@PremiumID,0) = 0 
+								BEGIN								
+									INSERT INTO tblPremium(PolicyID, Amount, PayType, Receipt, PayDate, ValidityFrom, AuditUserID)
+									SELECT @PolicyId, @PaidAmount, 'C',@TransactionNo, GETDATE() PayDate, GETDATE() ValidityFrom, @AuditUserId AuditUserID 
+									SELECT @PremiumId = SCOPE_IDENTITY()
+								END
 				
-				--INSERT PREMIUMS FOR INDIVIDUAL RENEWALS ONLY
-				INSERT INTO tblPremium(PolicyID, Amount, PayType, Receipt, PayDate, ValidityFrom, AuditUserID)
-				SELECT @PolicyId, @DistributedValue, 'C',@TransactionNo, GETDATE() PayDate, GETDATE() ValidityFrom, @AuditUserId AuditUserID 
-				SELECT @PremiumId = SCOPE_IDENTITY()
+
 
 				UPDATE @tblDetail SET PremiumID = @PremiumId  WHERE PaymentDetailsID = @PaymentDetailsID
+				-- insert message only once
+				IF (SELECT SUM(matchedpayment) FROM @PolicyProcessed WHERE id=@PreviousPolicyID )=1
+					INSERT INTO @tblFeedback(InsuranceNumber, productCode, PhoneNumber, isActivated ,Balance, fdType)
+					SELECT @InsuranceNumber, @productCode, @PhoneNumber, @isActivated,@Balance, 'A'
 
-				INSERT INTO @tblFeedback(InsuranceNumber, productCode, PhoneNumber, isActivated ,Balance, fdType)
-				SELECT @InsuranceNumber, @productCode, @PhoneNumber, @isActivated,@Balance, 'A'
-
-			FETCH NEXT FROM CurPolicies INTO @PaymentDetailsID,  @InsuranceNumber, @productCode, @PhoneNumber, @DistributedValue, @PreviousPolicyID;
+			FETCH NEXT FROM CurPolicies INTO @PaymentDetailsID,  @InsuranceNumber, @productCode, @PhoneNumber, @DistributedValue, @PreviousPolicyID, @AlreadyPaidDValue, @PremiumID;
 			END
 			CLOSE CurPolicies;
 			DEALLOCATE CurPolicies; 
@@ -4622,11 +4642,11 @@ BEGIN TRY
 
 			IF EXISTS(SELECT COUNT(1) FROM @tblHeader PH )
 			BEGIN
-				SET @paymentMatched= (SELECT COUNT(1)  FROM @tblHeader PH )
+				SET @paymentMatched= (SELECT COUNT(1) FROM @tblHeader PH ) -- some unvalid payment were removed after validation
 				INSERT INTO @tblFeedback(fdMsg, fdType )
 				SELECT CONVERT(NVARCHAR(4), ISNULL(@paymentMatched,0))  +' Payment(s) matched ', 'I' 
-			END
-
+			 END
+			SELECT paymentMatched = SUM(matchedpayment) FROM @PolicyProcessed
 			UPDATE @tblFeedback SET PaymentFound =ISNULL(@paymentFound,0), PaymentMatched = ISNULL(@paymentMatched,0),APIKey = (SELECT APIKey FROM tblIMISDefaults)
 
 		IF @InTopIsolation = 0 

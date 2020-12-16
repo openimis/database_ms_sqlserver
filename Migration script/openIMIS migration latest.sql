@@ -4046,7 +4046,7 @@ BEGIN
 			BEGIN TRAN
 				if @Mode = 0 -- prescribed
 					SELECT TOP(1) @ReportingId = ReportingId FROM tblReporting WHERE LocationId = @LocationId AND ISNULL(ProdId,0) = ISNULL(@ProdId,0) 
-						AND StartDate = @FirstDay AND EndDate = @LastDay AND OfficerID = @OfficerID AND ReportMode = 1 
+						AND StartDate = @FirstDay AND EndDate = @LastDay AND ISNULL(OfficerID,0) = ISNULL(@OfficerID,0) AND ReportMode = 0 AND ISNULL(PayerId,0) = ISNULL(@PayerId,0)
 				IF @ReportingId is NULL
 				BEGIN
 					INSERT INTO tblReporting(ReportingDate,LocationId, ProdId, PayerId, StartDate, EndDate, RecordFound,OfficerID,ReportType,CommissionRate,ReportMode,Scope)
@@ -4054,6 +4054,8 @@ BEGIN
 					--Get the last inserted reporting Id
 					SELECT @ReportingId =  SCOPE_IDENTITY();
 				END
+				ELSE UPDATE  tblReporting
+					SET ReportingDate = GETDATE(), CommissionRate = @Rate; 
 
 				UPDATE tblPremium SET ReportingCommissionID = CASE  @Mode WHEN 1 THEN @ReportingId ELSE -@ReportingId END
 					WHERE PremiumId IN (
@@ -4069,24 +4071,24 @@ BEGIN
 					INNER JOIN tblOfficer O ON O.LocationId = D.LocationId AND O.ValidityTo IS NULL AND O.Officerid = PL.OfficerID
 					INNER JOIN tblInsuree Ins ON F.FamilyID = Ins.FamilyID  AND Ins.ValidityTo IS NULL
 					LEFT OUTER JOIN tblPayer Payer ON Pr.PayerId = Payer.PayerID 
-					WHERE( (@Mode = 1 and PY.MatchedDate IS NOT NULL) OR  (PY.MatchedDate IS NULL AND @Mode = 0))
-					AND (Year(Pr.PayDate) = @Year AND Month(Pr.paydate) = @Month )
+					WHERE( (@Mode = 1 and PY.MatchedDate IS NOT NULL ) OR  (PY.MatchedDate IS NULL AND @Mode = 0))
 					AND Year(Pr.PayDate) = @Year AND Month(Pr.paydate) = @Month
 					AND D.LocationId = @LocationId	-- or D.ParentLocationId = @LocationId
 					AND (ISNULL(Prod.ProdID,0) = ISNULL(@ProdId,0) OR @ProdId is null)
 					AND (ISNULL(O.OfficerID,0) = ISNULL(@OfficerId,0) OR @OfficerId IS NULL)
 					AND (ISNULL(Payer.PayerID,0) = ISNULL(@PayerId,0) OR @PayerId IS NULL)
-					AND Pr.ReportingId IS NULL OR Pr.ReportingId < 0  -- not matched will be with negative ID
+					-- AND (Pr.ReportingId IS NULL OR Pr.ReportingId < 0 ) -- not matched will be with negative ID
 					AND PR.PayType <> N'F'
-					AND Pr.ReportingCommissionID IS NULL
+					AND (Pr.ReportingCommissionID IS NULL OR Pr.ReportingCommissionID < 0)
 					GROUP BY Pr.PremiumId
-					--HAVING SUM(ISNULL(PY.ReceivedAmount,0)) = MAX(ISNULL(PY.ExpectedAmount,0))
+					HAVING SUM(ISNULL(PD.Amount,0)) = MAX(ISNULL(PY.ExpectedAmount,0))
 					)	
 				
 				SELECT @RecordFound = @@ROWCOUNT;
 				IF @RecordFound = 0 
 				BEGIN
 					SELECT @ErrorMessage = 'No Data'
+					DELETE tblReporting WHERE ReportingId = @ReportingId;
 					ROLLBACK TRAN; 
 					RETURN -- To avoid a second rollback
 				END
@@ -4122,7 +4124,7 @@ BEGIN
 	INNER JOIN tblInsuree Ins ON F.FamilyID = Ins.FamilyID  AND Ins.ValidityTo IS NULL
 	INNER JOIN tblReporting REP ON REP.ReportingId = @ReportingId
 	LEFT OUTER JOIN tblPayer Payer ON Pr.PayerId = Payer.PayerID
-	WHERE Pr.ReportingCommissionID = ABS(@ReportingId)
+	WHERE ABS(Pr.ReportingCommissionID) = @ReportingId
     AND (Pr.OverviewCommissionReport IS NULL OR Pr.AllDetailsCommissionReport IS NULL)
 	GROUP BY Pr.PremiumId,Prod.ProductCode,Prod.ProdID,Prod.ProductName,prod.ProductCode +' ' + prod.ProductName , PL.PolicyID ,  F.FamilyID, D.LocationName,o.OfficerID , Ins.CHFID, Ins.LastName + ' ' + Ins.OtherNames ,O.Code + ' ' + O.LastName ,
 	Ins.DOB, Ins.IsHead, PL.EnrollDate,REP.ReportMode,Month(REP.StartDate), Pr.Paydate, Pr.Receipt,Pr.Amount,Pr.Amount, PD.Amount , Payer.PayerName,PY.PaymentDate, PY.ExpectedAmount,OfficerCode,V.LocationName,W.LocationName,PL.PolicyStage,TransactionNo,CommissionRate,O.Phone

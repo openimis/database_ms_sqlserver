@@ -1,6 +1,6 @@
-$DATABASE = "e1"
-$USERNAME = "sa"
-$PASSWORD = "+Q2w3e4r5"
+$DATABASE = "IMIS"
+$USERNAME = ""
+$PASSWORD = ""
 $OPENIMIS_DATABASE_GIT_FOLDER = ".."
 #remove old database
 sqlcmd -S 127.0.0.1 -U "$USERNAME" -P "$PASSWORD" -Q "drop database $DATABASE"

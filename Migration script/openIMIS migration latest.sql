@@ -108,7 +108,13 @@ Go
 -- Missing column in tblProduct
 IF COL_LENGTH('tblProduct', 'Recurrence') IS NULL
 BEGIN
-	ALTER TABLE tblProduct ADD Recurrence tinyint NULL 
+	ALTER TABLE tblProduct ADD Recurrence tinyint NULL
+END
+GO
+
+IF COL_LENGTH('tblProduct', 'RenewalOrder') IS NULL
+BEGIN
+	ALTER TABLE tblProduct ADD [RenewalOrder] [int] NULL
 END
 GO
 

@@ -4730,7 +4730,7 @@ GO
 IF OBJECT_ID('[uspInsertIndexMonthly]', 'P') IS NOT NULL
     DROP PROCEDURE [uspInsertIndexMonthly]
 GO
- ALTER PROCEDURE [dbo].[uspInsertIndexMonthly]
+ CREATE PROCEDURE [dbo].[uspInsertIndexMonthly]
 (
 @Type varchar(1),
 @RelType INT, -- M 12, Q 4, Y 1 

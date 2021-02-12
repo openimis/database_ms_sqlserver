@@ -4814,7 +4814,7 @@ AS
 BEGIN
 	DECLARE @oReturnValue as int 
 	SET @oReturnValue = 0 
-	--BEGIN TRY
+	BEGIN TRY
 	
 	DECLARE @MStart as int
 	DECLARE @MEnd as int 
@@ -4998,7 +4998,7 @@ BEGIN
 FINISH:
 	
 	RETURN @oReturnValue
-	/*END TRY
+END TRY
 	
 	BEGIN CATCH
 		SELECT 'Unexpected error encountered'
@@ -5006,7 +5006,7 @@ FINISH:
 		SET @RtnStatus = 1
 		RETURN @oReturnValue
 		
-	END CATCH*/
+	END CATCH
 	
 END
 

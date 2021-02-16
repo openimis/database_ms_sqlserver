@@ -112,9 +112,9 @@ BEGIN
 END
 GO
 
-IF COL_LENGTH('tblProduct', 'RenewalOrder') IS NULL
+IF COL_LENGTH('tblPolicy', 'RenewalOrder') IS NULL
 BEGIN
-	ALTER TABLE tblProduct ADD [RenewalOrder] [int] NULL
+	ALTER TABLE tblPolicy ADD [RenewalOrder] [int] NULL
 END
 GO
 

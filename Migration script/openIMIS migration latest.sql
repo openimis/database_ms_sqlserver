@@ -1398,6 +1398,18 @@ BEGIN
 END
 GO
 
+-- OTC-66: User roles: Add Renewal Upload right to Scheme Administrator role
+
+DECLARE @SystemRole INT
+SELECT @SystemRole = role.RoleID from tblRole role where IsSystem=32;
+
+IF NOT EXISTS (SELECT * FROM [tblRoleRight] WHERE [RoleID] = @SystemRole AND [RightID] = 131107)
+BEGIN
+	INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) 
+	VALUES (@SystemRole, 131107, CURRENT_TIMESTAMP, NULL, NULL, NULL)
+END
+GO
+
 -- OP-278: The system role Claim Administrator role doesn't have the required rights
 DECLARE @SystemRole INT
 SELECT @SystemRole = role.RoleID from tblRole role where IsSystem=256;

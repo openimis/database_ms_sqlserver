@@ -50,7 +50,13 @@ BEGIN
 	CONSTRAINT ActivationOptionDefaultConstraint DEFAULT 2 
 	WITH VALUES
 END
+GO
 
+-- Missing column in tblProduct
+IF COL_LENGTH('tblProduct', 'Recurrence') IS NULL
+BEGIN
+	ALTER TABLE tblProduct ADD Recurrence tinyint NULL
+END
 GO
 
 -- OP-277: Modify a member or family fails   

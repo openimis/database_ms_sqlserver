@@ -6263,7 +6263,7 @@ BEGIN
 	SELECT @TotalInsurees = COUNT(InsureeId) FROM tblInsuree WHERE FamilyId = @FamilyId AND ValidityTo IS NULL 
 	SELECT @isOffline = ISNULL(OfflineCHF,0)  FROM tblIMISDefaults
 	
-
+	DECLARE @Premium decimal(18,2) = 0
 	
 	DECLARE Cur CURSOR FOR SELECT PolicyId,PolicyValue,EffectiveDate,PolicyStage,ProdID FROM tblPolicy WHERE FamilyID  = @FamilyId AND ValidityTo IS NULL
 	OPEN Cur
@@ -6281,17 +6281,19 @@ BEGIN
 		--If new policy value is changed then the current insuree will not be insured
 		IF @NewPolicyValue <> @PolicyValue OR @ErrorCode <> 0
 		BEGIN
-		
 			IF @Activate = 0
-				SET @EffectiveDate = NULL
-		END
-	
-	
+			BEGIN
 				
-			INSERT INTO tblInsureePolicy(InsureeId,PolicyId,EnrollmentDate,StartDate,EffectiveDate,ExpiryDate,AuditUserId,isOffline)
-			SELECT @InsureeId, @PolicyId,EnrollDate,P.StartDate,@EffectiveDate,P.ExpiryDate,@AuditUserId,@isOffline
-			FROM tblPolicy P 
-			WHERE P.PolicyID = @PolicyId
+				SET @Premium=ISNULL((SELECT SUM(Amount) Amount FROM tblPremium WHERE PolicyID=@PolicyId AND ValidityTo IS NULL and isPhotoFee = 0 ),0) 
+				IF @Premium < @NewPolicyValue 
+					SET @EffectiveDate = NULL
+			END
+		END
+				
+		INSERT INTO tblInsureePolicy(InsureeId,PolicyId,EnrollmentDate,StartDate,EffectiveDate,ExpiryDate,AuditUserId,isOffline)
+		SELECT @InsureeId, @PolicyId,EnrollDate,P.StartDate,@EffectiveDate,P.ExpiryDate,@AuditUserId,@isOffline
+		FROM tblPolicy P 
+		WHERE P.PolicyID = @PolicyId
 			
 NEXT_POLICY:
 		FETCH NEXT FROM Cur INTO @PolicyId,@PolicyValue,@EffectiveDate,@PolicyStage,@ProdId

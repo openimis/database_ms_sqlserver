@@ -9695,7 +9695,7 @@ GO
 
 -- OTC-232: Integrate DB Stored Procedures
 IF OBJECT_ID('[uspPhoneExtract]', 'P') IS NOT NULL
-    DROP PROCEDURE [[uspPhoneExtract]]
+    DROP PROCEDURE [uspPhoneExtract]
 GO
 SET ANSI_NULLS ON
 GO
@@ -9944,7 +9944,7 @@ GO
 
 -- OTC-232: Integrate DB Stored Procedures
 IF OBJECT_ID('[uspPolicyInquiry]', 'P') IS NOT NULL
-    DROP PROCEDURE [[uspPolicyInquiry]]
+    DROP PROCEDURE [uspPolicyInquiry]
 GO
 SET ANSI_NULLS ON
 GO
@@ -10203,7 +10203,7 @@ GO
 
 -- OTC-232: Integrate DB Stored Procedures
 IF OBJECT_ID('[uspPolicyRenewalInserts]', 'P') IS NOT NULL
-    DROP PROCEDURE [[uspPolicyRenewalInserts]]
+    DROP PROCEDURE [uspPolicyRenewalInserts]
 GO
 SET ANSI_NULLS ON
 GO
@@ -10454,7 +10454,7 @@ GO
 
 -- OTC-232: Integrate DB Stored Procedures
 IF OBJECT_ID('[uspProcessSingleClaimStep1]', 'P') IS NOT NULL
-    DROP PROCEDURE [[uspProcessSingleClaimStep1]]
+    DROP PROCEDURE [uspProcessSingleClaimStep1]
 GO
 SET ANSI_NULLS ON
 GO
@@ -11400,7 +11400,7 @@ GO
 
 -- OTC-232: Integrate DB Stored Procedures
 IF OBJECT_ID('[uspReceiveControlNumber]', 'P') IS NOT NULL
-    DROP PROCEDURE [[uspReceiveControlNumber]]
+    DROP PROCEDURE [uspReceiveControlNumber]
 GO
 SET ANSI_NULLS ON
 GO
@@ -11452,7 +11452,7 @@ GO
 
 -- OTC-232: Integrate DB Stored Procedures
 IF OBJECT_ID('[uspRefreshAdmin]', 'P') IS NOT NULL
-    DROP PROCEDURE [[uspRefreshAdmin]]
+    DROP PROCEDURE [uspRefreshAdmin]
 GO
 SET ANSI_NULLS ON
 GO
@@ -11587,7 +11587,7 @@ GO
 
 -- OTC-232: Integrate DB Stored Procedures
 IF OBJECT_ID('[uspServiceItemEnquiry]', 'P') IS NOT NULL
-    DROP PROCEDURE [[uspServiceItemEnquiry]]
+    DROP PROCEDURE [uspServiceItemEnquiry]
 GO
 SET ANSI_NULLS ON
 GO
@@ -11855,7 +11855,7 @@ GO
 
 -- OTC-232: Integrate DB Stored Procedures
 IF OBJECT_ID('[uspSubmitClaims]', 'P') IS NOT NULL
-    DROP PROCEDURE [[uspSubmitClaims]]
+    DROP PROCEDURE [uspSubmitClaims]
 GO
 SET ANSI_NULLS ON
 GO

@@ -5850,7 +5850,7 @@ NEXT_POLICY:
 END
 GO
 
-
+-- OTC-232: Integrate DB Stored Procedures: missing part
 IF OBJECT_ID('uspAPIGetClaimOverview', 'P') IS NOT NULL
     DROP PROCEDURE [uspAPIGetClaimOverview]
 GO
@@ -5944,7 +5944,7 @@ END
 
 GO
 
-
+-- OTC-232: Integrate DB Stored Procedures: missing part
 IF OBJECT_ID('uspGetClaimStats', 'P') IS NOT NULL
     DROP PROCEDURE [uspGetClaimStats]
 GO
@@ -5984,7 +5984,7 @@ BEGIN
 END
 GO
 
-
+-- OTC-232: Integrate DB Stored Procedures: missing part
 IF OBJECT_ID('uspSentRequestGetControlNumber', 'P') IS NOT NULL
     DROP PROCEDURE [uspSentRequestGetControlNumber]
 GO
@@ -6025,7 +6025,7 @@ END
 
 GO
 
-
+-- OTC-232: Integrate DB Stored Procedures: missing part
 IF OBJECT_ID('uspSSRSGetClaimHistoryClaimsAllDetails', 'P') IS NOT NULL
     DROP PROCEDURE [uspSSRSGetClaimHistoryClaimsAllDetails]
 GO
@@ -6135,7 +6135,7 @@ END
 
 GO
 
-
+-- OTC-232: Integrate DB Stored Procedures: missing part
 IF OBJECT_ID('uspSSRSGetClaimHistoryClaimsAndRejectionDetails', 'P') IS NOT NULL
     DROP PROCEDURE [uspSSRSGetClaimHistoryClaimsAndRejectionDetails]
 GO
@@ -6247,7 +6247,7 @@ END
 
 GO
 
-
+-- OTC-232: Integrate DB Stored Procedures: missing part
 IF OBJECT_ID('uspSSRSGetClaimHistoryReport', 'P') IS NOT NULL
     DROP PROCEDURE [uspSSRSGetClaimHistoryReport]
 GO
@@ -6478,7 +6478,7 @@ END
 -- [ End SSRS GET HISTORY REPORT ]
 GO
 
-
+-- OTC-232: Integrate DB Stored Procedures: missing part
 IF OBJECT_ID('uspSSRSGetClaimOverviewClaimsAllDetails', 'P') IS NOT NULL
     DROP PROCEDURE [uspSSRSGetClaimOverviewClaimsAllDetails]
 GO
@@ -6570,7 +6570,7 @@ END
 
 GO
 
-
+-- OTC-232: Integrate DB Stored Procedures: missing part
 IF OBJECT_ID('uspSSRSGetClaimOverViewClaimsOnly', 'P') IS NOT NULL
     DROP PROCEDURE [uspSSRSGetClaimOverViewClaimsOnly]
 GO
@@ -6747,7 +6747,7 @@ END
 GO
 
 
-
+-- OTC-232: Integrate DB Stored Procedures: missing part
 IF OBJECT_ID('uspSSRSGetClaimHistoryClaimsOnly', 'P') IS NOT NULL
     DROP PROCEDURE [uspSSRSGetClaimHistoryClaimsOnly]
 GO

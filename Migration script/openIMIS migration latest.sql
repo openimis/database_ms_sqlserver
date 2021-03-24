@@ -6653,7 +6653,7 @@ END
 
 GO
 
-
+-- OTC-232: Integrate DB Stored Procedures: missing part
 IF OBJECT_ID('uspSSRSGetClaimOverViewRejectedServiceItem', 'P') IS NOT NULL
     DROP PROCEDURE [uspSSRSGetClaimOverViewRejectedServiceItem]
 GO

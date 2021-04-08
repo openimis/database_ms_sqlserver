@@ -4274,11 +4274,11 @@ Go
 -- OP-281: Set isOffline status to 0 for insurees in database 
 IF NOT EXISTS (SELECT 1 FROM tblIMISDefaults where OfflineCHF = 1 OR OfflineHF = 1)
 BEGIN
-	UPDATE tblInsuree SET isOffline=0 
-	UPDATE tblFamilies SET isOffline=0 
-	UPDATE tblInsureePolicy SET isOffline=0 
-	UPDATE tblPremium SET isOffline=0
-	UPDATE tblPolicy SET isOffline=0
+	UPDATE tblInsuree SET isOffline=0 where isOffline is NULL or isOffline<>0
+	UPDATE tblFamilies SET isOffline=0 where isOffline is NULL or isOffline<>0
+	UPDATE tblInsureePolicy SET isOffline=0 where isOffline is NULL or isOffline<>0
+	UPDATE tblPremium SET isOffline=0 where isOffline is NULL or isOffline<>0
+	UPDATE tblPolicy SET isOffline=0 where isOffline is NULL or isOffline<>0
 END 
 
 -- ready status support

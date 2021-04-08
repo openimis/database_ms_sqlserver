@@ -3695,25 +3695,33 @@ GO
 
 CREATE VIEW [dbo].[uvwLocations]
 AS
-	SELECT 0 LocationId, NULL RegionId, NULL RegionCode, N'National' RegionName, NULL DistrictId, NULL DistrictCode, NULL DistrictName, NULL WardId, NULL WardCode, NULL WardName, NULL VillageId, NULL VillageCode, NULL VillageName, NULL ParentLocationId
+	SELECT 0 LocationId, NULL VillageId, NULL VillageName,NULL VillageCode, NULL WardId, NULL WardName,NULL WardCode, NULL DistrictId,NULL DistrictName, NULL DistrictCode, NULL RegionId, N'National' RegionName, NULL RegionCode, 0 ParentLocationId
+
 	UNION ALL
-	SELECT RegionId LocationId,RegionId, RegionCode, RegionName, NULL DistrictId, NULL DistrictCode, NULL DistrictName, NULL WardId, NULL WardCode, NULL WardName, NULL VillageId, NULL VillageCode, NULL VillageName, 0 ParentLocationId 
-	FROM tblRegions
+
+	SELECT V.LocationId, V.LocationId VillageId, V.LocationName VillageName,V.LocationCode VillageCode, W.LocationId WardId, W.LocationName WardName,W.LocationCode WardCode, D.LocationId DistrictId, D.LocationName DistrictName, D.LocationCode DistrictCode, R.LocationId RegionId, R.LocationName RegionName , R.LocationCode RegionCode, V.ParentLocationId  FROM tblLocations R
+	INNER JOIN tblLocations D  on R.LocationId = D.ParentLocationId AND D.ValidityTo IS NULL AND D.LocationType = 'D' 
+	INNER JOIN tblLocations W  on D.LocationId = W.ParentLocationId AND W.ValidityTo IS NULL AND W.LocationType = 'W' 
+	INNER JOIN tblLocations V  on W.LocationId = V.ParentLocationId AND V.ValidityTo IS NULL AND V.LocationType = 'V' 
+	WHERE R.ValidityTo IS NULL AND R.LocationType = 'R'
+
 	UNION ALL
-	SELECT D.DistrictId LocationId, R.RegionId, R.RegionCode, R.RegionName, D.DistrictId, D.DistrictCode, D.DistrictName, NULL WardId, NULL WardCode, NULL WardName, NULL VillageId, NULL VillageCode, NULL VillageName, Region ParentLocationId
-	FROM tblDistricts D
-	INNER JOIN tblRegions R ON R.RegionId = D.Region
+
+	SELECT W.LocationId, NULL VillageId, NULL VillageName, NULL VillageCode, W.LocationId WardId, W.LocationName WardName,W.LocationCode WardCode,D.LocationId DistrictId, D.LocationName DistrictName, D.LocationCode DistrictCode, R.LocationId RegionId, R.LocationName RegionName , R.LocationCode RegionCode, W.ParentLocationId FROM tblLocations R
+	INNER JOIN tblLocations D  on R.LocationId = D.ParentLocationId AND D.ValidityTo IS NULL AND D.LocationType = 'D' 
+	INNER JOIN tblLocations W  on D.LocationId = W.ParentLocationId AND W.ValidityTo IS NULL AND W.LocationType = 'W' 
+	WHERE R.ValidityTo IS NULL AND R.LocationType = 'R'
+
 	UNION ALL
-	SELECT W.WardId LocationId, R.RegionId, R.RegionCode, R.RegionName, D.DistrictId, D.DistrictCode, D.DistrictName, W.WardId, W.WardCode, W.WardName, NULL VillageId, NULL VillageCode, NULL VillageName, D.DistrictId ParentLocationId
-	FROM tblRegions R
-	INNER JOIN tblDistricts D ON R.RegionId = D.Region
-	INNER JOIN tblWards W ON W.DistrictId = D.DistrictId
+
+	SELECT D.LocationId, NULL VillageId, NULL VillageName,NULL VillageCode, NULL WardId, NULL WardName,NULL WardCode,D.LocationId DistrictId, D.LocationName DistrictName,D.LocationCode DistrictCode, R.LocationId RegionId, R.LocationName RegionName , R.LocationCode RegionCode, D.ParentLocationId FROM tblLocations R
+	INNER JOIN tblLocations D  on R.LocationId = D.ParentLocationId AND D.ValidityTo IS NULL AND D.LocationType = 'D' 
+	WHERE R.ValidityTo IS NULL AND R.LocationType = 'R'
+
 	UNION ALL
-	SELECT V.VillageId LocationId, R.RegionId, R.RegionCode, R.RegionName, D.DistrictId, D.DistrictCode, D.DistrictName, W.WardId, W.WardCode, W.WardName, V.VillageId, V.VillageCode, V.VillageName, V.WardId ParentLocationId
-	FROM tblRegions R
-	INNER JOIN tblDistricts D ON R.RegionId = D.Region
-	INNER JOIN tblWards W ON W.DistrictId = D.DistrictId
-	INNER JOIN tblVillages V ON V.WardId = W.WardId
+
+	SELECT R.LocationId, NULL VillageId, NULL VillageName,NULL VillageCode, NULL WardId, NULL WardName,NULL WardCode, NULL DistrictId,NULL DistrictName, NULL DistrictCode, R.LocationId RegionId, R.LocationName RegionName, R.LocationCode RegionCode, 0 ParentLocationId FROM tblLocations R
+	WHERE R.ValidityTo IS NULL AND R.LocationType = 'R'
 
 GO
 

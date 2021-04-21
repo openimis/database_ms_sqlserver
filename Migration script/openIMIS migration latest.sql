@@ -675,15 +675,9 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
             -- get the insuree which are not included in "insureeToProcess"
             DECLARE @insureeToDelete TABLE(CHFID NVARCHAR(12))
             INSERT INTO @insureeToDelete(CHFID)
-            SELECT CHFID
-            FROM (
-            SELECT CHFID FROM @insureeToProcess
-            UNION ALL
-            SELECT CHFID FROM @tblInsuree TI
-            ) tbl
-            GROUP BY CHFID
-            HAVING count(*) = 1
-            ORDER BY CHFID;
+            SELECT IP.CHFID FROM @insureeToProcess IP
+            LEFT JOIN @tblInsuree I ON I.CHFID=IP.CHFID
+            WHERE I.CHFID is NULL
 
             -- iterate through insuree to delete - process them to remove from existing family
             -- use SP uspAPIDeleteMemberFamily and 'delete' InsureePolicy also like in webapp 

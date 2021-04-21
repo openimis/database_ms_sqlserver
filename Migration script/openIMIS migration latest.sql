@@ -648,6 +648,56 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 			AND PR.PolicyID = TPR.NewPolicyId
 			WHERE PR.ValidityTo IS NULL
 			AND TP.isOffline = 0
+
+
+            /********************************************************************************************************
+                                        CHECK IF SOME INSUREE ARE ABOUT TO DELETE FROM FAMILY	
+            ********************************************************************************************************/
+
+            -- get the family id to process from online database
+            DECLARE @familyIdToProcess TABLE (FamilyId INT)
+            INSERT INTO @familyIdToProcess(FamilyId)
+            SELECT I.FamilyId
+            FROM @tblInsuree TI
+            INNER JOIN tblInsuree I ON TI.CHFID = I.CHFID
+            WHERE I.ValidityTo IS NULL AND TI.isOffline = 1
+            GROUP BY I.FamilyID
+
+            -- get to compare the structure of families (list of insuree) from online database
+            DECLARE @insureeToProcess TABLE(CHFID NVARCHAR(12), FamilyID INT) 
+            INSERT INTO @insureeToProcess(CHFID, FamilyID)
+            SELECT I.CHFID, F.FamilyID FROM tblInsuree I 
+            LEFT JOIN tblFamilies F ON I.FamilyID = F.FamilyID
+            WHERE F.FamilyID IN (SELECT * FROM @familyIdToProcess) AND I.ValidityTo is NULL
+            GROUP BY I.CHFID, F.FamilyID
+
+            -- select the insuree to delete based on received XML payload
+            -- get the insuree which are not included in "insureeToProcess"
+            DECLARE @insureeToDelete TABLE(CHFID NVARCHAR(12))
+            INSERT INTO @insureeToDelete(CHFID)
+            SELECT IP.CHFID FROM @insureeToProcess IP
+            LEFT JOIN @tblInsuree I ON I.CHFID=IP.CHFID
+            WHERE I.CHFID is NULL
+
+            -- iterate through insuree to delete - process them to remove from existing family
+            -- use SP uspAPIDeleteMemberFamily and 'delete' InsureePolicy also like in webapp 
+            IF EXISTS(SELECT 1 FROM @insureeToDelete)
+            BEGIN 
+                DECLARE @CurInsureeCHFID NVARCHAR(12)
+                DECLARE CurInsuree CURSOR FOR SELECT CHFID FROM @insureeToDelete
+                    OPEN CurInsuree
+                        FETCH NEXT FROM CurInsuree INTO @CurInsureeCHFID;
+                        WHILE @@FETCH_STATUS = 0
+                        BEGIN
+                            DECLARE @currentInsureeId INT
+                            SET @currentInsureeId = (SELECT InsureeID FROM tblInsuree WHERE CHFID=@CurInsureeCHFID AND ValidityTo is NULL)
+                            EXEC uspAPIDeleteMemberFamily -2, @CurInsureeCHFID
+                            UPDATE tblInsureePolicy SET ValidityTo = GETDATE() WHERE InsureeId = @currentInsureeId
+                            FETCH NEXT FROM CurInsuree INTO @CurInsureeCHFID;
+                        END
+                    CLOSE CurInsuree
+                DEALLOCATE CurInsuree;	 
+            END
 			
 
 			/********************************************************************************************************

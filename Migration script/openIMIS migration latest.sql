@@ -1514,6 +1514,13 @@ BEGIN
 	VALUES (@SystemRole, 111012, CURRENT_TIMESTAMP)
 END 
 
+-- OTC-243 Enquiry in IMIS Claims doesn't function.
+IF NOT EXISTS (SELECT * FROM [tblRoleRight] WHERE [RoleID] = @SystemRole AND [RightID] = 101105)
+BEGIN
+	INSERT [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom]) 
+	VALUES (@SystemRole, 101105, CURRENT_TIMESTAMP)
+END
+
 -- OP-141: Fixing uspSSRSCapitationPayment stored procedure
 
 SET ANSI_NULLS ON

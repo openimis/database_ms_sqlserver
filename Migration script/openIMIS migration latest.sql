@@ -5178,11 +5178,7 @@ BEGIN
 	/*Error Codes
 	2- Not valid insurance or missing product code
 	3- Not valid enrolment officer code
-<<<<<<< HEAD
 	4- Enrolment officer code and insurance product code are not compatible
-=======
-	4 �Enrolment officer code and insurance product code are not compatible
->>>>>>> develop
 	5- Beneficiary has no policy of specified insurance product for renewal
 	6- Can not issue a control number as default indicated prior enrollment and Insuree has not been enrolled yet 
 
@@ -6346,5 +6342,4 @@ BEGIN
 				TotalAdjusted
 	   FROM tblCapitationPayment WHERE [year] = @Year AND [month] = @Month AND HfID in (SELECT id from  @listOfHF) AND @ProdId = ProductID;
 END
-
 GO 

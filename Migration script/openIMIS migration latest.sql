@@ -2555,7 +2555,7 @@ CREATE PROCEDURE [dbo].[uspSSRSProcessBatch]
 	WHERE C.ValidityTo IS NULL
 	AND (Prod.LocationId = @LocationId OR @LocationId = 0 OR Prod.LocationId IS NULL)
 	AND(Prod.ProdId = @ProdId OR @ProdId = 0)
-	AND (C.RunId = @RunId OR @RunId = 0)
+	AND (C.RunId IS NULL)
 	AND (HF.HFId = @HFID OR @HFId = 0)
 	AND (HF.HFLevel = @HFLevel OR @HFLevel = N'')
 	AND (C.DateTo BETWEEN @DateFrom AND @DateTo)
@@ -4024,7 +4024,7 @@ CREATE PROCEDURE [dbo].[uspSSRSProcessBatchWithClaim]
 	WHERE C.ValidityTo IS NULL
 	AND (Prod.LocationId = @LocationId OR @LocationId = 0 OR Prod.LocationId IS NULL)
 	AND(Prod.ProdId = @ProdId OR @ProdId = 0)
-	AND (C.RunId = @RunId OR @RunId = 0)
+	AND (C.RunId IS NULL)
 	AND (HF.HFId = @HFID OR @HFId = 0)
 	AND (HF.HFLevel = @HFLevel OR @HFLevel = N'')
 	AND (C.DateTo BETWEEN @DateFrom AND @DateTo)

@@ -5178,7 +5178,7 @@ BEGIN
 	/*Error Codes
 	2- Not valid insurance or missing product code
 	3- Not valid enrolment officer code
-	4 �Enrolment officer code and insurance product code are not compatible
+	4- Enrolment officer code and insurance product code are not compatible
 	5- Beneficiary has no policy of specified insurance product for renewal
 	6- Can not issue a control number as default indicated prior enrollment and Insuree has not been enrolled yet 
 
@@ -5842,6 +5842,20 @@ BEGIN
 END
 GO
 
+-- OTC-8: Authorisation doesn't work properly
+-- Adds user profile rights to IMIS Administrator
+
+DECLARE @SystemRole INT
+SELECT @SystemRole = role.RoleID from tblRole role where IsSystem=64; --IMIS Administrator
+
+INSERT INTO [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID])
+	SELECT @SystemRole, RightIDToAdd, CURRENT_TIMESTAMP, NULL, NULL, NULL
+	FROM ( values (122000), (122001), (122002), (122003), (122004), (122005)) as RightsToAdd (RightIDToAdd)) -- User Profile Rights
+	WHERE NOT EXISTS (SELECT TOP (1) * FROM [dbo].[tblRoleRight] WHERE [RoleID]=@SystemRole AND [RightID]=RightIDToAdd)
+GO
+
+-- end of OTC-8
+
 IF OBJECT_ID('uspAddInsureePolicy', 'P') IS NOT NULL
     DROP PROCEDURE [uspAddInsureePolicy]
 GO
@@ -6328,5 +6342,4 @@ BEGIN
 				TotalAdjusted
 	   FROM tblCapitationPayment WHERE [year] = @Year AND [month] = @Month AND HfID in (SELECT id from  @listOfHF) AND @ProdId = ProductID;
 END
-
 GO 

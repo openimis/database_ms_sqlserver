@@ -5850,7 +5850,7 @@ SELECT @SystemRole = role.RoleID from tblRole role where IsSystem=64; --IMIS Adm
 
 INSERT INTO [dbo].[tblRoleRight] ([RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID])
 	SELECT @SystemRole, RightIDToAdd, CURRENT_TIMESTAMP, NULL, NULL, NULL
-	FROM ( values (122000), (122001), (122002), (122003), (122004), (122005)) as RightsToAdd (RightIDToAdd)) -- User Profile Rights
+	FROM ( values (122000), (122001), (122002), (122003), (122004), (122005)) as RightsToAdd (RightIDToAdd) -- User Profile Rights
 	WHERE NOT EXISTS (SELECT TOP (1) * FROM [dbo].[tblRoleRight] WHERE [RoleID]=@SystemRole AND [RightID]=RightIDToAdd)
 GO
 

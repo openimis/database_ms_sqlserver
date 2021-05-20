@@ -6343,3 +6343,47 @@ BEGIN
 	   FROM tblCapitationPayment WHERE [year] = @Year AND [month] = @Month AND HfID in (SELECT id from  @listOfHF) AND @ProdId = ProductID;
 END
 GO 
+
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[uspAcknowledgeControlNumberRequest]
+(
+	
+	@XML XML
+)
+AS
+BEGIN
+
+	DECLARE
+	@PaymentID INT,
+    @Success BIT,
+    @Comment  NVARCHAR(MAX)
+	SELECT @PaymentID = NULLIF(T.H.value('(PaymentID)[1]','INT'),''),
+		   @Success = NULLIF(T.H.value('(Success)[1]','BIT'),''),
+		   @Comment = NULLIF(T.H.value('(Comment)[1]','NVARCHAR(MAX)'),'')
+	FROM @XML.nodes('ControlNumberAcknowledge') AS T(H)
+
+				BEGIN TRY
+
+				UPDATE tblPayment 
+					SET PaymentStatus =  CASE @Success WHEN 1 THEN 2 ELSE-3 END, 
+					RejectedReason = CASE @Success WHEN 0 THEN  @Comment ELSE NULL END,  
+					ValidityFrom = GETDATE(),
+					AuditedUserID = -1 
+				WHERE PaymentID = @PaymentID AND ValidityTo IS NULL AND PaymentStatus < 3
+
+				RETURN 0
+			END TRY
+			BEGIN CATCH
+				ROLLBACK TRAN GETCONTROLNUMBER
+				SELECT ERROR_MESSAGE()
+				RETURN -1
+			END CATCH
+	
+
+	
+END
+GO

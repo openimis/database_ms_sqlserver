@@ -5868,7 +5868,12 @@ BEGIN
 
 				BEGIN TRY
 
-				UPDATE tblPayment SET PaymentStatus =  CASE @Success WHEN 1 THEN 2 ELSE-3 END, RejectedReason = CASE @Success WHEN 0 THEN  @Comment ELSE NULL END,  ValidityFrom = GETDATE(),AuditedUserID =-1 WHERE PaymentID = @PaymentID  AND ValidityTo IS NULL 
+				UPDATE tblPayment 
+					SET PaymentStatus =  CASE @Success WHEN 1 THEN 2 ELSE-3 END, 
+					RejectedReason = CASE @Success WHEN 0 THEN  @Comment ELSE NULL END,  
+					ValidityFrom = GETDATE(),
+					AuditedUserID = -1 
+				WHERE PaymentID = @PaymentID AND ValidityTo IS NULL AND PaymentStatus < 3
 
 				RETURN 0
 			END TRY

@@ -4562,7 +4562,7 @@ BEGIN TRY
 		DECLARE @PhoneNumber NVARCHAR(12)
 		DECLARE @PaymentDetailsID INT
 		DECLARE @Ready INT = 16
-		DECLARe @PolicyStage INT
+		DECLARe @PolicyStage NVARCHAR(1)
 		DECLARE @PreviousPolicyID INT
 		DECLARE @PolicyProcessed TABLE(id int, matchedPayment int)
 		DECLARE @AlreadyPaidDValue DECIMAL(18, 2)
@@ -4726,7 +4726,7 @@ BEGIN TRY
 					INSERT INTO @tblFeedback(InsuranceNumber, productCode, PhoneNumber, isActivated ,Balance, fdType)
 					SELECT @InsuranceNumber, @productCode, @PhoneNumber, @isActivated,@Balance, 'A'
 
-			FETCH NEXT FROM CurPolicies INTO @PaymentDetailsID,  @InsuranceNumber, @productCode, @PhoneNumber, @DistributedValue, @PreviousPolicyID, @AlreadyPaidDValue, @PremiumID;
+			FETCH NEXT FROM CurPolicies INTO @PaymentDetailsID,  @InsuranceNumber, @productCode, @PhoneNumber, @DistributedValue, @PreviousPolicyID, @PolicyStage, @AlreadyPaidDValue, @PremiumID
 			END
 			CLOSE CurPolicies;
 			DEALLOCATE CurPolicies; 

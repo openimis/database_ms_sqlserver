@@ -102,7 +102,9 @@ CREATE TYPE [dbo].[xFamilies] AS TABLE(
 	[Ethnicity] [nvarchar](1) NULL,
 	[isOffline] [bit] NULL,
 	[ConfirmationNo] [nvarchar](12) NULL,
-	[ConfirmationType] [nvarchar](3) NULL
+	[ConfirmationType] [nvarchar](3) NULL,
+	[ApprovalOfSMS] [bit] NULL,
+	[LanguageOfSMS] [nvarchar](5) NULL,
 )
 GO
 
@@ -2262,6 +2264,38 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+CREATE TABLE [dbo].[tblLanguages](
+	[LanguageCode] [nvarchar](5) NOT NULL,
+	[LanguageName] [nvarchar](50) NOT NULL,
+	[SortOrder] [int] NULL,
+ CONSTRAINT [PK_Language] PRIMARY KEY CLUSTERED 
+(
+	[LanguageCode] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE FUNCTION [dbo].[udfDefaultLanguageCode]()
+RETURNS NVARCHAR(5)
+AS
+BEGIN
+	DECLARE @DefaultLanguageCode NVARCHAR(5)
+	IF EXISTS (SELECT DISTINCT SortOrder from tblLanguages where SortOrder is not null)
+	    SELECT TOP(1) @DefaultLanguageCode=LanguageCode FROM tblLanguages sort ORDER BY SortOrder ASC
+	ELSE
+	    SELECT TOP(1) @DefaultLanguageCode=LanguageCode FROM tblLanguages sort
+	RETURN(@DefaultLanguageCode)
+END
+GO
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 CREATE TABLE [dbo].[tblFamilies](
 	[FamilyID] [int] IDENTITY(1,1) NOT NULL,
 	[FamilyUUID] [uniqueidentifier] NOT NULL,
@@ -2279,6 +2313,8 @@ CREATE TABLE [dbo].[tblFamilies](
 	[Ethnicity] [nvarchar](1) NULL,
 	[ConfirmationNo] [nvarchar](12) NULL,
 	[ConfirmationType] [nvarchar](3) NULL,
+	[ApprovalOfSMS] [bit] NULL DEFAULT(0),
+	[LanguageOfSMS] [nvarchar](5) NULL DEFAULT([dbo].[udfDefaultLanguageCode]()),
  CONSTRAINT [PK_tblFamilies] PRIMARY KEY CLUSTERED 
 (
 	[FamilyID] ASC
@@ -2667,20 +2703,6 @@ CREATE TABLE [dbo].[tblItems](
 ) ON [PRIMARY]
 GO
 
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[tblLanguages](
-	[LanguageCode] [nvarchar](5) NOT NULL,
-	[LanguageName] [nvarchar](50) NOT NULL,
-	[SortOrder] [int] NULL,
- CONSTRAINT [PK_Language] PRIMARY KEY CLUSTERED 
-(
-	[LanguageCode] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
-) ON [PRIMARY]
-GO
 
 SET ANSI_NULLS ON
 GO
@@ -4884,6 +4906,8 @@ INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Per
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Poverty', N'O', N'Family, Insuree, Policy, Premium, FindFamily, ChangeFamily')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Profession', N'O', N'Family, Insuree')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Relationship', N'O', N'Insuree')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ApprovalOfSMS', N'H', N'Family')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'LanguageOfSMS', N'H', N'Family')
 INSERT [dbo].[tblEducations] ([EducationId], [Education], [SortOrder], [AltLanguage]) VALUES (1, N'Nursery', NULL, N'Garderie')
 INSERT [dbo].[tblEducations] ([EducationId], [Education], [SortOrder], [AltLanguage]) VALUES (2, N'Primary school', NULL, N'École primaire')
 INSERT [dbo].[tblEducations] ([EducationId], [Education], [SortOrder], [AltLanguage]) VALUES (3, N'Secondary school', NULL, N'École secondaire')
@@ -4915,8 +4939,8 @@ SET IDENTITY_INSERT [dbo].[tblIMISDefaults] OFF
 INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue]) VALUES (N'AllowInsureeWithoutPhoto', 0)
 INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue]) VALUES (N'AllowFamilyWithoutPolicy', 0)
 INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue]) VALUES (N'AllowPolicyWithoutPremium', 0)
-INSERT [dbo].[tblLanguages] ([LanguageCode], [LanguageName], [SortOrder]) VALUES (N'en', N'English', NULL)
-INSERT [dbo].[tblLanguages] ([LanguageCode], [LanguageName], [SortOrder]) VALUES (N'fr', N'Français', NULL)
+INSERT [dbo].[tblLanguages] ([LanguageCode], [LanguageName], [SortOrder]) VALUES (N'en', N'English', 1) -- By default english is set as primary language, required by SMS
+INSERT [dbo].[tblLanguages] ([LanguageCode], [LanguageName], [SortOrder]) VALUES (N'fr', N'Français', 2)
 INSERT [dbo].[tblLegalForms] ([LegalFormCode], [LegalForms], [SortOrder], [AltLanguage]) VALUES (N'C', N'Charity', NULL, N'Charité')
 INSERT [dbo].[tblLegalForms] ([LegalFormCode], [LegalForms], [SortOrder], [AltLanguage]) VALUES (N'D', N'District organization', NULL, N'Organisation du district')
 INSERT [dbo].[tblLegalForms] ([LegalFormCode], [LegalForms], [SortOrder], [AltLanguage]) VALUES (N'G', N'Government', NULL, N'Gouvernement')
@@ -5234,6 +5258,10 @@ GO
 ALTER TABLE [dbo].[tblFamilies] ADD  CONSTRAINT [DF_tblFamilies_InsureeID]  DEFAULT ((0)) FOR [InsureeID]
 GO
 ALTER TABLE [dbo].[tblFamilies] ADD  CONSTRAINT [DF_tblFamilies_Poverty]  DEFAULT ((0)) FOR [Poverty]
+GO
+ALTER TABLE [dbo].[tblFamilies] ADD  CONSTRAINT [DF_tblFamilies_ApprovalOfSMS]  DEFAULT ((0)) FOR [ApprovalOfSMS]
+GO
+ALTER TABLE [dbo].[tblFamilies] ADD  CONSTRAINT [DF_tblFamilies_LanguageOfSMS]  DEFAULT([dbo].[udfDefaultLanguageCode]()) FOR [LanguageOfSMS]
 GO
 ALTER TABLE [dbo].[tblFamilies] ADD  CONSTRAINT [DF_tblFamilies_ValidityFrom]  DEFAULT (getdate()) FOR [ValidityFrom]
 GO
@@ -6373,8 +6401,8 @@ BEGIN TRY
 	SAVE TRANSACTION TRYSUB	---BEGIN SAVE POINT
 
 	--INSERT TEMPORARY FAMILY
-	INSERT INTO tblFamilies(InsureeID, LocationId, Poverty, ValidityFrom, ValidityTo, LegacyID, AuditUserID, FamilyType, FamilyAddress, isOffline, Ethnicity, ConfirmationNo, ConfirmationType)
-	SELECT					InsureeID, LocationId, Poverty, ValidityFrom, ValidityTo, LegacyID, AuditUserID, FamilyType, FamilyAddress, isOffline, Ethnicity, ConfirmationNo, ConfirmationType 
+	INSERT INTO tblFamilies(InsureeID, LocationId, Poverty, ValidityFrom, ValidityTo, LegacyID, AuditUserID, FamilyType, FamilyAddress, isOffline, Ethnicity, ConfirmationNo, ConfirmationType, ApprovalOfSMS, LanguageOfSMS)
+	SELECT					InsureeID, LocationId, Poverty, ValidityFrom, ValidityTo, LegacyID, AuditUserID, FamilyType, FamilyAddress, isOffline, Ethnicity, ConfirmationNo, ConfirmationType, ApprovalOfSMS, LanguageOfSMS
 	FROM tblFamilies WHERE FamilyID=@FamilyId  AND ValidityTo IS NULL 
 	SET @NewFamilyId = (SELECT SCOPE_IDENTITY());
 
@@ -6582,7 +6610,9 @@ CREATE PROCEDURE [dbo].[uspAPIEditFamily]
 	@Email NVARCHAR(100) = NULL,
 	@IdentificationType NVARCHAR(1) = NULL,
 	@IdentificationNumber NVARCHAR(25) = NULL,
-	@FSPCode NVARCHAR(8) = NULL
+	@FSPCode NVARCHAR(8) = NULL,
+	@ApprovalOfSMS BIT = NULL,
+	@LanguageOfSMS NVARCHAR(5) = NULL
 )
 
 AS
@@ -6727,14 +6757,14 @@ BEGIN
 						SET @GroupType = ISNULL(@GroupType, @DBGroupType)
 						SET @CurrentLocationId = ISNULL(@CurrentLocationId,@DBCurrentLocationId)
 
-						INSERT INTO tblFamilies ([insureeid],[Poverty],[ConfirmationType],isOffline,[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],FamilyType, FamilyAddress,Ethnicity,ConfirmationNo, LocationId) 
-						SELECT [insureeid],[Poverty],[ConfirmationType],isOffline,[ValidityFrom],getdate() ValidityTo,FamilyID, @AuditUserID,FamilyType, FamilyAddress,Ethnicity,ConfirmationNo,LocationId FROM tblFamilies
+						INSERT INTO tblFamilies ([insureeid],[Poverty],[ConfirmationType],isOffline,[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],FamilyType, FamilyAddress,Ethnicity,ConfirmationNo, LocationId, ApprovalOfSMS, LanguageOfSMS) 
+						SELECT [insureeid], [Poverty], [ConfirmationType], isOffline, [ValidityFrom], getdate() ValidityTo, FamilyID, @AuditUserID, FamilyType, FamilyAddress, Ethnicity, ConfirmationNo, LocationId, ApprovalOfSMS, LanguageOfSMS FROM tblFamilies
 						WHERE FamilyID = @FamilyID 
 								AND ValidityTo IS NULL
 						
 
 						UPDATE tblFamilies SET LocationId = @LocationId, Poverty = @PovertyStatus, ValidityFrom = GETDATE(),AuditUserID = @AuditUserID,FamilyType = @GroupType,FamilyAddress = @PermanentAddress,ConfirmationType =@ConfirmationType,
-							  ConfirmationNo = @ConfirmationNumber WHERE FamilyID = @FamilyID AND ValidityTo IS NULL
+							  ConfirmationNo = @ConfirmationNumber, ApprovalOfSMS = @ApprovalOfSMS, LanguageOfSMS = @LanguageOfSMS WHERE FamilyID = @FamilyID AND ValidityTo IS NULL
 
 						--Insert Insuree History
 						INSERT INTO tblInsuree ([FamilyID],[CHFID],[LastName],[OtherNames],[DOB],[Gender],[Marital],[IsHead],[passport],[Phone],[PhotoID],[PhotoDate],[CardIssued],isOffline,[AuditUserID],[ValidityFrom] ,[ValidityTo],legacyId,[Relationship],[Profession],[Education],[Email],[TypeOfId],[HFID], [CurrentAddress], [GeoLocation], [CurrentVillage]) 
@@ -7151,7 +7181,9 @@ CREATE PROCEDURE [dbo].[uspAPIEnterFamily]
 	@IdentificationType NVARCHAR(1) = NULL,
 	@IdentificationNumber NVARCHAR(25) = '',
 	@FSPCode NVARCHAR(8) = NULL,
-	@GroupType NVARCHAR(2)= NULL
+	@GroupType NVARCHAR(2)= NULL,
+	@ApprovalOfSMS BIT = NULL,
+	@LanguageOfSMS NVARCHAR(5) = NULL,
 )
 AS
 BEGIN
@@ -7281,8 +7313,8 @@ BEGIN
 
 
 					INSERT INTO dbo.tblFamilies
-						   (InsureeID,LocationId,Poverty,ValidityFrom,AuditUserID,FamilyType,FamilyAddress,isOffline,ConfirmationType,ConfirmationNo )
-					SELECT 0 InsureeID, @LocationId LocationId, @PovertyStatus Poverty, GETDATE() ValidityFrom, @AuditUserID AuditUserID, @GroupType FamilyType, @PermanentAddress FamilyAddress, 0 isOffline, @ConfirmationType ConfirmationType, @ConfirmationNo ConfirmationNo
+						   (InsureeID,LocationId,Poverty,ValidityFrom,AuditUserID,FamilyType,FamilyAddress,isOffline,ConfirmationType,ConfirmationNo, ApprovalOfSMS, LanguageOfSMS )
+					SELECT 0 InsureeID, @LocationId LocationId, @PovertyStatus Poverty, GETDATE() ValidityFrom, @AuditUserID AuditUserID, @GroupType FamilyType, @PermanentAddress FamilyAddress, 0 isOffline, @ConfirmationType ConfirmationType, @ConfirmationNo ConfirmationNo, @ApprovalOfSMS ApprovalOfSMS, @LanguageOfSMS LanguageOfSMS
 					SET @FamilyID = SCOPE_IDENTITY()
 
 	
@@ -9500,7 +9532,7 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 
 	DECLARE @Query NVARCHAR(500)
 	--DECLARE @XML XML
-	DECLARE @tblFamilies TABLE(FamilyId INT,InsureeId INT, CHFID nvarchar(12),  LocationId INT,Poverty NVARCHAR(1),FamilyType NVARCHAR(2),FamilyAddress NVARCHAR(200), Ethnicity NVARCHAR(1), ConfirmationNo NVARCHAR(12), ConfirmationType NVARCHAR(3), isOffline BIT, NewFamilyId INT)
+	DECLARE @tblFamilies TABLE(FamilyId INT,InsureeId INT, CHFID nvarchar(12),  LocationId INT,Poverty NVARCHAR(1),FamilyType NVARCHAR(2),FamilyAddress NVARCHAR(200), Ethnicity NVARCHAR(1), ConfirmationNo NVARCHAR(12), ConfirmationType NVARCHAR(3), isOffline BIT, NewFamilyId INT, ApprovalOfSMS BIT, LanguageOfSMS NVARCHAR(5))
 	DECLARE @tblInsuree TABLE(InsureeId INT,FamilyId INT,CHFID NVARCHAR(12),LastName NVARCHAR(100),OtherNames NVARCHAR(100),DOB DATE,Gender CHAR(1),Marital CHAR(1),IsHead BIT,Passport NVARCHAR(25),Phone NVARCHAR(50),CardIssued BIT,Relationship SMALLINT,Profession SMALLINT,Education SMALLINT,Email NVARCHAR(100), TypeOfId NVARCHAR(1), HFID INT,CurrentAddress NVARCHAR(200),GeoLocation NVARCHAR(200),CurVillage INT,isOffline BIT,PhotoPath NVARCHAR(100), NewFamilyId INT, NewInsureeId INT)
 	DECLARE @tblPolicy TABLE(PolicyId INT,FamilyId INT,EnrollDate DATE,StartDate DATE,EffectiveDate DATE,ExpiryDate DATE,PolicyStatus TINYINT,PolicyValue DECIMAL(18,2),ProdId INT,OfficerId INT,PolicyStage CHAR(1), isOffline BIT, NewFamilyId INT, NewPolicyId INT)
 	DECLARE @tblInureePolicy TABLE(PolicyId INT,InsureeId INT,EffectiveDate DATE, NewInsureeId INT, NewPolicyId INT)
@@ -9522,7 +9554,7 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 
 
 		--GET ALL THE FAMILY FROM THE XML
-		INSERT INTO @tblFamilies(FamilyId,InsureeId,CHFID, LocationId,Poverty,FamilyType,FamilyAddress,Ethnicity, ConfirmationNo,ConfirmationType, isOffline)
+		INSERT INTO @tblFamilies(FamilyId,InsureeId,CHFID, LocationId,Poverty,FamilyType,FamilyAddress,Ethnicity, ConfirmationNo,ConfirmationType, isOffline, ApprovalOfSMS, LanguageOfSMS)
 		SELECT 
 		T.F.value('(FamilyId)[1]','INT'),
 		T.F.value('(InsureeId)[1]','INT'),
@@ -9534,7 +9566,10 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 		T.F.value('(Ethnicity)[1]','NVARCHAR(1)'),
 		T.F.value('(ConfirmationNo)[1]','NVARCHAR(12)'),
 		NULLIF(T.F.value('(ConfirmationType)[1]','NVARCHAR(3)'),''),
-		T.F.value('(isOffline)[1]','BIT')
+		T.F.value('(isOffline)[1]','BIT'),
+		IIF(T.F.value('(ApprovalOfSMS)[1]','BIT') NOT IN (NULL, ''), T.F.value('(ApprovalOfSMS)[1]','BIT'), 0),
+		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode()),
+
 		FROM @XML.nodes('Enrolment/Families/Family') AS T(F)
 
 
@@ -10111,8 +10146,8 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 			--updating existing families
 			IF EXISTS(SELECT 1 FROM @tblFamilies WHERE isOffline = 0 AND FamilyId < 0)
 			BEGIN
-				INSERT INTO tblFamilies ([insureeid],[Poverty],[ConfirmationType],isOffline,[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],FamilyType, FamilyAddress,Ethnicity,ConfirmationNo, LocationId) 
-				SELECT F.[insureeid],F.[Poverty],F.[ConfirmationType],F.isOffline,F.[ValidityFrom],getdate() ValidityTo,F.FamilyID, @AuditUserID,F.FamilyType, F.FamilyAddress,F.Ethnicity,F.ConfirmationNo,F.LocationId FROM @tblFamilies TF
+				INSERT INTO tblFamilies ([insureeid],[Poverty],[ConfirmationType],isOffline,[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],FamilyType, FamilyAddress,Ethnicity,ConfirmationNo, LocationId, ApprovalOfSMS, LanguageOfSMS) 
+				SELECT F.[insureeid],F.[Poverty],F.[ConfirmationType],F.isOffline,F.[ValidityFrom],getdate() ValidityTo,F.FamilyID, @AuditUserID,F.FamilyType, F.FamilyAddress,F.Ethnicity,F.ConfirmationNo,F.LocationId, F.ApprovalOfSMS, F.LanguageOfSMS FROM @tblFamilies TF
 				INNER JOIN tblFamilies F ON ABS(TF.FamilyId) = F.FamilyID
 				WHERE 
 				F.ValidityTo IS NULL
@@ -10120,7 +10155,7 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 
 				
 				UPDATE dst SET dst.[Poverty] = src.Poverty,  dst.[ConfirmationType] = src.ConfirmationType, isOffline=0, dst.[ValidityFrom]=GETDATE(), dst.[AuditUserID] = @AuditUserID, dst.FamilyType = src.FamilyType,  dst.FamilyAddress = src.FamilyAddress,
-							   dst.Ethnicity = src.Ethnicity,  dst.ConfirmationNo = src.ConfirmationNo
+							   dst.Ethnicity = src.Ethnicity,  dst.ConfirmationNo = src.ConfirmationNo, dst.ApprovalOfSMS = src.ApprovalOfSMS, dst.LanguageOfSMS = src.LanguageOfSMS
 						 FROM tblFamilies dst
 						 INNER JOIN @tblFamilies src ON ABS(src.FamilyID)= dst.FamilyID WHERE src.isOffline = 0 AND src.FamilyId < 0
 				SELECT @FamiliesUpd = ISNULL(@@ROWCOUNT	,0)
@@ -10136,8 +10171,8 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 								FETCH NEXT FROM CurFamily INTO @CurFamilyId;
 								WHILE @@FETCH_STATUS = 0
 								BEGIN
-								INSERT INTO tblFamilies(InsureeId, LocationId, Poverty, ValidityFrom, AuditUserId, FamilyType, FamilyAddress, Ethnicity, ConfirmationNo, ConfirmationType, isOffline) 
-								SELECT 0 , TF.LocationId, TF.Poverty, GETDATE() , @AuditUserId , TF.FamilyType, TF.FamilyAddress, TF.Ethnicity, TF.ConfirmationNo, ConfirmationType,1 isOffline FROM @tblFamilies TF
+								INSERT INTO tblFamilies(InsureeId, LocationId, Poverty, ValidityFrom, AuditUserId, FamilyType, FamilyAddress, Ethnicity, ConfirmationNo, ConfirmationType, isOffline, ApprovalOfSMS, LanguageOfSMS) 
+								SELECT 0 , TF.LocationId, TF.Poverty, GETDATE() , @AuditUserId , TF.FamilyType, TF.FamilyAddress, TF.Ethnicity, TF.ConfirmationNo, ConfirmationType,1 isOffline, TF.ApprovalOfSMS, TF.LanguageOfSMS FROM @tblFamilies TF
 								DECLARE @NewFamilyId  INT  =0
 								SELECT @NewFamilyId= SCOPE_IDENTITY();
 								IF @@ROWCOUNT > 0
@@ -10647,14 +10682,14 @@ BEGIN
 	WHERE F.FamilyID IN (SELECT FamilyID FROM tblInsuree WHERE isOffline=1 AND ValidityTo IS NULL GROUP BY FamilyID) 
 	AND I.IsHead=1 AND F.ValidityTo IS NULL
 	UNION
-SELECT F.FamilyId,F.InsureeId, I.CHFID , F.LocationId, F.Poverty
+SELECT F.FamilyId,F.InsureeId, I.CHFID , F.LocationId, F.Poverty, F.ApprovalOfSMS, F.LanguageOfSMS
 	FROM tblFamilies F 
 	LEFT OUTER JOIN tblInsuree I ON F.insureeID = I.InsureeID AND I.ValidityTo IS NULL
 	LEFT OUTER JOIN tblPolicy PL ON F.FamilyId = PL.FamilyID AND PL.ValidityTo IS NULL
 	LEFT OUTER JOIN tblPremium PR ON PR.PolicyID = PL.PolicyID AND PR.ValidityTo IS NULL
 	WHERE F.ValidityTo IS NULL 
 	AND (F.isOffline = 1 OR I.isOffline = 1 OR PL.isOffline = 1 OR PR.isOffline = 1)	
-	GROUP BY F.FamilyId,F.InsureeId,F.LocationId,F.Poverty,I.CHFID) aaa	
+	GROUP BY F.FamilyId,F.InsureeId,F.LocationId,F.Poverty,F.ApprovalOfSMS, F.LanguageOfSMS, I.CHFID) aaa	
 	FOR XML PATH('Family'),ROOT('Families'),TYPE),
 	
 	(SELECT * FROM (
@@ -10715,8 +10750,8 @@ BEGIN
 				--Delete Family
 			
 				IF EXISTS(SELECT * FROM tblPolicy WHERE FamilyID =@Id AND ValidityTo IS NULL) RETURN 3
-				INSERT INTO tblFamilies ([insureeid],LocationId, [Poverty], [ConfirmationType],isOffline,[ValidityFrom],[ValidityTo], [LegacyID],[AuditUserID],[Ethnicity], [ConfirmationNo])
-				SELECT [insureeid],LocationId,[Poverty], [ConfirmationType],isOffline,[ValidityFrom],GETDATE(), @Id, [AuditUserID],Ethnicity, [ConfirmationNo] 
+				INSERT INTO tblFamilies ([insureeid],LocationId, [Poverty], [ConfirmationType],isOffline,[ValidityFrom],[ValidityTo], [LegacyID],[AuditUserID],[Ethnicity], [ConfirmationNo], [ApprovalOfSMS], [LanguageOfSMS])
+				SELECT [insureeid],LocationId,[Poverty], [ConfirmationType],isOffline,[ValidityFrom],GETDATE(), @Id, [AuditUserID],Ethnicity, [ConfirmationNo], [ApprovalOfSMS], [LanguageOfSMS] 
 				FROM tblFamilies 
 				WHERE FamilyID = @Id 
 					  AND ValidityTo IS NULL; 
@@ -11092,7 +11127,7 @@ BEGIN
 	
 	AND D.[DistrictID] =  CASE WHEN	@WithInsuree=0 THEN NULL ELSE D.[DistrictID] END --ADDED BY AMANI
 	UNION ALL
-	SELECT F.[FamilyID],F.[InsureeID],F.[LocationId],[Poverty],F.[ValidityFrom],F.[ValidityTo],F.[LegacyID],F.[AuditUserID],[FamilyType],[FamilyAddress],Ethnicity,F.isOffline,ConfirmationNo,F.ConfirmationType 
+	SELECT F.[FamilyID],F.[InsureeID],F.[LocationId],[Poverty],F.[ValidityFrom],F.[ValidityTo],F.[LegacyID],F.[AuditUserID],[FamilyType],[FamilyAddress],Ethnicity,F.isOffline,ConfirmationNo,F.ConfirmationType, F.ApprovalOfSMS, F.LanguageOfSMS 
 	FROM tblFamilies F 
 	INNER JOIN tblInsuree I ON F.FamilyId = I.FamilyID
 	INNER JOIN tblHF HF ON I.HFId = HF.HfID
@@ -11102,7 +11137,7 @@ BEGIN
 
 	)
 	SELECT * FROM Family F 
-	GROUP BY F.[FamilyID],F.[InsureeID],F.[LocationId],[Poverty],F.[ValidityFrom],F.[ValidityTo],F.[LegacyID],F.[AuditUserID],[FamilyType],[FamilyAddress],Ethnicity,ConfirmationNo,F.ConfirmationType,F.isOffline
+	GROUP BY F.[FamilyID],F.[InsureeID],F.[LocationId],[Poverty],F.[ValidityFrom],F.[ValidityTo],F.[LegacyID],F.[AuditUserID],[FamilyType],[FamilyAddress],Ethnicity,ConfirmationNo,F.ConfirmationType,F.isOffline, F.ApprovalOfSMS, F.LanguageOfSMS
 
 END
 GO
@@ -12608,15 +12643,15 @@ BEGIN TRY
 
 	--**S Families**
 	SET NOCOUNT OFF
-	UPDATE Src SET Src.InsureeID = Etr.InsureeID ,Src.LocationId = Etr.LocationId ,Src.Poverty = Etr.Poverty , Src.ValidityFrom = Etr.ValidityFrom , Src.ValidityTo = Etr.ValidityTo , Src.LegacyID = Etr.LegacyID, Src.AuditUserID = @AuditUser, Src.FamilyType = Etr.FamilyType, Src.FamilyAddress = Etr.FamilyAddress,Src.ConfirmationType = Etr.ConfirmationType FROM tblFamilies Src , @xtFamilies Etr WHERE Src.FamilyID = Etr.FamilyID 
+	UPDATE Src SET Src.InsureeID = Etr.InsureeID ,Src.LocationId = Etr.LocationId ,Src.Poverty = Etr.Poverty , Src.ValidityFrom = Etr.ValidityFrom , Src.ValidityTo = Etr.ValidityTo , Src.LegacyID = Etr.LegacyID, Src.AuditUserID = @AuditUser, Src.FamilyType = Etr.FamilyType, Src.FamilyAddress = Etr.FamilyAddress,Src.ConfirmationType = Etr.ConfirmationType, Src.ApprovalOfSMS = Etc.ApprovalOfSMS, Src.LanguageOfSMS = Etr.ApprovalOfSMS FROM tblFamilies Src , @xtFamilies Etr WHERE Src.FamilyID = Etr.FamilyID 
 	SET @FamiliesUpd = @@ROWCOUNT
 	SET NOCOUNT ON
 	
 	SET NOCOUNT OFF;
 	SET IDENTITY_INSERT [tblFamilies] ON
 	
-	INSERT INTO tblFamilies ([FamilyID],[InsureeID],[LocationId],[Poverty],[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],FamilyType, FamilyAddress,Ethnicity,ConfirmationNo,ConfirmationType) 
-	SELECT [FamilyID],[InsureeID],[LocationId],[Poverty],[ValidityFrom],[ValidityTo],[LegacyID],@AuditUser,FamilyType, FamilyAddress,Ethnicity,ConfirmationNo,  ConfirmationType FROM @xtFamilies WHERE [FamilyID] NOT IN 
+	INSERT INTO tblFamilies ([FamilyID],[InsureeID],[LocationId],[Poverty],[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],FamilyType, FamilyAddress,Ethnicity,ConfirmationNo,ConfirmationType, ApprovalOfSMS, LanguageOfSMS) 
+	SELECT [FamilyID],[InsureeID],[LocationId],[Poverty],[ValidityFrom],[ValidityTo],[LegacyID],@AuditUser,FamilyType, FamilyAddress,Ethnicity,ConfirmationNo,  ConfirmationType, ApprovalOfSMS, LanguageOfSMS FROM @xtFamilies WHERE [FamilyID] NOT IN 
 	(SELECT FamilyID  FROM tblFamilies )
 	--AND (DistrictID = @LocationId OR @LocationId = 0) 'To do: Insuree can belong to different district.So his/her family belonging to another district should not be ruled out.
 	
@@ -22938,13 +22973,13 @@ BEGIN
 TRY --THE MAIN TRY
 		--Create table variables
 		--DECLARE @Result TABLE(ErrorMessage NVARCHAR(500))
-		DECLARE @Family TABLE(FamilyId INT,InsureeId INT,LocationId INT, HOFCHFID nvarchar(12),Poverty BIT NULL,FamilyType NVARCHAR(2),FamilyAddress NVARCHAR(200), Ethnicity NVARCHAR(1), ConfirmationNo NVARCHAR(12), ConfirmationType NVARCHAR(3),isOffline INT)
+		DECLARE @Family TABLE(FamilyId INT,InsureeId INT,LocationId INT, HOFCHFID nvarchar(12),Poverty BIT NULL,FamilyType NVARCHAR(2),FamilyAddress NVARCHAR(200), Ethnicity NVARCHAR(1), ConfirmationNo NVARCHAR(12), ConfirmationType NVARCHAR(3),isOffline INT, ApprovalOfSMS BIT, LanguageOfSMS VARCHAR(5))
 		DECLARE @Insuree TABLE(InsureeId INT,FamilyId INT,CHFID NVARCHAR(12),LastName NVARCHAR(100),OtherNames NVARCHAR(100),DOB DATE,Gender CHAR(1),Marital CHAR(1),IsHead BIT,Passport NVARCHAR(25),Phone NVARCHAR(50),CardIssued BIT,Relationship SMALLINT,Profession SMALLINT,Education SMALLINT,Email NVARCHAR(100), TypeOfId NVARCHAR(1), HFID INT, CurrentAddress NVARCHAR(200), GeoLocation NVARCHAR(250), CurrentVillage INT, PhotoPath NVARCHAR(100), IdentificationNumber NVARCHAR(50),isOffline INT,EffectiveDate DATE)
 		DECLARE @Policy TABLE(PolicyId INT,FamilyId INT,EnrollDate DATE,StartDate DATE,EffectiveDate DATE,ExpiryDate DATE,PolicyStatus TINYINT,PolicyValue DECIMAL(18,2),ProdId INT,OfficerId INT,PolicyStage CHAR(1),isOffline INT)
 		DECLARE @Premium TABLE(PremiumId INT,PolicyId INT,PayerId INT,Amount DECIMAL(18,2),Receipt NVARCHAR(50),PayDate DATE,PayType CHAR(1),isPhotoFee BIT,isOffline INT)
 		--DECLARE @InsureePolicy TABLE(InsureePolicyId INT, InsureeId INT,PolicyId INT, EnrollmentDate DATE,StartDate DATE, EffectiveDate DATE, ExpiryDate DATE,isOffline INT)
 		--Insert data into table variable from XML
-		INSERT INTO @Family(FamilyId, InsureeId, LocationId,HOFCHFID, Poverty, FamilyType, FamilyAddress, Ethnicity, ConfirmationNo, ConfirmationType,isOffline)
+		INSERT INTO @Family(FamilyId, InsureeId, LocationId,HOFCHFID, Poverty, FamilyType, FamilyAddress, Ethnicity, ConfirmationNo, ConfirmationType,isOffline, ApprovalOfSMS, LanguageOfSMS)
 		SELECT 
 		T.F.value('(FamilyId)[1]', 'INT'),
 		T.F.value('(InsureeId)[1]', 'INT'),
@@ -22956,7 +22991,9 @@ TRY --THE MAIN TRY
 		NULLIF(T.F.value('(Ethnicity)[1]', 'NVARCHAR(1)'), ''),
 		NULLIF(T.F.value('(ConfirmationNo)[1]', 'NVARCHAR(12)'), ''),
 		NULLIF(NULLIF(T.F.value('(ConfirmationType)[1]', 'NVARCHAR(4)'), 'null'), ''),
-		T.F.value('(isOffline)[1]','INT')
+		T.F.value('(isOffline)[1]','INT'),
+		IIF(T.F.value('(ApprovalOfSMS)[1]','BIT') NOT IN (NULL, ''), T.F.value('(ApprovalOfSMS)[1]','BIT'), 0),
+		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode()),
 		FROM @xml.nodes('Enrollment/Family') AS T(F);
 
 	
@@ -23123,9 +23160,9 @@ TRY --THE MAIN TRY
 				IF EXISTS(SELECT 1 FROM @Family WHERE isOffline =1)
 					BEGIN
 						INSERT INTO tblFamilies(InsureeId, LocationId, Poverty, ValidityFrom, AuditUserId, isOffline, FamilyType,
-						FamilyAddress, Ethnicity, ConfirmationNo, ConfirmationType)
+						FamilyAddress, Ethnicity, ConfirmationNo, ConfirmationType, ApprovalOfSMS, LanguageOfSMS)
 						SELECT 0 InsureeId, LocationId, Poverty, GETDATE() ValidityFrom, @AuditUserId AuditUserId, 0 isOffline, FamilyType,
-						FamilyAddress, Ethnicity, ConfirmationNo, ConfirmationType
+						FamilyAddress, Ethnicity, ConfirmationNo, ConfirmationType, ApprovalOfSMS, LanguageOfSMS
 						FROM @Family;
 						SELECT @FamilyId = SCOPE_IDENTITY();
 						UPDATE @Insuree SET FamilyId = @FamilyId
@@ -23349,9 +23386,9 @@ TRY --THE MAIN TRY
 				IF EXISTS(SELECT 1 FROM @Family WHERE isOffline =1)
 					BEGIN
 						INSERT INTO tblFamilies(InsureeId, LocationId, Poverty, ValidityFrom, AuditUserId, isOffline, FamilyType,
-						FamilyAddress, Ethnicity, ConfirmationNo, ConfirmationType)
+						FamilyAddress, Ethnicity, ConfirmationNo, ConfirmationType, ApprovalOfSMS, LanguageOfSMS)
 						SELECT 0 InsureeId, LocationId, Poverty, GETDATE() ValidityFrom, @AuditUserId AuditUserId, 0 isOffline, FamilyType,
-						FamilyAddress, Ethnicity, ConfirmationNo, ConfirmationType
+						FamilyAddress, Ethnicity, ConfirmationNo, ConfirmationType, ApprovalOfSMS, LanguageOfSMS
 						FROM @Family;
 						SELECT @FamilyId = SCOPE_IDENTITY();
 						UPDATE @Insuree SET FamilyId = @FamilyId
@@ -23361,8 +23398,8 @@ TRY --THE MAIN TRY
 					BEGIN
 						
 						--Insert History Record
-						INSERT INTO tblFamilies ([insureeid],[Poverty],[ConfirmationType],isOffline,[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],FamilyType, FamilyAddress,Ethnicity,ConfirmationNo, LocationId) 
-						SELECT [insureeid],[Poverty],[ConfirmationType],isOffline,[ValidityFrom],getdate(),@FamilyID, @AuditUserID,FamilyType, FamilyAddress,Ethnicity,ConfirmationNo,LocationId FROM tblFamilies where FamilyID = @FamilyID;
+						INSERT INTO tblFamilies ([insureeid],[Poverty],[ConfirmationType],isOffline,[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],FamilyType, FamilyAddress,Ethnicity,ConfirmationNo, LocationId, ApprovalOfSMS, LanguageOfSMS) 
+						SELECT [insureeid],[Poverty],[ConfirmationType],isOffline,[ValidityFrom],getdate(),@FamilyID, @AuditUserID,FamilyType, FamilyAddress,Ethnicity,ConfirmationNo,LocationId, ApprovalOfSMS, LanguageOfSMS FROM tblFamilies where FamilyID = @FamilyID;
 						
 
 						
@@ -23370,7 +23407,7 @@ TRY --THE MAIN TRY
 						UPDATE @Family SET FamilyId = @FamilyId
 						UPDATE @Policy SET FamilyId =  @FamilyId
 						 UPDATE  dst  SET dst.[Poverty] = src.Poverty,  dst.[ConfirmationType] = src.ConfirmationType, isOffline=0, dst.[ValidityFrom]=GETDATE(), dst.[AuditUserID] = @AuditUserID, dst.FamilyType = src.FamilyType,  dst.FamilyAddress = src.FamilyAddress,
-										   dst.Ethnicity = src.Ethnicity,  dst.ConfirmationNo = src.ConfirmationNo,  dst.LocationId = src.LocationId 
+										   dst.Ethnicity = src.Ethnicity,  dst.ConfirmationNo = src.ConfirmationNo,  dst.LocationId = src.LocationId, dst.ApprovalOfSMS = src.ApprovalOfSMS, dst.LanguageOfSMS = src.LanguageOfSMS
 						 FROM tblFamilies dst
 						 INNER JOIN @Family src ON src.FamilyID = dst.FamilyID
 					--	 WHERE  dst.FamilyID = @FamilyID;
@@ -23716,7 +23753,7 @@ AS
 BEGIN
 	DECLARE @Query NVARCHAR(500)
 	--DECLARE @XML XML
-	DECLARE @tblFamilies TABLE(FamilyId INT,InsureeId INT, CHFID nvarchar(12),  LocationId INT,Poverty NVARCHAR(1),FamilyType NVARCHAR(2),FamilyAddress NVARCHAR(200), Ethnicity NVARCHAR(1), ConfirmationNo NVARCHAR(12), NewFamilyId INT)
+	DECLARE @tblFamilies TABLE(FamilyId INT,InsureeId INT, CHFID nvarchar(12),  LocationId INT,Poverty NVARCHAR(1),FamilyType NVARCHAR(2),FamilyAddress NVARCHAR(200), Ethnicity NVARCHAR(1), ConfirmationNo NVARCHAR(12), NewFamilyId INT, ApprovalOfSMS BIT, LanguageOfSMS VARCHAR(5))
 	DECLARE @tblInsuree TABLE(InsureeId INT,FamilyId INT,CHFID NVARCHAR(12),LastName NVARCHAR(100),OtherNames NVARCHAR(100),DOB DATE,Gender CHAR(1),Marital CHAR(1),IsHead BIT,Passport NVARCHAR(25),Phone NVARCHAR(50),CardIssued BIT,Relationship SMALLINT,Profession SMALLINT,Education SMALLINT,Email NVARCHAR(100), TypeOfId NVARCHAR(1), HFID INT,EffectiveDate DATE, NewFamilyId INT, NewInsureeId INT)
 	DECLARE @tblPolicy TABLE(PolicyId INT,FamilyId INT,EnrollDate DATE,StartDate DATE,EffectiveDate DATE,ExpiryDate DATE,PolicyStatus TINYINT,PolicyValue DECIMAL(18,2),ProdId INT,OfficerId INT,PolicyStage CHAR(1), NewFamilyId INT, NewPolicyId INT)
 	DECLARE @tblPremium TABLE(PremiumId INT,PolicyId INT,PayerId INT,Amount DECIMAL(18,2),Receipt NVARCHAR(50),PayDate DATE,PayType CHAR(1),isPhotoFee BIT, NewPolicyId INT)
@@ -23743,7 +23780,9 @@ BEGIN
 		T.F.value('(FamilyType)[1]','NVARCHAR(2)'),
 		T.F.value('(FamilyAddress)[1]','NVARCHAR(200)'),
 		T.F.value('(Ethnicity)[1]','NVARCHAR(1)'),
-		T.F.value('(ConfirmationNo)[1]','NVARCHAR(12)')
+		T.F.value('(ConfirmationNo)[1]','NVARCHAR(12)'),
+		IIF(T.F.value('(ApprovalOfSMS)[1]','BIT') NOT IN (NULL, ''), T.F.value('(ApprovalOfSMS)[1]','BIT'), 0),
+		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode()),
 		FROM @XML.nodes('Enrolment/Families/Family') AS T(F)
 		
 		--Get total number of families sent via XML
@@ -23904,8 +23943,8 @@ BEGIN
 			MERGE INTO tblFamilies 
 			USING @tblFamilies AS TF ON 1 = 0 
 			WHEN NOT MATCHED THEN 
-				INSERT (InsureeId, LocationId, Poverty, ValidityFrom, AuditUserId, FamilyType, FamilyAddress, Ethnicity, ConfirmationNo) 
-				VALUES(0 , TF.LocationId, TF.Poverty, GETDATE() , @AuditUserId , TF.FamilyType, TF.FamilyAddress, TF.Ethnicity, TF.ConfirmationNo)
+				INSERT (InsureeId, LocationId, Poverty, ValidityFrom, AuditUserId, FamilyType, FamilyAddress, Ethnicity, ConfirmationNo, ApprovalOfSMS, LanguageOfSMS) 
+				VALUES(0 , TF.LocationId, TF.Poverty, GETDATE() , @AuditUserId , TF.FamilyType, TF.FamilyAddress, TF.Ethnicity, TF.ConfirmationNo, ApprovalOfSMS, LanguageOfSMS)
 				OUTPUT TF.FamilyId, inserted.FamilyId INTO @tblIds;
 		
 
@@ -24121,7 +24160,7 @@ CREATE PROCEDURE [dbo].[uspUploadEnrolmentsFromOfflinePhone](
 
 	DECLARE @Query NVARCHAR(500)
 	--DECLARE @XML XML
-	DECLARE @tblFamilies TABLE(FamilyId INT,InsureeId INT, CHFID nvarchar(12),  LocationId INT,Poverty NVARCHAR(1),FamilyType NVARCHAR(2),FamilyAddress NVARCHAR(200), Ethnicity NVARCHAR(1), ConfirmationNo NVARCHAR(12), NewFamilyId INT)
+	DECLARE @tblFamilies TABLE(FamilyId INT,InsureeId INT, CHFID nvarchar(12),  LocationId INT,Poverty NVARCHAR(1),FamilyType NVARCHAR(2),FamilyAddress NVARCHAR(200), Ethnicity NVARCHAR(1), ConfirmationNo NVARCHAR(12), NewFamilyId INT, ApprovalOfSMS BIT, LanguageOfSMS VARCHAR(5))
 	DECLARE @tblInsuree TABLE(InsureeId INT,FamilyId INT,CHFID NVARCHAR(12),LastName NVARCHAR(100),OtherNames NVARCHAR(100),DOB DATE,Gender CHAR(1),Marital CHAR(1),IsHead BIT,Passport NVARCHAR(25),Phone NVARCHAR(50),CardIssued BIT,Relationship SMALLINT,Profession SMALLINT,Education SMALLINT,Email NVARCHAR(100), TypeOfId NVARCHAR(1), HFID INT,CurrentAddress NVARCHAR(200),GeoLocation NVARCHAR(200),CurVillage INT,isOffline BIT,PhotoPath NVARCHAR(100), NewFamilyId INT, NewInsureeId INT)
 	DECLARE @tblPolicy TABLE(PolicyId INT,FamilyId INT,EnrollDate DATE,StartDate DATE,EffectiveDate DATE,ExpiryDate DATE,PolicyStatus TINYINT,PolicyValue DECIMAL(18,2),ProdId INT,OfficerId INT,PolicyStage CHAR(1), NewFamilyId INT, NewPolicyId INT)
 	DECLARE @tblInureePolicy TABLE(PolicyId INT,InsureeId INT,EffectiveDate DATE, NewInsureeId INT, NewPolicyId INT)
@@ -24138,7 +24177,7 @@ CREATE PROCEDURE [dbo].[uspUploadEnrolmentsFromOfflinePhone](
 
 
 		--GET ALL THE FAMILY FROM THE XML
-		INSERT INTO @tblFamilies(FamilyId,InsureeId,CHFID, LocationId,Poverty,FamilyType,FamilyAddress,Ethnicity, ConfirmationNo)
+		INSERT INTO @tblFamilies(FamilyId,InsureeId,CHFID, LocationId,Poverty,FamilyType,FamilyAddress,Ethnicity, ConfirmationNo, ApprovalOfSMS, LanguageOfSMS)
 		SELECT 
 		T.F.value('(FamilyId)[1]','INT'),
 		T.F.value('(InsureeId)[1]','INT'),
@@ -24148,7 +24187,9 @@ CREATE PROCEDURE [dbo].[uspUploadEnrolmentsFromOfflinePhone](
 		NULLIF(T.F.value('(FamilyType)[1]','NVARCHAR(2)'),''),
 		T.F.value('(FamilyAddress)[1]','NVARCHAR(200)'),
 		T.F.value('(Ethnicity)[1]','NVARCHAR(1)'),
-		T.F.value('(ConfirmationNo)[1]','NVARCHAR(12)')
+		T.F.value('(ConfirmationNo)[1]','NVARCHAR(12)'),
+		IIF(T.F.value('(ApprovalOfSMS)[1]','BIT') NOT IN (NULL, ''), T.F.value('(ApprovalOfSMS)[1]','BIT'), 0),
+		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode()),
 		FROM @XML.nodes('Enrolment/Families/Family') AS T(F)
 
 
@@ -24324,8 +24365,8 @@ CREATE PROCEDURE [dbo].[uspUploadEnrolmentsFromOfflinePhone](
 			MERGE INTO tblFamilies 
 			USING @tblFamilies AS TF ON 1 = 0 
 			WHEN NOT MATCHED THEN 
-				INSERT (InsureeId, LocationId, Poverty, ValidityFrom, AuditUserId, FamilyType, FamilyAddress, Ethnicity, ConfirmationNo) 
-				VALUES(0 , TF.LocationId, TF.Poverty, GETDATE() , @AuditUserId , TF.FamilyType, TF.FamilyAddress, TF.Ethnicity, TF.ConfirmationNo)
+				INSERT (InsureeId, LocationId, Poverty, ValidityFrom, AuditUserId, FamilyType, FamilyAddress, Ethnicity, ConfirmationNo, ApprovalOfSMS, LanguageOfSMS) 
+				VALUES(0 , TF.LocationId, TF.Poverty, GETDATE() , @AuditUserId , TF.FamilyType, TF.FamilyAddress, TF.Ethnicity, TF.ConfirmationNo, TF.ApprovalOfSMS, TF.LanguageOfSMS)
 				OUTPUT TF.FamilyId, inserted.FamilyId INTO @tblIds;
 		
 

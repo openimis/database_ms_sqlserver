@@ -9578,14 +9578,15 @@ END
 
 
 
-IF OBJECT_ID('uspUploadEnrolmentsFromOfflinePhone', 'P') IS NOT NULL
-    DROP PROCEDURE uspUploadEnrolmentsFromOfflinePhone
-GO
+
 
 
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
+GO
+IF OBJECT_ID('uspUploadEnrolmentsFromOfflinePhone', 'P') IS NOT NULL
+    DROP PROCEDURE uspUploadEnrolmentsFromOfflinePhone
 GO
 
 CREATE PROCEDURE [dbo].[uspUploadEnrolmentsFromOfflinePhone](
@@ -10094,19 +10095,19 @@ CREATE PROCEDURE [dbo].[uspUploadEnrolmentsFromOfflinePhone](
 
 	SELECT Result FROM @tblResult;
 	RETURN 0;
-END
-
-
-
-DROP FUNCTION IF EXISTS [dbo].[udfDefaultLanguageCode] 
-GO 
+END 
 
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE FUNCTION [dbo].[udfDefaultLanguageCode]()
+ALTER TABLE tblFamilies DROP CONSTRAINT IF EXISTS DF_tblFamilies_LanguageOfSMS
+
+DROP FUNCTION IF EXISTS [dbo].[udfDefaultLanguageCode] 
+GO
+
+CREATE OR ALTER FUNCTION [dbo].[udfDefaultLanguageCode]()
 RETURNS NVARCHAR(5)
 AS
 BEGIN
@@ -10117,6 +10118,9 @@ BEGIN
 	    SELECT TOP(1) @DefaultLanguageCode=LanguageCode FROM tblLanguages sort
 	RETURN(@DefaultLanguageCode)
 END
+GO
+ALTER TABLE [dbo].[tblFamilies] ADD  CONSTRAINT [DF_tblFamilies_LanguageOfSMS]  DEFAULT([dbo].[udfDefaultLanguageCode]()) FOR [LanguageOfSMS]
+GO
 
 SET ANSI_NULLS ON
 GO

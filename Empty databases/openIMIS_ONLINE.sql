@@ -104,7 +104,7 @@ CREATE TYPE [dbo].[xFamilies] AS TABLE(
 	[ConfirmationNo] [nvarchar](12) NULL,
 	[ConfirmationType] [nvarchar](3) NULL,
 	[ApprovalOfSMS] [bit] NULL,
-	[LanguageOfSMS] [nvarchar](5) NULL,
+	[LanguageOfSMS] [nvarchar](5) NULL
 )
 GO
 
@@ -2313,8 +2313,8 @@ CREATE TABLE [dbo].[tblFamilies](
 	[Ethnicity] [nvarchar](1) NULL,
 	[ConfirmationNo] [nvarchar](12) NULL,
 	[ConfirmationType] [nvarchar](3) NULL,
-	[ApprovalOfSMS] [bit] NULL DEFAULT(0),
-	[LanguageOfSMS] [nvarchar](5) NULL DEFAULT([dbo].[udfDefaultLanguageCode]()),
+	[ApprovalOfSMS] [bit] NULL,
+	[LanguageOfSMS] [nvarchar](5) NULL,
  CONSTRAINT [PK_tblFamilies] PRIMARY KEY CLUSTERED 
 (
 	[FamilyID] ASC
@@ -7183,7 +7183,7 @@ CREATE PROCEDURE [dbo].[uspAPIEnterFamily]
 	@FSPCode NVARCHAR(8) = NULL,
 	@GroupType NVARCHAR(2)= NULL,
 	@ApprovalOfSMS BIT = NULL,
-	@LanguageOfSMS NVARCHAR(5) = NULL,
+	@LanguageOfSMS NVARCHAR(5) = NULL
 )
 AS
 BEGIN
@@ -9513,7 +9513,6 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 	@PremiumSent INT = 0 OUTPUT,
 	@PremiumImported INT = 0 OUTPUT,
 	@PremiumRejected INT =0 OUTPUT
-	
 	)
 	AS
 	BEGIN
@@ -9568,8 +9567,7 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 		NULLIF(T.F.value('(ConfirmationType)[1]','NVARCHAR(3)'),''),
 		T.F.value('(isOffline)[1]','BIT'),
 		IIF(T.F.value('(ApprovalOfSMS)[1]','BIT') NOT IN (NULL, ''), T.F.value('(ApprovalOfSMS)[1]','BIT'), 0),
-		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode()),
-
+		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode())
 		FROM @XML.nodes('Enrolment/Families/Family') AS T(F)
 
 
@@ -10677,7 +10675,7 @@ CREATE PROCEDURE [dbo].[uspCreateEnrolmentXML]
 AS
 BEGIN
 	SELECT
-	(SELECT * FROM (SELECT F.FamilyId,F.InsureeId, I.CHFID , F.LocationId, F.Poverty FROM tblInsuree I 
+	(SELECT * FROM (SELECT F.FamilyId,F.InsureeId, I.CHFID , F.LocationId, F.Poverty, F.ApprovalOfSMS, F.LanguageOfSMS FROM tblInsuree I 
 	INNER JOIN tblFamilies F ON F.FamilyID=I.FamilyID
 	WHERE F.FamilyID IN (SELECT FamilyID FROM tblInsuree WHERE isOffline=1 AND ValidityTo IS NULL GROUP BY FamilyID) 
 	AND I.IsHead=1 AND F.ValidityTo IS NULL
@@ -11113,7 +11111,7 @@ BEGIN
 	--**Families**
 	--SELECT [FamilyID],[InsureeID],[DistrictID],[VillageID],[WardID],[Poverty],[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],[FamilyType],[FamilyAddress],Ethnicity,ConfirmationNo FROM [dbo].[tblFamilies] WHERE RowID > @RowID AND (CASE @LocationId  WHEN 0 THEN 0 ELSE [DistrictID]  END) = @LocationId
 	;WITH Family AS (
-	SELECT F.[FamilyID],F.[InsureeID],F.[LocationId],[Poverty],F.[ValidityFrom],F.[ValidityTo],F.[LegacyID],F.[AuditUserID],[FamilyType],[FamilyAddress],Ethnicity,isOffline ,ConfirmationNo,F.ConfirmationType 
+	SELECT F.[FamilyID],F.[InsureeID],F.[LocationId],[Poverty],F.[ValidityFrom],F.[ValidityTo],F.[LegacyID],F.[AuditUserID],[FamilyType],[FamilyAddress],Ethnicity,isOffline ,ConfirmationNo,F.ConfirmationType, F.ApprovalOfSMS, F.LanguageOfSMS  
 	FROM [dbo].[tblFamilies] F 
 	INNER JOIN tblVillages V ON V.VillageID = F.LocationId
 	INNER JOIN tblWards W ON W.WardId = V.WardId
@@ -12643,7 +12641,7 @@ BEGIN TRY
 
 	--**S Families**
 	SET NOCOUNT OFF
-	UPDATE Src SET Src.InsureeID = Etr.InsureeID ,Src.LocationId = Etr.LocationId ,Src.Poverty = Etr.Poverty , Src.ValidityFrom = Etr.ValidityFrom , Src.ValidityTo = Etr.ValidityTo , Src.LegacyID = Etr.LegacyID, Src.AuditUserID = @AuditUser, Src.FamilyType = Etr.FamilyType, Src.FamilyAddress = Etr.FamilyAddress,Src.ConfirmationType = Etr.ConfirmationType, Src.ApprovalOfSMS = Etc.ApprovalOfSMS, Src.LanguageOfSMS = Etr.ApprovalOfSMS FROM tblFamilies Src , @xtFamilies Etr WHERE Src.FamilyID = Etr.FamilyID 
+	UPDATE Src SET Src.InsureeID = Etr.InsureeID ,Src.LocationId = Etr.LocationId ,Src.Poverty = Etr.Poverty , Src.ValidityFrom = Etr.ValidityFrom , Src.ValidityTo = Etr.ValidityTo , Src.LegacyID = Etr.LegacyID, Src.AuditUserID = @AuditUser, Src.FamilyType = Etr.FamilyType, Src.FamilyAddress = Etr.FamilyAddress,Src.ConfirmationType = Etr.ConfirmationType, Src.ApprovalOfSMS = Etr.ApprovalOfSMS, Src.LanguageOfSMS = Etr.LanguageOfSMS FROM tblFamilies Src , @xtFamilies Etr WHERE Src.FamilyID = Etr.FamilyID 
 	SET @FamiliesUpd = @@ROWCOUNT
 	SET NOCOUNT ON
 	
@@ -22993,7 +22991,7 @@ TRY --THE MAIN TRY
 		NULLIF(NULLIF(T.F.value('(ConfirmationType)[1]', 'NVARCHAR(4)'), 'null'), ''),
 		T.F.value('(isOffline)[1]','INT'),
 		IIF(T.F.value('(ApprovalOfSMS)[1]','BIT') NOT IN (NULL, ''), T.F.value('(ApprovalOfSMS)[1]','BIT'), 0),
-		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode()),
+		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode())
 		FROM @xml.nodes('Enrollment/Family') AS T(F);
 
 	
@@ -23770,7 +23768,7 @@ BEGIN
 
 
 		--GET ALL THE FAMILY FROM THE XML
-		INSERT INTO @tblFamilies(FamilyId,InsureeId,CHFID, LocationId,Poverty,FamilyType,FamilyAddress,Ethnicity, ConfirmationNo)
+		INSERT INTO @tblFamilies(FamilyId,InsureeId,CHFID, LocationId,Poverty,FamilyType,FamilyAddress,Ethnicity, ConfirmationNo, ApprovalOfSMS, LanguageOfSMS)
 		SELECT 
 		T.F.value('(FamilyId)[1]','INT'),
 		T.F.value('(InsureeId)[1]','INT'),
@@ -23782,7 +23780,7 @@ BEGIN
 		T.F.value('(Ethnicity)[1]','NVARCHAR(1)'),
 		T.F.value('(ConfirmationNo)[1]','NVARCHAR(12)'),
 		IIF(T.F.value('(ApprovalOfSMS)[1]','BIT') NOT IN (NULL, ''), T.F.value('(ApprovalOfSMS)[1]','BIT'), 0),
-		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode()),
+		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode())
 		FROM @XML.nodes('Enrolment/Families/Family') AS T(F)
 		
 		--Get total number of families sent via XML
@@ -24189,7 +24187,7 @@ CREATE PROCEDURE [dbo].[uspUploadEnrolmentsFromOfflinePhone](
 		T.F.value('(Ethnicity)[1]','NVARCHAR(1)'),
 		T.F.value('(ConfirmationNo)[1]','NVARCHAR(12)'),
 		IIF(T.F.value('(ApprovalOfSMS)[1]','BIT') NOT IN (NULL, ''), T.F.value('(ApprovalOfSMS)[1]','BIT'), 0),
-		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode()),
+		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode())
 		FROM @XML.nodes('Enrolment/Families/Family') AS T(F)
 
 

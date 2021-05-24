@@ -6349,6 +6349,7 @@ GO
 -- UPDATE PROCEDURES TO INCLUDE SMS LOGIC
 -- Updated procedures: 
 -- [dbo].[uspAddInsureePolicyOffline]
+-- [dbo].[uspAPIEnterFamily]
 -- [dbo].[uspAPIEditFamily]
 -- [dbo].[uspConsumeEnrollments]
 -- [dbo].[uspCreateEnrolmentXML]
@@ -6357,6 +6358,7 @@ GO
 -- [dbo].[uspUploadEnrolmentFromPhone]
 -- [dbo].[uspUploadEnrolments]
 -- [dbo].[uspUploadEnrolmentsFromOfflinePhone]
+-- [dbo].[uspImportOffLineExtract4]
 
 IF OBJECT_ID('uspAddInsureePolicyOffline', 'P') IS NOT NULL
     DROP PROCEDURE uspAddInsureePolicyOffline
@@ -6525,7 +6527,197 @@ END CATCH
 	
 END
 GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [dbo].[uspAPIEnterFamily]
+(
+	@AuditUserID INT = -3,
+	@PermanentVillageCode NVARCHAR(8),
+	@InsuranceNumber NVARCHAR(12),
+	@OtherNames NVARCHAR(100),
+	@LastName NVARCHAR(100),
+	@BirthDate DATE,
+	@Gender NVARCHAR(1),
+	@PovertyStatus BIT = NULL,
+	@ConfirmationNo nvarchar(12) = '' ,
+	@ConfirmationType NVARCHAR(1) = NULL,
+	@PermanentAddress NVARCHAR(200) = '',
+	@MaritalStatus NVARCHAR(1) = NULL,
+	@BeneficiaryCard BIT = 0 ,
+	@CurrentVillageCode NVARCHAR(8) = NULL ,
+	@CurrentAddress NVARCHAR(200) = '',
+	@Proffesion NVARCHAR(50) = NULL,
+	@Education NVARCHAR(50) = NULL,
+	@PhoneNumber NVARCHAR(50) = '',
+	@Email NVARCHAR(100) = '',
+	@IdentificationType NVARCHAR(1) = NULL,
+	@IdentificationNumber NVARCHAR(25) = '',
+	@FSPCode NVARCHAR(8) = NULL,
+	@GroupType NVARCHAR(2)= NULL,
+	@ApprovalOfSMS BIT = NULL,
+	@LanguageOfSMS NVARCHAR(5) = NULL
+)
+AS
+BEGIN
 
+	/*
+	RESPONSE CODES
+		1 - Wrong format or missing insurance number of head
+		2 - Duplicated insurance number of head
+		3 - Wrong or missing permanent village code
+		4 - Wrong current village code
+		5 - Wrong or missing  gender
+		6 - Wrong format or missing birth date
+		7 - Missing last name
+		8 - Missing other name
+		9 - Wrong confirmation type
+		10 - Wrong group type
+		11 - Wrong marital status
+		12 - Wrong education
+		13 - Wrong profession
+		14 - FSP code not found
+		15 - wrong identification type 
+		0 - Success 
+		-1 Unknown Error
+
+	*/
+
+
+
+	/**********************************************************************************************************************
+			VALIDATION STARTS
+	*********************************************************************************************************************/
+	--1 - Wrong format or missing insurance number of head
+	IF LEN(ISNULL(@InsuranceNumber,'')) = 0
+		RETURN 1
+	
+	--2 - Duplicated insurance number of head
+	IF EXISTS(SELECT 1 FROM tblInsuree WHERE CHFID = @InsuranceNumber AND ValidityTo IS NULL)
+		RETURN 2
+
+	--3 - Wrong or missing permanent village code
+	IF LEN(ISNULL(@PermanentVillageCode,'')) = 0
+		RETURN 3
+
+	IF NOT EXISTS(SELECT 1 FROM tblLocations  WHERE LocationCode = @PermanentVillageCode AND ValidityTo IS NULL AND LocationType ='V')
+		RETURN 3
+
+	--4 - Wrong current village code
+	IF LEN(ISNULL(@CurrentVillageCode,'')) <> 0
+	BEGIN
+		IF NOT EXISTS(SELECT 1 FROM tblLocations  WHERE LocationCode = @CurrentVillageCode AND ValidityTo IS NULL AND LocationType ='V')
+		RETURN 4
+	END
+
+	--5 - Wrong or missing  gender
+	IF LEN(ISNULL(@Gender,'')) = 0
+		RETURN 5
+
+	IF NOT EXISTS(SELECT 1 FROM tblGender WHERE Code = @Gender)
+		RETURN 5
+	
+	--6 - Wrong format or missing birth date
+	IF NULLIF(@BirthDate,'') IS NULL
+		RETURN 6
+	
+	--7 - Missing last name
+	IF LEN(ISNULL(@LastName,'')) = 0 
+		RETURN 7
+	
+	--8 - Missing other name
+	IF LEN(ISNULL(@OtherNames,'')) = 0 
+		RETURN 8
+
+	--9 - Wrong confirmation type
+	IF NOT EXISTS(SELECT 1 FROM tblConfirmationTypes WHERE ConfirmationTypeCode = @ConfirmationType) AND LEN(ISNULL(@ConfirmationType,'')) > 0
+		RETURN 9
+	
+	--10 - Wrong group type
+	IF NOT EXISTS(SELECT  1 FROM tblFamilyTypes WHERE FamilyTypeCode = @GroupType) AND LEN(ISNULL(@GroupType,'')) > 0
+		RETURN 10
+
+	--11 - Wrong marital status
+	IF dbo.udfAPIisValidMaritalStatus(@MaritalStatus) = 0 AND LEN(ISNULL(@MaritalStatus,'')) > 0
+		RETURN 11
+
+	--12 - Wrong education
+	IF NOT EXISTS(SELECT  1 FROM tblEducations WHERE Education = @Education) AND LEN(ISNULL(@Education,'')) > 0
+		RETURN 12
+
+	--13 - Wrong profession
+	IF NOT EXISTS(SELECT  1 FROM tblProfessions WHERE Profession = @Proffesion) AND LEN(ISNULL(@Proffesion,'')) > 0
+		RETURN 13
+
+	--14 - FSP code not found
+	IF NOT EXISTS(SELECT  1 FROM tblHF WHERE HFCode = @FSPCode AND ValidityTo IS NULL) AND LEN(ISNULL(@FSPCode,'')) > 0
+		RETURN 14
+
+	--15 - Wrong identification type
+	IF NOT EXISTS(SELECT 1 FROM tblIdentificationTypes WHERE  IdentificationCode  = @IdentificationType ) AND LEN(ISNULL(@IdentificationType,'')) > 0
+		RETURN 15
+
+
+	/**********************************************************************************************************************
+			VALIDATION ENDS
+	*********************************************************************************************************************/
+
+		/****************************************BEGIN TRANSACTION *************************/
+		BEGIN TRY
+			BEGIN TRANSACTION ENROLFAMILY
+			
+				DECLARE @FamilyID INT,
+						@InsureeID INT,
+			
+						@ProfessionId INT,
+						@LocationId INT,
+						@CurrentLocationId INT=0,
+						@EducationId INT,
+						@HfID INT
+
+						SELECT @HfID = HfID FROM tblHF WHERE HFCode = @FSPCode AND ValidityTo IS NULL
+						SELECT @ProfessionId = ProfessionId FROM tblProfessions WHERE Profession = @Proffesion 
+						SELECT @EducationId = EducationId FROM tblEducations WHERE Education = @Education
+						SELECT @HfID = HfID FROM tblHF WHERE HFCode = @FSPCode AND ValidityTo IS NULL
+						SELECT @ProfessionId = ProfessionId FROM tblProfessions WHERE Profession = @Proffesion 
+						SELECT @EducationId = EducationId FROM tblEducations WHERE Education = @Education
+						SELECT @CurrentLocationId = LocationId FROM tblLocations WHERE LocationCode = @CurrentVillageCode AND ValidityTo IS NULL
+						SELECT @LocationId = LocationId FROM tblLocations WHERE LocationCode = @PermanentVillageCode AND ValidityTo IS NULL
+
+
+					INSERT INTO dbo.tblFamilies
+						   (InsureeID,LocationId,Poverty,ValidityFrom,AuditUserID,FamilyType,FamilyAddress,isOffline,ConfirmationType,ConfirmationNo, ApprovalOfSMS, LanguageOfSMS )
+					SELECT 0 InsureeID, @LocationId LocationId, @PovertyStatus Poverty, GETDATE() ValidityFrom, @AuditUserID AuditUserID, @GroupType FamilyType, @PermanentAddress FamilyAddress, 0 isOffline, @ConfirmationType ConfirmationType, @ConfirmationNo ConfirmationNo, @ApprovalOfSMS ApprovalOfSMS, @LanguageOfSMS LanguageOfSMS
+					SET @FamilyID = SCOPE_IDENTITY()
+
+	
+
+				INSERT INTO dbo.tblInsuree
+					(FamilyID,CHFID,LastName,OtherNames,DOB,Gender,Marital,IsHead,Phone, CardIssued, passport,TypeOfId , ValidityFrom,AuditUserID,Profession,Education,Email,isOffline,HFID,CurrentAddress,CurrentVillage)
+					SELECT @FamilyID FamilyID, @InsuranceNumber CHFID, @LastName LastName, @OtherNames OtherNames, @BirthDate BirthDate, @Gender Gender, @MaritalStatus Marital, 1 IsHead, @PhoneNumber Phone, isnull(@BeneficiaryCard,0) BeneficiaryCard, @IdentificationNumber PassPort, @IdentificationType  ,GETDATE() ValidityFrom,@AuditUserID AuditUserID, @ProfessionId Profession, @EducationId Education, @Email Email, 0 IsOffline, @HfID, @CurrentAddress CurrentAddress, @CurrentLocationId CurrentVillage
+					SET @InsureeID = SCOPE_IDENTITY()
+
+
+					INSERT INTO tblPhotos(InsureeID,CHFID,PhotoFolder,PhotoFileName,OfficerID,PhotoDate,ValidityFrom,AuditUserID)
+					SELECT InsureeID,CHFID,'','',0,GETDATE(),ValidityFrom,AuditUserID from tblInsuree WHERE InsureeID = @InsureeID; 
+					UPDATE tblInsuree SET PhotoID = (SELECT IDENT_CURRENT('tblPhotos')), PhotoDate=GETDATE() WHERE InsureeID = @InsureeID ;
+
+					UPDATE tblFamilies SET InsureeID = @InsureeID WHERE FamilyID = @FamilyID
+
+			COMMIT TRANSACTION ENROLFAMILY
+			RETURN 0
+		END TRY
+		BEGIN CATCH
+			ROLLBACK TRANSACTION ENROLFAMILY
+			SELECT ERROR_MESSAGE()
+			RETURN -1
+		END CATCH
+
+
+END
+
+GO
 
 IF OBJECT_ID('uspAPIEditFamily', 'P') IS NOT NULL
     DROP PROCEDURE uspAPIEditFamily
@@ -6763,7 +6955,6 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 	@PremiumSent INT = 0 OUTPUT,
 	@PremiumImported INT = 0 OUTPUT,
 	@PremiumRejected INT =0 OUTPUT
-	
 	)
 	AS
 	BEGIN
@@ -6818,7 +7009,7 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 		NULLIF(T.F.value('(ConfirmationType)[1]','NVARCHAR(3)'),''),
 		T.F.value('(isOffline)[1]','BIT'),
 		IIF(T.F.value('(ApprovalOfSMS)[1]','BIT') NOT IN (NULL, ''), T.F.value('(ApprovalOfSMS)[1]','BIT'), 0),
-		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode()),
+		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode())
 
 		FROM @XML.nodes('Enrolment/Families/Family') AS T(F)
 
@@ -7787,7 +7978,7 @@ CREATE PROCEDURE [dbo].[uspCreateEnrolmentXML]
 AS
 BEGIN
 	SELECT
-	(SELECT * FROM (SELECT F.FamilyId,F.InsureeId, I.CHFID , F.LocationId, F.Poverty FROM tblInsuree I 
+	(SELECT * FROM (SELECT F.FamilyId,F.InsureeId, I.CHFID , F.LocationId, F.Poverty, F.ApprovalOfSMS, F.LanguageOfSMS FROM tblInsuree I 
 	INNER JOIN tblFamilies F ON F.FamilyID=I.FamilyID
 	WHERE F.FamilyID IN (SELECT FamilyID FROM tblInsuree WHERE isOffline=1 AND ValidityTo IS NULL GROUP BY FamilyID) 
 	AND I.IsHead=1 AND F.ValidityTo IS NULL
@@ -7980,7 +8171,7 @@ BEGIN
 	--**Families**
 	--SELECT [FamilyID],[InsureeID],[DistrictID],[VillageID],[WardID],[Poverty],[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],[FamilyType],[FamilyAddress],Ethnicity,ConfirmationNo FROM [dbo].[tblFamilies] WHERE RowID > @RowID AND (CASE @LocationId  WHEN 0 THEN 0 ELSE [DistrictID]  END) = @LocationId
 	;WITH Family AS (
-	SELECT F.[FamilyID],F.[InsureeID],F.[LocationId],[Poverty],F.[ValidityFrom],F.[ValidityTo],F.[LegacyID],F.[AuditUserID],[FamilyType],[FamilyAddress],Ethnicity,isOffline ,ConfirmationNo,F.ConfirmationType 
+	SELECT F.[FamilyID],F.[InsureeID],F.[LocationId],[Poverty],F.[ValidityFrom],F.[ValidityTo],F.[LegacyID],F.[AuditUserID],[FamilyType],[FamilyAddress],Ethnicity,isOffline ,ConfirmationNo,F.ConfirmationType, F.ApprovalOfSMS, F.LanguageOfSMS  
 	FROM [dbo].[tblFamilies] F 
 	INNER JOIN tblVillages V ON V.VillageID = F.LocationId
 	INNER JOIN tblWards W ON W.WardId = V.WardId
@@ -8007,6 +8198,173 @@ BEGIN
 	GROUP BY F.[FamilyID],F.[InsureeID],F.[LocationId],[Poverty],F.[ValidityFrom],F.[ValidityTo],F.[LegacyID],F.[AuditUserID],[FamilyType],[FamilyAddress],Ethnicity,ConfirmationNo,F.ConfirmationType,F.isOffline, F.ApprovalOfSMS, F.LanguageOfSMS
 
 END
+GO
+
+
+CREATE PROCEDURE [dbo].[uspImportOffLineExtract4]
+	
+	@HFID as int = 0,
+	@LocationId INT = 0,
+	@AuditUser as int = 0 ,
+	@xtFamilies dbo.xFamilies READONLY,
+	@xtInsuree dbo.xInsuree READONLY,
+	@xtPhotos dbo.xPhotos READONLY,
+	@xtPolicy dbo.xPolicy READONLY,
+	@xtPremium dbo.xPremium READONLY,
+	@xtInsureePolicy dbo.xInsureePolicy READONLY,
+	@FamiliesIns as bigint = 0 OUTPUT  ,
+	@FamiliesUpd as bigint = 0 OUTPUT  ,
+	@InsureeIns as bigint = 0 OUTPUT  ,
+	@InsureeUpd as bigint  = 0 OUTPUT  ,
+	@PhotoIns as bigint = 0 OUTPUT  ,
+	@PhotoUpd as bigint  = 0 OUTPUT,
+	@PolicyIns as bigint = 0 OUTPUT  ,
+	@PolicyUpd as bigint  = 0 OUTPUT , 
+	@PremiumIns as bigint = 0 OUTPUT  ,
+	@PremiumUpd as bigint  = 0 OUTPUT
+	
+	
+AS
+BEGIN
+	
+BEGIN TRY
+	/*
+	SELECT * INTO TstFamilies  FROM @xtFamilies
+	SELECT * INTO TstInsuree  FROM @xtInsuree
+	SELECT * INTO TstPhotos  FROM @xtPhotos
+	SELECT * INTO TstPolicy  FROM @xtPolicy
+	SELECT * INTO TstPremium  FROM @xtPremium
+	SELECT * INTO TstInsureePolicy  FROM @xtInsureePolicy
+	RETURN
+	**/
+
+	--**S Families**
+	SET NOCOUNT OFF
+	UPDATE Src SET Src.InsureeID = Etr.InsureeID ,Src.LocationId = Etr.LocationId ,Src.Poverty = Etr.Poverty , Src.ValidityFrom = Etr.ValidityFrom , Src.ValidityTo = Etr.ValidityTo , Src.LegacyID = Etr.LegacyID, Src.AuditUserID = @AuditUser, Src.FamilyType = Etr.FamilyType, Src.FamilyAddress = Etr.FamilyAddress,Src.ConfirmationType = Etr.ConfirmationType, Src.ApprovalOfSMS = Etr.ApprovalOfSMS, Src.LanguageOfSMS = Etr.LanguageOfSMS FROM tblFamilies Src , @xtFamilies Etr WHERE Src.FamilyID = Etr.FamilyID 
+	SET @FamiliesUpd = @@ROWCOUNT
+	SET NOCOUNT ON
+	
+	SET NOCOUNT OFF;
+	SET IDENTITY_INSERT [tblFamilies] ON
+	
+	INSERT INTO tblFamilies ([FamilyID],[InsureeID],[LocationId],[Poverty],[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],FamilyType, FamilyAddress,Ethnicity,ConfirmationNo,ConfirmationType, ApprovalOfSMS, LanguageOfSMS) 
+	SELECT [FamilyID],[InsureeID],[LocationId],[Poverty],[ValidityFrom],[ValidityTo],[LegacyID],@AuditUser,FamilyType, FamilyAddress,Ethnicity,ConfirmationNo,  ConfirmationType, ApprovalOfSMS, LanguageOfSMS FROM @xtFamilies WHERE [FamilyID] NOT IN 
+	(SELECT FamilyID  FROM tblFamilies )
+	--AND (DistrictID = @LocationId OR @LocationId = 0) 'To do: Insuree can belong to different district.So his/her family belonging to another district should not be ruled out.
+	
+	SET @FamiliesIns = @@ROWCOUNT
+	SET IDENTITY_INSERT [tblFamilies] OFF
+	SET NOCOUNT ON
+	--**E Families**
+	
+	--**S Photos**
+	SET NOCOUNT OFF
+	UPDATE Src SET Src.InsureeID = Etr.InsureeID , Src.CHFID = Etr.CHFID , Src.PhotoFolder = Etr.PhotoFolder ,Src.PhotoFileName = Etr.PhotoFileName , Src.OfficerID = Etr.OfficerID , Src.PhotoDate = Etr.PhotoDate , Src.ValidityFrom = Etr.ValidityFrom , Src.ValidityTo = Etr.ValidityTo , Src.AuditUserID = @AuditUser  
+	FROM @xtPhotos Etr INNER JOIN TblPhotos Src ON Src.PhotoID = Etr.PhotoID INNER JOIN (SELECT Ins.InsureeID FROM @xtInsuree Ins WHERE ValidityTo IS NULL) Ins ON Ins.InsureeID  = Src.InsureeID 
+	
+	SET @PhotoUpd = @@ROWCOUNT
+	SET NOCOUNT ON
+	
+	SET NOCOUNT OFF;
+	SET IDENTITY_INSERT [tblPhotos] ON
+	
+	
+	INSERT INTO tblPhotos (PhotoID,InsureeID, CHFID, PhotoFolder, PhotoFileName, OfficerID, PhotoDate,ValidityFrom, ValidityTo, AuditUserID)
+	SELECT PhotoID,P.InsureeID, CHFID, PhotoFolder, PhotoFileName, OfficerID, PhotoDate,ValidityFrom, ValidityTo,@AuditUser 
+	FROM @xtPhotos P --INNER JOIN (SELECT Ins.InsureeID FROM @xtInsuree Ins WHERE ValidityTo IS NULL) Ins ON Ins.InsureeID  = P.InsureeID 
+	WHERE [PhotoID] NOT IN (SELECT PhotoID FROM tblPhotos )
+	--AND InsureeID IN (SELECT InsureeID FROM @xtInsuree WHERE FamilyID IN (SELECT FamilyID FROM tblFamilies))
+	
+	
+	SET @PhotoIns = @@ROWCOUNT
+	SET IDENTITY_INSERT [tblPhotos] OFF
+	SET NOCOUNT ON
+	--**E Photos
+	
+	--**S insurees**
+	SET NOCOUNT OFF
+	UPDATE Src SET Src.FamilyID = Etr.FamilyID  ,Src.CHFID = Etr.CHFID ,Src.LastName = Etr.LastName ,Src.OtherNames = Etr.OtherNames ,Src.DOB = Etr.DOB ,Src.Gender = Etr.Gender ,Src.Marital = Etr.Marital ,Src.IsHead = Etr.IsHead ,Src.passport = Etr.passport ,src.Phone = Etr.Phone ,Src.PhotoID = Etr.PhotoID  ,Src.PhotoDate = Etr.PhotoDate ,Src.CardIssued = Etr.CardIssued ,Src.ValidityFrom = Etr.ValidityFrom , Src.ValidityTo = Etr.ValidityTo , Src.LegacyID = Etr.LegacyID, Src.AuditUserID = @AuditUser,Src.Relationship = Etr.Relationship, Src.Profession = Etr.Profession,Src.Education = Etr.Education,Src.Email = Etr.Email , 
+	Src.TypeOfId = Etr.TypeOfId, Src.HFID = Etr.HFID, Src.CurrentAddress = Etr.CurrentAddress, Src.GeoLocation = Etr.GeoLocation
+	FROM tblInsuree Src , @xtInsuree Etr WHERE Src.InsureeID = Etr.InsureeID 
+	SET @InsureeUpd = @@ROWCOUNT
+	SET NOCOUNT ON
+	
+	SET NOCOUNT OFF;
+	SET IDENTITY_INSERT [tblInsuree] ON
+	
+	INSERT INTO tblInsuree ([InsureeID],[FamilyID] ,[CHFID],[LastName],[OtherNames],[DOB],[Gender],[Marital],[IsHead],[passport],[Phone],[PhotoID],[PhotoDate],[CardIssued],[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],Relationship,Profession,Education,Email,TypeOfId,HFID, CurrentAddress, GeoLocation, CurrentVillage)
+	SELECT [InsureeID],[FamilyID] ,[CHFID],[LastName],[OtherNames],[DOB],[Gender],[Marital],[IsHead],[passport],[Phone],[PhotoID] ,[PhotoDate],[CardIssued],[ValidityFrom],[ValidityTo],[LegacyID],@AuditUser,Relationship,Profession,Education,Email,TypeOfId,HFID, CurrentAddress, GeoLocation,CurrentVillage
+	FROM @xtInsuree WHERE [InsureeID] NOT IN 
+	(SELECT InsureeID FROM tblInsuree)
+	AND FamilyID IN (SELECT FamilyID FROM tblFamilies)
+	
+	SET @InsureeIns = @@ROWCOUNT
+	SET IDENTITY_INSERT [tblInsuree] OFF
+	SET NOCOUNT ON
+	--**E Insurees**
+	
+	
+	--**S Policies**
+	SET NOCOUNT OFF
+	UPDATE Src SET Src.FamilyID = Etr.FamilyID ,Src.EnrollDate = Etr.EnrollDate ,Src.StartDate = Etr.StartDate ,Src.EffectiveDate = Etr.EffectiveDate ,Src.ExpiryDate = Etr.ExpiryDate ,Src.PolicyStatus = Etr.PolicyStatus ,Src.PolicyValue = Etr.PolicyValue ,Src.ProdID = Etr.ProdID ,Src.OfficerID = Etr.OfficerID,Src.PolicyStage = Etr.PolicyStage , Src.ValidityFrom = Etr.ValidityFrom , Src.ValidityTo = Etr.ValidityTo , Src.LegacyID = Etr.LegacyID, Src.AuditUserID = @AuditUser  FROM tblPolicy Src , @xtPolicy Etr WHERE Src.PolicyID = Etr.PolicyID 
+	SET @PolicyUpd = @@ROWCOUNT
+	SET NOCOUNT ON
+	
+	SET NOCOUNT OFF;
+	SET IDENTITY_INSERT [tblPolicy] ON
+	
+	INSERT INTO tblPolicy ([PolicyID],[FamilyID],[EnrollDate],[StartDate],[EffectiveDate],[ExpiryDate],[PolicyStatus],[PolicyValue],[ProdID],[OfficerID],[PolicyStage],[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID])
+	SELECT [PolicyID],[FamilyID],[EnrollDate],[StartDate],[EffectiveDate],[ExpiryDate],[PolicyStatus],[PolicyValue],[ProdID],[OfficerID],[PolicyStage],[ValidityFrom],[ValidityTo],[LegacyID],@AuditUser FROM @xtPolicy WHERE [PolicyID] NOT IN
+	(SELECT PolicyID FROM tblPolicy)
+	AND FamilyID IN (SELECT FamilyID FROM tblFamilies)
+	
+	SET @PolicyIns  = @@ROWCOUNT
+	SET IDENTITY_INSERT [tblPolicy] OFF
+	SET NOCOUNT ON
+	--**E Policies	
+	
+	--**S Premium**
+	SET NOCOUNT OFF
+	UPDATE Src SET Src.PolicyID = Etr.PolicyID ,Src.PayerID = Etr.PayerID , Src.Amount = Etr.Amount , Src.Receipt = Etr.Receipt ,Src.PayDate = Etr.PayDate ,Src.PayType = Etr.PayType , Src.ValidityFrom = Etr.ValidityFrom , Src.ValidityTo = Etr.ValidityTo , Src.LegacyID = Etr.LegacyID, Src.AuditUserID = @AuditUser, Src.isPhotoFee = Etr.isPhotoFee,Src.ReportingId = Etr.ReportingId  FROM tblPremium Src , @xtPremium Etr WHERE Src.PremiumId = Etr.PremiumId 
+	SET @PremiumUpd = @@ROWCOUNT
+	SET NOCOUNT ON
+	
+	SET NOCOUNT OFF;
+	SET IDENTITY_INSERT [tblPremium] ON
+	
+	INSERT INTO tblPremium (PremiumId, PolicyID, PayerID, Amount, Receipt,PayDate,PayType,ValidityFrom, ValidityTo, LegacyID, AuditUserID, isPhotoFee,ReportingId) 
+	SELECT PremiumId, PolicyID, PayerID, Amount, Receipt,PayDate,PayType,ValidityFrom, ValidityTo, LegacyID, @AuditUser, isPhotoFee,ReportingId FROM @xtPremium WHERE PremiumId NOT IN 
+	(SELECT PremiumId FROM tblPremium)
+	AND PolicyID IN (SELECT PolicyID FROM tblPolicy)
+	
+	SET @PremiumIns = @@ROWCOUNT
+	SET IDENTITY_INSERT [tblPremium] OFF
+	SET NOCOUNT ON
+	--**E Premium
+	
+	
+	--**S InsureePolicy**
+	SET NOCOUNT OFF
+	UPDATE Src SET Src.InsureeId = Etr.InsureeId, Src.PolicyId = Etr.PolicyId, Src.EnrollmentDate = Etr.EnrollmentDate, Src.StartDate = Etr.StartDate, Src.EffectiveDate = Etr.EffectiveDate, Src.ExpiryDate = Etr.ExpiryDate, Src.ValidityFrom = Etr.ValidityFrom, Src.ValidityTo = Etr.ValidityTo, Src.LegacyId = Etr.LegacyId , Src.AuditUserID = @AuditUser  FROM tblInsureePolicy  Src , @xtInsureePolicy  Etr WHERE Src.InsureePolicyId  = Etr.InsureePolicyId AND Etr.PolicyId IN (Select PolicyID FROM tblPolicy) 
+	SET NOCOUNT ON
+	
+	SET NOCOUNT OFF;
+	SET IDENTITY_INSERT [tblInsureePolicy] ON
+	
+	INSERT INTO tblInsureePolicy (InsureePolicyId, InsureeId, PolicyId,EnrollmentDate,StartDate,EffectiveDate,ExpiryDate,ValidityFrom,ValidityTo,LegacyId,AuditUserId)
+	SELECT InsureePolicyId, InsureeId, PolicyId,EnrollmentDate,StartDate,EffectiveDate,ExpiryDate,ValidityFrom,ValidityTo,LegacyId,@AuditUser FROM @xtInsureePolicy  WHERE InsureePolicyId NOT IN
+	(SELECT InsureePolicyId FROM tblInsureePolicy) AND PolicyId IN (Select PolicyID FROM tblPolicy) 
+	
+	SET IDENTITY_INSERT [tblInsureePolicy] OFF
+	SET NOCOUNT ON
+	--**E InsureePolicy	
+END TRY
+BEGIN CATCH
+	SELECT ERROR_MESSAGE();
+END CATCH			
+END
+
+
 GO
 
 
@@ -8063,7 +8421,7 @@ TRY --THE MAIN TRY
 		NULLIF(NULLIF(T.F.value('(ConfirmationType)[1]', 'NVARCHAR(4)'), 'null'), ''),
 		T.F.value('(isOffline)[1]','INT'),
 		IIF(T.F.value('(ApprovalOfSMS)[1]','BIT') NOT IN (NULL, ''), T.F.value('(ApprovalOfSMS)[1]','BIT'), 0),
-		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode()),
+		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode())
 		FROM @xml.nodes('Enrollment/Family') AS T(F);
 
 	
@@ -8841,7 +9199,7 @@ BEGIN
 
 
 		--GET ALL THE FAMILY FROM THE XML
-		INSERT INTO @tblFamilies(FamilyId,InsureeId,CHFID, LocationId,Poverty,FamilyType,FamilyAddress,Ethnicity, ConfirmationNo)
+		INSERT INTO @tblFamilies(FamilyId,InsureeId,CHFID, LocationId,Poverty,FamilyType,FamilyAddress,Ethnicity, ConfirmationNo, ApprovalOfSMS, LanguageOfSMS)
 		SELECT 
 		T.F.value('(FamilyId)[1]','INT'),
 		T.F.value('(InsureeId)[1]','INT'),
@@ -8853,7 +9211,7 @@ BEGIN
 		T.F.value('(Ethnicity)[1]','NVARCHAR(1)'),
 		T.F.value('(ConfirmationNo)[1]','NVARCHAR(12)'),
 		IIF(T.F.value('(ApprovalOfSMS)[1]','BIT') NOT IN (NULL, ''), T.F.value('(ApprovalOfSMS)[1]','BIT'), 0),
-		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode()),
+		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode())
 		FROM @XML.nodes('Enrolment/Families/Family') AS T(F)
 		
 		--Get total number of families sent via XML
@@ -9264,7 +9622,7 @@ CREATE PROCEDURE [dbo].[uspUploadEnrolmentsFromOfflinePhone](
 		T.F.value('(Ethnicity)[1]','NVARCHAR(1)'),
 		T.F.value('(ConfirmationNo)[1]','NVARCHAR(12)'),
 		IIF(T.F.value('(ApprovalOfSMS)[1]','BIT') NOT IN (NULL, ''), T.F.value('(ApprovalOfSMS)[1]','BIT'), 0),
-		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode()),
+		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode())
 		FROM @XML.nodes('Enrolment/Families/Family') AS T(F)
 
 

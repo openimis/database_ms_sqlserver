@@ -7176,8 +7176,16 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 		T.F.value('(ConfirmationNo)[1]','NVARCHAR(12)'),
 		NULLIF(T.F.value('(ConfirmationType)[1]','NVARCHAR(3)'),''),
 		T.F.value('(isOffline)[1]','BIT'),
-		IIF(T.F.value('(ApprovalOfSMS)[1]','BIT') NOT IN (NULL, ''), T.F.value('(ApprovalOfSMS)[1]','BIT'), 0),
-		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode())
+		IIF(
+           (T.F.value('(ApprovalOfSMS)[1]','BIT') IS NOT NULL), 
+            T.F.value('(ApprovalOfSMS)[1]','BIT'), 
+	        0
+        ),
+		IIF(
+		   (T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') IS NOT NULL) AND (T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') != ''), 
+		    T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), 
+			[dbo].udfDefaultLanguageCode()
+		)
 
 		FROM @XML.nodes('Enrolment/Families/Family') AS T(F)
 
@@ -8595,8 +8603,16 @@ TRY --THE MAIN TRY
 		NULLIF(T.F.value('(ConfirmationNo)[1]', 'NVARCHAR(12)'), ''),
 		NULLIF(NULLIF(T.F.value('(ConfirmationType)[1]', 'NVARCHAR(4)'), 'null'), ''),
 		T.F.value('(isOffline)[1]','INT'),
-		IIF(T.F.value('(ApprovalOfSMS)[1]','BIT') NOT IN (NULL, ''), T.F.value('(ApprovalOfSMS)[1]','BIT'), 0),
-		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode())
+		IIF(
+           (T.F.value('(ApprovalOfSMS)[1]','BIT') IS NOT NULL), 
+            T.F.value('(ApprovalOfSMS)[1]','BIT'), 
+	        0
+        ),
+		IIF(
+		   (T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') IS NOT NULL) AND (T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') != ''), 
+		    T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), 
+			[dbo].udfDefaultLanguageCode()
+		)
 		FROM @xml.nodes('Enrollment/Family') AS T(F);
 
 	
@@ -9385,8 +9401,16 @@ BEGIN
 		T.F.value('(FamilyAddress)[1]','NVARCHAR(200)'),
 		T.F.value('(Ethnicity)[1]','NVARCHAR(1)'),
 		T.F.value('(ConfirmationNo)[1]','NVARCHAR(12)'),
-		IIF(T.F.value('(ApprovalOfSMS)[1]','BIT') NOT IN (NULL, ''), T.F.value('(ApprovalOfSMS)[1]','BIT'), 0),
-		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode())
+		IIF(
+           (T.F.value('(ApprovalOfSMS)[1]','BIT') IS NOT NULL), 
+            T.F.value('(ApprovalOfSMS)[1]','BIT'), 
+	        0
+        ),
+		IIF(
+		   (T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') IS NOT NULL) AND (T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') != ''), 
+		    T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), 
+			[dbo].udfDefaultLanguageCode()
+		)
 		FROM @XML.nodes('Enrolment/Families/Family') AS T(F)
 		
 		--Get total number of families sent via XML
@@ -9797,8 +9821,16 @@ CREATE PROCEDURE [dbo].[uspUploadEnrolmentsFromOfflinePhone](
 		T.F.value('(FamilyAddress)[1]','NVARCHAR(200)'),
 		T.F.value('(Ethnicity)[1]','NVARCHAR(1)'),
 		T.F.value('(ConfirmationNo)[1]','NVARCHAR(12)'),
-		IIF(T.F.value('(ApprovalOfSMS)[1]','BIT') NOT IN (NULL, ''), T.F.value('(ApprovalOfSMS)[1]','BIT'), 0),
-		IIF(T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') NOT IN (NULL, ''), T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), [dbo].udfDefaultLanguageCode())
+		IIF(
+           (T.F.value('(ApprovalOfSMS)[1]','BIT') IS NOT NULL), 
+            T.F.value('(ApprovalOfSMS)[1]','BIT'), 
+	        0
+        ),
+		IIF(
+		   (T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') IS NOT NULL) AND (T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)') != ''), 
+		    T.F.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), 
+			[dbo].udfDefaultLanguageCode()
+		)
 		FROM @XML.nodes('Enrolment/Families/Family') AS T(F)
 
 
@@ -10302,9 +10334,7 @@ GO
 
 
 IF NOT EXISTS ( SELECT * from tblControls tc where FieldName = 'ApprovalOfSMS')
-    INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ApprovalOfSMS', N'H', N'Family')
+    INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ApprovalOfSMS', N'N', N'Family')
     
-IF NOT EXISTS ( SELECT * from tblControls tc where FieldName = 'LanguageOfSMS')
-INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'LanguageOfSMS', N'H', N'Family')
 GO
 

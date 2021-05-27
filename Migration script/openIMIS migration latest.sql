@@ -6523,6 +6523,52 @@ GO
 -- [dbo].[uspUploadEnrolmentsFromOfflinePhone]
 -- [dbo].[uspImportOffLineExtract4]
 
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER TABLE tblFamilies DROP CONSTRAINT IF EXISTS DF_tblFamilies_LanguageOfSMS
+
+DROP FUNCTION IF EXISTS [dbo].[udfDefaultLanguageCode] 
+GO
+
+CREATE OR ALTER FUNCTION [dbo].[udfDefaultLanguageCode]()
+RETURNS NVARCHAR(5)
+AS
+BEGIN
+	DECLARE @DefaultLanguageCode NVARCHAR(5)
+	IF EXISTS (SELECT DISTINCT SortOrder from tblLanguages where SortOrder is not null)
+	    SELECT TOP(1) @DefaultLanguageCode=LanguageCode FROM tblLanguages sort ORDER BY SortOrder ASC
+	ELSE
+	    SELECT TOP(1) @DefaultLanguageCode=LanguageCode FROM tblLanguages sort
+	RETURN(@DefaultLanguageCode)
+END
+GO
+ALTER TABLE [dbo].[tblFamilies] ADD  CONSTRAINT [DF_tblFamilies_LanguageOfSMS]  DEFAULT([dbo].[udfDefaultLanguageCode]()) FOR [LanguageOfSMS]
+GO
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+IF NOT EXISTS ( SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = 'tblFamilies' AND column_name = 'ApprovalOfSMS')
+	ALTER TABLE tblFamilies
+	ADD ApprovalOfSMS BIT DEFAULT(0) WITH VALUES;
+
+IF NOT EXISTS ( SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = 'tblFamilies' AND column_name = 'LanguageOfSMS')
+	Alter Table tblFamilies
+	ADD LanguageOfSMS NVARCHAR(5) DEFAULT([dbo].[udfDefaultLanguageCode]()) WITH VALUES;
+
+GO
+
+
+IF NOT EXISTS ( SELECT * from tblControls tc where FieldName = 'ApprovalOfSMS')
+    INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ApprovalOfSMS', N'N', N'Family')
+    
+GO
+
 IF OBJECT_ID('uspAddInsureePolicyOffline', 'P') IS NOT NULL
     DROP PROCEDURE uspAddInsureePolicyOffline
 GO
@@ -8378,6 +8424,28 @@ GO
 
 IF OBJECT_ID('uspImportOffLineExtract4', 'P') IS NOT NULL
     DROP PROCEDURE uspImportOffLineExtract4
+GO
+
+DROP TYPE IF EXISTS [dbo].[xFamilies];
+
+CREATE TYPE [dbo].[xFamilies] AS TABLE(
+	[FamilyID] [int] NULL,
+	[InsureeID] [int] NULL,
+	[LocationID] [int] NULL,
+	[Poverty] [bit] NULL,
+	[ValidityFrom] [datetime] NULL,
+	[ValidityTo] [datetime] NULL,
+	[LegacyID] [int] NULL,
+	[AuditUserID] [int] NULL,
+	[FamilyType] [nvarchar](2) NULL,
+	[FamilyAddress] [nvarchar](200) NULL,
+	[Ethnicity] [nvarchar](1) NULL,
+	[isOffline] [bit] NULL,
+	[ConfirmationNo] [nvarchar](12) NULL,
+	[ConfirmationType] [nvarchar](3) NULL,
+	[ApprovalOfSMS] [bit] NULL,
+	[LanguageOfSMS] [nvarchar](5) NULL
+)
 GO
 
 SET ANSI_NULLS ON
@@ -10291,50 +10359,3 @@ CREATE PROCEDURE [dbo].[uspUploadEnrolmentsFromOfflinePhone](
 	SELECT Result FROM @tblResult;
 	RETURN 0;
 END 
-
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-
-ALTER TABLE tblFamilies DROP CONSTRAINT IF EXISTS DF_tblFamilies_LanguageOfSMS
-
-DROP FUNCTION IF EXISTS [dbo].[udfDefaultLanguageCode] 
-GO
-
-CREATE OR ALTER FUNCTION [dbo].[udfDefaultLanguageCode]()
-RETURNS NVARCHAR(5)
-AS
-BEGIN
-	DECLARE @DefaultLanguageCode NVARCHAR(5)
-	IF EXISTS (SELECT DISTINCT SortOrder from tblLanguages where SortOrder is not null)
-	    SELECT TOP(1) @DefaultLanguageCode=LanguageCode FROM tblLanguages sort ORDER BY SortOrder ASC
-	ELSE
-	    SELECT TOP(1) @DefaultLanguageCode=LanguageCode FROM tblLanguages sort
-	RETURN(@DefaultLanguageCode)
-END
-GO
-ALTER TABLE [dbo].[tblFamilies] ADD  CONSTRAINT [DF_tblFamilies_LanguageOfSMS]  DEFAULT([dbo].[udfDefaultLanguageCode]()) FOR [LanguageOfSMS]
-GO
-
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-
-IF NOT EXISTS ( SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = 'tblFamilies' AND column_name = 'ApprovalOfSMS')
-	ALTER TABLE tblFamilies
-	ADD ApprovalOfSMS BIT DEFAULT(0) WITH VALUES;
-
-IF NOT EXISTS ( SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = 'tblFamilies' AND column_name = 'LanguageOfSMS')
-	Alter Table tblFamilies
-	ADD LanguageOfSMS NVARCHAR(5) DEFAULT([dbo].[udfDefaultLanguageCode]()) WITH VALUES;
-
-GO
-
-
-IF NOT EXISTS ( SELECT * from tblControls tc where FieldName = 'ApprovalOfSMS')
-    INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ApprovalOfSMS', N'N', N'Family')
-    
-GO
-

@@ -6545,8 +6545,7 @@ BEGIN
 	RETURN(@DefaultLanguageCode)
 END
 GO
-ALTER TABLE [dbo].[tblFamilies] ADD  CONSTRAINT [DF_tblFamilies_LanguageOfSMS]  DEFAULT([dbo].[udfDefaultLanguageCode]()) FOR [LanguageOfSMS]
-GO
+
 
 SET ANSI_NULLS ON
 GO
@@ -6559,15 +6558,16 @@ IF NOT EXISTS ( SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = 'tbl
 
 IF NOT EXISTS ( SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = 'tblFamilies' AND column_name = 'LanguageOfSMS')
 	Alter Table tblFamilies
-	ADD LanguageOfSMS NVARCHAR(5) DEFAULT([dbo].[udfDefaultLanguageCode]()) WITH VALUES;
-
+	ADD LanguageOfSMS NVARCHAR(5) CONSTRAINT [DF_tblFamilies_LanguageOfSMS] DEFAULT([dbo].[udfDefaultLanguageCode]()) WITH VALUES;
 GO
 
 
 IF NOT EXISTS ( SELECT * from tblControls tc where FieldName = 'ApprovalOfSMS')
     INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ApprovalOfSMS', N'N', N'Family')
-    
 GO
+
+
+
 
 IF OBJECT_ID('uspAddInsureePolicyOffline', 'P') IS NOT NULL
     DROP PROCEDURE uspAddInsureePolicyOffline

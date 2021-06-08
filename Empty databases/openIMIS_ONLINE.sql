@@ -2850,6 +2850,7 @@ CREATE TABLE [dbo].[tblPayment](
 	[ReceivedAmount] [decimal](18, 2) NULL,
 	[OfficerCode] [nvarchar](50) NULL,
 	[PhoneNumber] [nvarchar](12) NULL,
+	[PayerPhoneNumber] [nvarchar](12) NULL,
 	[RequestDate] [datetime] NULL,
 	[ReceivedDate] [datetime] NULL,
 	[PaymentStatus] [int] NULL,

@@ -87,6 +87,12 @@ BEGIN
 END 
 GO
 
+IF COL_LENGTH('tblPayment', 'PayerPhoneNumber') IS NULL
+BEGIN
+	ALTER TABLE tblPayment ADD PayerPhoneNumber [nvarchar](15) NULL
+END 
+GO
+
 if not exists (
     select *
       from sys.all_columns c

@@ -2849,8 +2849,8 @@ CREATE TABLE [dbo].[tblPayment](
 	[ExpectedAmount] [decimal](18, 2) NULL,
 	[ReceivedAmount] [decimal](18, 2) NULL,
 	[OfficerCode] [nvarchar](50) NULL,
-	[PhoneNumber] [nvarchar](12) NULL,
-	[PayerPhoneNumber] [nvarchar](12) NULL,
+	[PhoneNumber] [nvarchar](15) NULL,
+	[PayerPhoneNumber] [nvarchar](15) NULL,
 	[RequestDate] [datetime] NULL,
 	[ReceivedDate] [datetime] NULL,
 	[PaymentStatus] [int] NULL,
@@ -18060,8 +18060,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE PROCEDURE [dbo].[uspReceivePayment]
-(
-	
+(	
 	@XML XML,
 	@Payment_ID BIGINT =NULL OUTPUT
 )
@@ -18077,7 +18076,7 @@ BEGIN
     @TransactionNo NVARCHAR(50),
     @ReceiptNo NVARCHAR(100),
     @PaymentOrigin NVARCHAR(50),
-    @PhoneNumber NVARCHAR(50),
+    @PayerPhoneNumber NVARCHAR(50),
     @OfficerCode NVARCHAR(50),
     @InsuranceNumber NVARCHAR(12),
     @productCode NVARCHAR(8),
@@ -18086,11 +18085,6 @@ BEGIN
 	@ExpectedAmount DECIMAL(18,2),
 	@ErrorMsg NVARCHAR(50)
 	
-
-		
-
-	
-				
 	BEGIN TRY
 
 		DECLARE @tblDetail TABLE(InsuranceNumber nvarchar(12),productCode nvarchar(8), isRenewal BIT)
@@ -18102,7 +18096,7 @@ BEGIN
 			   @ReceiptNo = NULLIF(T.H.value('(ReceiptNo)[1]','NVARCHAR(100)'),''),
 			   @TransactionNo = NULLIF(T.H.value('(TransactionNo)[1]','NVARCHAR(50)'),''),
 			   @PaymentOrigin = NULLIF(T.H.value('(PaymentOrigin)[1]','NVARCHAR(50)'),''),
-			   @PhoneNumber = NULLIF(T.H.value('(PhoneNumber)[1]','NVARCHAR(25)'),''),
+			   @PayerPhoneNumber = NULLIF(T.H.value('(PhoneNumber)[1]','NVARCHAR(25)'),''),
 			   @OfficerCode = NULLIF(T.H.value('(OfficerCode)[1]','NVARCHAR(50)'),''),
 			   @Amount = T.H.value('(Amount)[1]','DECIMAL(18,2)')
 		FROM @XML.nodes('PaymentData') AS T(H)
@@ -18161,8 +18155,8 @@ BEGIN
 			--ERROR OCCURRED
 	
 			INSERT INTO [dbo].[tblPayment]
-			(PaymentDate, ReceivedDate, ReceivedAmount, ReceiptNo, TransactionNo, PaymentOrigin, PhoneNumber, PaymentStatus, OfficerCode, ValidityFrom, AuditedUSerID, RejectedReason) 
-			VALUES (@PaymentDate, @ReceiveDate,  @Amount, @ReceiptNo, @TransactionNo, @PaymentOrigin, @PhoneNumber, -3, @OfficerCode,  GETDATE(), -1,@ErrorMsg)
+			(PaymentDate, ReceivedDate, ReceivedAmount, ReceiptNo, TransactionNo, PaymentOrigin, PayerPhoneNumber, PaymentStatus, OfficerCode, ValidityFrom, AuditedUSerID, RejectedReason) 
+			VALUES (@PaymentDate, @ReceiveDate,  @Amount, @ReceiptNo, @TransactionNo, @PaymentOrigin, @PayerPhoneNumber, -3, @OfficerCode,  GETDATE(), -1,@ErrorMsg)
 			SET @PaymentID= SCOPE_IDENTITY();
 
 			INSERT INTO [dbo].[tblPaymentDetails]
@@ -18183,7 +18177,10 @@ BEGIN
 			IF ISNULL(@PaymentID ,0) <> 0 
 			BEGIN
 				--REQUEST/INTEND WAS FOUND
-				UPDATE tblPayment SET ReceivedAmount = @Amount, PaymentDate = @PaymentDate, ReceivedDate = GETDATE(), PaymentStatus = 4, TransactionNo = @TransactionNo, ReceiptNo= @ReceiptNo, PaymentOrigin = @PaymentOrigin, ValidityFrom = GETDATE(),AuditedUserID =-1 WHERE PaymentID = @PaymentID  AND ValidityTo IS NULL AND PaymentStatus = 3
+				UPDATE tblPayment SET ReceivedAmount = @Amount, PaymentDate = @PaymentDate, ReceivedDate = GETDATE(), 
+				PaymentStatus = 4, TransactionNo = @TransactionNo, ReceiptNo= @ReceiptNo, PaymentOrigin = @PaymentOrigin,
+				PayerPhoneNumber=@PayerPhoneNumber, ValidityFrom = GETDATE(), AuditedUserID =-1 
+				WHERE PaymentID = @PaymentID  AND ValidityTo IS NULL AND PaymentStatus = 3
 				SET @Payment_ID = @PaymentID
 				RETURN 0 
 			END
@@ -18191,8 +18188,8 @@ BEGIN
 			BEGIN
 				--PAYMENT WITHOUT INTEND TP PAY
 				INSERT INTO [dbo].[tblPayment]
-					(PaymentDate, ReceivedDate, ReceivedAmount, ReceiptNo, TransactionNo, PaymentOrigin, PhoneNumber, PaymentStatus, OfficerCode, ValidityFrom, AuditedUSerID) 
-					VALUES (@PaymentDate, @ReceiveDate,  @Amount, @ReceiptNo, @TransactionNo, @PaymentOrigin, @PhoneNumber, 4, @OfficerCode,  GETDATE(), -1)
+					(PaymentDate, ReceivedDate, ReceivedAmount, ReceiptNo, TransactionNo, PaymentOrigin, PayerPhoneNumber, PaymentStatus, OfficerCode, ValidityFrom, AuditedUSerID) 
+					VALUES (@PaymentDate, @ReceiveDate,  @Amount, @ReceiptNo, @TransactionNo, @PaymentOrigin, @PayerPhoneNumber, 4, @OfficerCode,  GETDATE(), -1)
 				SET @PaymentID= SCOPE_IDENTITY();
 							
 				INSERT INTO [dbo].[tblPaymentDetails]
@@ -18203,8 +18200,6 @@ BEGIN
 				RETURN 0 
 
 			END
-		 
-		
 			
 		END
 
@@ -18216,10 +18211,7 @@ BEGIN
 		RETURN -1
 	END CATCH
 	
-
-	
 END
-
 GO
 
 SET ANSI_NULLS ON

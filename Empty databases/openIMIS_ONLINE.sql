@@ -13031,10 +13031,11 @@ BEGIN
 		NULLIF(T.H.value('(AuditUserId)[1]','INT'),'')
 		FROM @XML.nodes('PaymentIntent/Header') AS T(H)
 
-		INSERT INTO @tblDetail(InsuranceNumber, productCode, isRenewal)
+		INSERT INTO @tblDetail(InsuranceNumber, productCode, PolicyValue, isRenewal)
 		SELECT 
 		LEFT(NULLIF(T.D.value('(InsuranceNumber)[1]','NVARCHAR(12)'),''),12),
 		LEFT(NULLIF(T.D.value('(ProductCode)[1]','NVARCHAR(8)'),''),8),
+		T.D.value('(PolicyValue)[1]','DECIMAL(18,2)'),
 		T.D.value('(IsRenewal)[1]','BIT')
 		FROM @XML.nodes('PaymentIntent/Details/Detail') AS T(D)
 		
@@ -13062,7 +13063,7 @@ BEGIN
 	/*Error Codes
 	2- Not valid insurance or missing product code
 	3- Not valid enrolment officer code
-	4 –Enrolment officer code and insurance product code are not compatible
+	4- Enrolment officer code and insurance product code are not compatible
 	5- Beneficiary has no policy of specified insurance product for renewal
 	6- Can not issue a control number as default indicated prior enrollment and Insuree has not been enrolled yet 
 
@@ -13228,10 +13229,10 @@ BEGIN
 						EXEC @PolicyValue = uspPolicyValue @FamilyId, @ProductId, 0, @PolicyStage, NULL, 0;
 					END
 												
-				ELSE IF @PolicyStage ='N'
-				BEGIN
-					EXEC @PolicyValue = uspPolicyValue @FamilyId, @ProductId, 0, 'N', NULL, 0;
-				END
+					ELSE IF @PolicyStage ='N'
+					BEGIN
+						EXEC @PolicyValue = uspPolicyValue @FamilyId, @ProductId, 0, 'N', NULL, 0;
+					END
 				ELSE
 				BEGIN
 					SELECT TOP 1 @PrevPolicyID = PolicyID, @PolicyStatus = PolicyStatus FROM tblPolicy  WHERE ProdID = @ProductId AND FamilyID = @FamilyId AND ValidityTo IS NULL AND PolicyStatus != 4 ORDER BY EnrollDate DESC
@@ -13255,7 +13256,7 @@ BEGIN
 			BEGIN
 				EXEC @PolicyValue = uspPolicyValueProxyFamily @productCode, @AdultMembers, @ChildMembers,@oAdultMembers,@oChildMembers
 			END
-			UPDATE @tblDetail SET PolicyValue = ISNULL(@PolicyValue,0), PolicyStage = @PolicyStage  WHERE InsuranceNumber = @InsuranceNumber AND productCode = @productCode AND isRenewal = @isRenewal
+			UPDATE @tblDetail SET PolicyValue = CASE WHEN PolicyValue<>0 THEN PolicyValue ELSE ISNULL(@PolicyValue,0) END, PolicyStage = @PolicyStage  WHERE InsuranceNumber = @InsuranceNumber AND productCode = @productCode AND isRenewal = @isRenewal
 			FETCH NEXT FROM CurFamily INTO @InsuranceNumber, @productCode, @isRenewal, @isExisting;
 		END
 		CLOSE CurFamily
@@ -13322,7 +13323,6 @@ BEGIN
 	 *********************************************************************************************************************/
 
 END
-
 GO
 
 SET ANSI_NULLS ON

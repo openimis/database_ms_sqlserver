@@ -6642,6 +6642,7 @@ BEGIN
 				PaymentStatus = 4, TransactionNo = @TransactionNo, ReceiptNo= @ReceiptNo, PaymentOrigin = @PaymentOrigin,
 				PayerPhoneNumber=@PayerPhoneNumber, ValidityFrom = GETDATE(), AuditedUserID =-1 
 				WHERE PaymentID = @PaymentID  AND ValidityTo IS NULL AND PaymentStatus = 3
+				SET @Payment_ID = @PaymentID
 				RETURN 0 
 			END
 			ELSE

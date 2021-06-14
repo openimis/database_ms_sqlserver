@@ -2262,6 +2262,38 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+CREATE TABLE [dbo].[tblLanguages](
+	[LanguageCode] [nvarchar](5) NOT NULL,
+	[LanguageName] [nvarchar](50) NOT NULL,
+	[SortOrder] [int] NULL,
+ CONSTRAINT [PK_Language] PRIMARY KEY CLUSTERED 
+(
+	[LanguageCode] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE FUNCTION [dbo].[udfDefaultLanguageCode]()
+RETURNS NVARCHAR(5)
+AS
+BEGIN
+	DECLARE @DefaultLanguageCode NVARCHAR(5)
+	IF EXISTS (SELECT DISTINCT SortOrder from tblLanguages where SortOrder is not null)
+	    SELECT TOP(1) @DefaultLanguageCode=LanguageCode FROM tblLanguages sort ORDER BY SortOrder ASC
+	ELSE
+	    SELECT TOP(1) @DefaultLanguageCode=LanguageCode FROM tblLanguages sort
+	RETURN(@DefaultLanguageCode)
+END
+GO
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 CREATE TABLE [dbo].[tblFamilies](
 	[FamilyID] [int] IDENTITY(1,1) NOT NULL,
 	[FamilyUUID] [uniqueidentifier] NOT NULL,
@@ -2278,13 +2310,27 @@ CREATE TABLE [dbo].[tblFamilies](
 	[isOffline] [bit] NULL,
 	[Ethnicity] [nvarchar](1) NULL,
 	[ConfirmationNo] [nvarchar](12) NULL,
-	[ConfirmationType] [nvarchar](3) NULL,
+	[ConfirmationType] [nvarchar](3) NULL
  CONSTRAINT [PK_tblFamilies] PRIMARY KEY CLUSTERED 
 (
 	[FamilyID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
+
+SET ANSI_NULLS ON
+GO 
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[tblFamilySMS](
+	[FamilyID] [int] NOT NULL, 
+	[ApprovalOfSMS] [bit] NULL,
+	[LanguageOfSMS] [nvarchar](5) NULL,
+	[ValidityFrom] [datetime] NOT NULL,
+	[ValidityTo] [datetime] NULL, 
+	CONSTRAINT UC_FamilySMS UNIQUE (FamilyID,ValidityTo)
+)
+GO 
 
 SET ANSI_NULLS ON
 GO
@@ -2667,20 +2713,6 @@ CREATE TABLE [dbo].[tblItems](
 ) ON [PRIMARY]
 GO
 
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[tblLanguages](
-	[LanguageCode] [nvarchar](5) NOT NULL,
-	[LanguageName] [nvarchar](50) NOT NULL,
-	[SortOrder] [int] NULL,
- CONSTRAINT [PK_Language] PRIMARY KEY CLUSTERED 
-(
-	[LanguageCode] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
-) ON [PRIMARY]
-GO
 
 SET ANSI_NULLS ON
 GO
@@ -4885,6 +4917,7 @@ INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Per
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Poverty', N'O', N'Family, Insuree, Policy, Premium, FindFamily, ChangeFamily')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Profession', N'O', N'Family, Insuree')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Relationship', N'O', N'Insuree')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ApprovalOfSMS', N'N', N'Family')
 INSERT [dbo].[tblEducations] ([EducationId], [Education], [SortOrder], [AltLanguage]) VALUES (1, N'Nursery', NULL, N'Garderie')
 INSERT [dbo].[tblEducations] ([EducationId], [Education], [SortOrder], [AltLanguage]) VALUES (2, N'Primary school', NULL, N'École primaire')
 INSERT [dbo].[tblEducations] ([EducationId], [Education], [SortOrder], [AltLanguage]) VALUES (3, N'Secondary school', NULL, N'École secondaire')
@@ -4916,8 +4949,8 @@ SET IDENTITY_INSERT [dbo].[tblIMISDefaults] OFF
 INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue]) VALUES (N'AllowInsureeWithoutPhoto', 0)
 INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue]) VALUES (N'AllowFamilyWithoutPolicy', 0)
 INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue]) VALUES (N'AllowPolicyWithoutPremium', 0)
-INSERT [dbo].[tblLanguages] ([LanguageCode], [LanguageName], [SortOrder]) VALUES (N'en', N'English', NULL)
-INSERT [dbo].[tblLanguages] ([LanguageCode], [LanguageName], [SortOrder]) VALUES (N'fr', N'Français', NULL)
+INSERT [dbo].[tblLanguages] ([LanguageCode], [LanguageName], [SortOrder]) VALUES (N'en', N'English', 1) -- By default english is set as primary language, required by SMS
+INSERT [dbo].[tblLanguages] ([LanguageCode], [LanguageName], [SortOrder]) VALUES (N'fr', N'Français', 2)
 INSERT [dbo].[tblLegalForms] ([LegalFormCode], [LegalForms], [SortOrder], [AltLanguage]) VALUES (N'C', N'Charity', NULL, N'Charité')
 INSERT [dbo].[tblLegalForms] ([LegalFormCode], [LegalForms], [SortOrder], [AltLanguage]) VALUES (N'D', N'District organization', NULL, N'Organisation du district')
 INSERT [dbo].[tblLegalForms] ([LegalFormCode], [LegalForms], [SortOrder], [AltLanguage]) VALUES (N'G', N'Government', NULL, N'Gouvernement')
@@ -5240,6 +5273,10 @@ ALTER TABLE [dbo].[tblFamilies] ADD  CONSTRAINT [DF_tblFamilies_ValidityFrom]  D
 GO
 ALTER TABLE [dbo].[tblFamilies] ADD  CONSTRAINT [DF__tblFamili__isOff__0D6FE0E5]  DEFAULT ((0)) FOR [isOffline]
 GO
+ALTER TABLE [dbo].[tblFamilySMS] ADD  CONSTRAINT [DF_tblFamilies_ApprovalOfSMS]  DEFAULT ((0)) FOR [ApprovalOfSMS]
+GO
+ALTER TABLE [dbo].[tblFamilySMS] ADD  CONSTRAINT [DF_tblFamilies_LanguageOfSMS]  DEFAULT([dbo].[udfDefaultLanguageCode]()) FOR [LanguageOfSMS]
+GO
 ALTER TABLE [dbo].[tblFeedback] ADD  DEFAULT (newid()) FOR [FeedbackUUID]
 GO
 ALTER TABLE [dbo].[tblFeedback] ADD  CONSTRAINT [DF_tblFeedback_CareRendered]  DEFAULT ((0)) FOR [CareRendered]
@@ -5522,6 +5559,9 @@ ALTER TABLE [dbo].[tblFamilies]  WITH CHECK ADD  CONSTRAINT [FK_tblFamilyTypes_t
 REFERENCES [dbo].[tblFamilyTypes] ([FamilyTypeCode])
 GO
 ALTER TABLE [dbo].[tblFamilies] CHECK CONSTRAINT [FK_tblFamilyTypes_tblFamilies]
+GO
+ALTER TABLE [dbo].[tblFamilySMS] WITH CHECK ADD CONSTRAINT [FK_tblFamilySMS_tblFamily-FamilyID] FOREIGN KEY([FamilyID])
+REFERENCES [dbo].[tblFamilies]
 GO
 ALTER TABLE [dbo].[tblFeedback]  WITH CHECK ADD  CONSTRAINT [FK_tblFeedback_tblClaim-ClaimID] FOREIGN KEY([ClaimID])
 REFERENCES [dbo].[tblClaim] ([ClaimID])
@@ -6380,7 +6420,7 @@ BEGIN TRY
 
 	--INSERT TEMPORARY FAMILY
 	INSERT INTO tblFamilies(InsureeID, LocationId, Poverty, ValidityFrom, ValidityTo, LegacyID, AuditUserID, FamilyType, FamilyAddress, isOffline, Ethnicity, ConfirmationNo, ConfirmationType)
-	SELECT					InsureeID, LocationId, Poverty, ValidityFrom, ValidityTo, LegacyID, AuditUserID, FamilyType, FamilyAddress, isOffline, Ethnicity, ConfirmationNo, ConfirmationType 
+	SELECT					InsureeID, LocationId, Poverty, ValidityFrom, ValidityTo, LegacyID, AuditUserID, FamilyType, FamilyAddress, isOffline, Ethnicity, ConfirmationNo, ConfirmationType
 	FROM tblFamilies WHERE FamilyID=@FamilyId  AND ValidityTo IS NULL 
 	SET @NewFamilyId = (SELECT SCOPE_IDENTITY());
 
@@ -6734,7 +6774,7 @@ BEGIN
 						SET @CurrentLocationId = ISNULL(@CurrentLocationId,@DBCurrentLocationId)
 
 						INSERT INTO tblFamilies ([insureeid],[Poverty],[ConfirmationType],isOffline,[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],FamilyType, FamilyAddress,Ethnicity,ConfirmationNo, LocationId) 
-						SELECT [insureeid],[Poverty],[ConfirmationType],isOffline,[ValidityFrom],getdate() ValidityTo,FamilyID, @AuditUserID,FamilyType, FamilyAddress,Ethnicity,ConfirmationNo,LocationId FROM tblFamilies
+						SELECT [insureeid], [Poverty], [ConfirmationType], isOffline, [ValidityFrom], getdate() ValidityTo, FamilyID, @AuditUserID, FamilyType, FamilyAddress, Ethnicity, ConfirmationNo, LocationId FROM tblFamilies
 						WHERE FamilyID = @FamilyID 
 								AND ValidityTo IS NULL
 						
@@ -9470,7 +9510,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
+CREATE   PROCEDURE [dbo].[uspConsumeEnrollments](
 	@XML XML,
 	@FamilySent INT = 0 OUTPUT ,
 	@FamilyImported INT = 0 OUTPUT,
@@ -9486,7 +9526,6 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 	@PremiumSent INT = 0 OUTPUT,
 	@PremiumImported INT = 0 OUTPUT,
 	@PremiumRejected INT =0 OUTPUT
-	
 	)
 	AS
 	BEGIN
@@ -9509,6 +9548,7 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 	DECLARE @tblInsuree TABLE(InsureeId INT,FamilyId INT,CHFID NVARCHAR(12),LastName NVARCHAR(100),OtherNames NVARCHAR(100),DOB DATE,Gender CHAR(1),Marital CHAR(1),IsHead BIT,Passport NVARCHAR(25),Phone NVARCHAR(50),CardIssued BIT,Relationship SMALLINT,Profession SMALLINT,Education SMALLINT,Email NVARCHAR(100), TypeOfId NVARCHAR(1), HFID INT,CurrentAddress NVARCHAR(200),GeoLocation NVARCHAR(200),CurVillage INT,isOffline BIT,PhotoPath NVARCHAR(100), NewFamilyId INT, NewInsureeId INT)
 	DECLARE @tblPolicy TABLE(PolicyId INT,FamilyId INT,EnrollDate DATE,StartDate DATE,EffectiveDate DATE,ExpiryDate DATE,PolicyStatus TINYINT,PolicyValue DECIMAL(18,2),ProdId INT,OfficerId INT,PolicyStage CHAR(1), isOffline BIT, NewFamilyId INT, NewPolicyId INT)
 	DECLARE @tblInureePolicy TABLE(PolicyId INT,InsureeId INT,EffectiveDate DATE, NewInsureeId INT, NewPolicyId INT)
+	DECLARE @tblFamilySMS TABLE(FamilyId INT, ApprovalOfSMS BIT, LanguageOfSMS NVARCHAR(5), NewFamilyId INT)
 	DECLARE @tblPremium TABLE(PremiumId INT,PolicyId INT,PayerId INT,Amount DECIMAL(18,2),Receipt NVARCHAR(50),PayDate DATE,PayType CHAR(1),isPhotoFee BIT, NewPolicyId INT)
 	DECLARE @tblRejectedFamily TABLE(FamilyID INT)
 	DECLARE @tblRejectedInsuree TABLE(InsureeID INT)
@@ -9611,6 +9651,22 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 		NULLIF(T.P.value('(EffectiveDate)[1]','DATE'),'')
 		FROM @XML.nodes('Enrolment/InsureePolicies/InsureePolicy') AS T(P)
 
+		-- Get Family SMS
+		INSERT INTO @tblFamilySMS(FamilyId, ApprovalOfSMS, LanguageOfSMS)
+		SELECT 
+		T.P.value('(FamilyId)[1]', 'INT'),
+		IIF(
+           (T.P.value('(ApprovalOfSMS)[1]','BIT') IS NOT NULL), 
+            T.P.value('(ApprovalOfSMS)[1]','BIT'), 
+	        0
+        ),
+		IIF(
+		   (T.P.value('(LanguageOfSMS)[1]','NVARCHAR(5)') IS NOT NULL) AND (T.P.value('(LanguageOfSMS)[1]','NVARCHAR(5)') != ''), 
+		    T.P.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), 
+			[dbo].udfDefaultLanguageCode()
+		) FROM @XML.nodes('Enrolment/Families/Family/FamilySMS') AS T(P)
+		
+
 		--GET ALL THE PREMIUMS FROM XML
 		INSERT INTO @tblPremium(PremiumId,PolicyId,PayerId,Amount,Receipt,PayDate,PayType,isPhotoFee)
 		SELECT
@@ -9674,6 +9730,10 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 			RAISERROR (N'<h4 style="color:red;">Error: online Policy in offline family. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>', 16, 1);
 		END
 		
+		SELECT * 
+		FROM @tblInsuree I LEFT OUTER JOIN @tblFamilies F ON I.FamilyId = F.FamilyID
+		WHERE F.FamilyID IS NULL
+
 		IF EXISTS(
 		--Insuree without family
 		SELECT 1 
@@ -10042,6 +10102,9 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 			DELETE TP FROM @tblPolicy TP
 			INNER JOIN @tblRejectedFamily RF ON TP.FamilyId =RF.FamilyId
 
+			DELETE TFS FROM @tblFamilySMS TFS
+			INNER JOIN @tblRejectedFamily TF ON TFS.FamilyId = TF.FamilyId
+
 			DELETE TP FROM @tblPolicy TP
 			LEFT OUTER JOIN @tblFamilies TF ON TP.FamilyId =TP.FamilyId WHERE TF.FamilyId IS NULL
 
@@ -10107,7 +10170,8 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 			UPDATE @tblFamilies SET NewFamilyId = ABS(FamilyId) WHERE isOffline = 0
 			UPDATE @tblInsuree SET NewFamilyId =ABS(FamilyId)  
 			UPDATE @tblPolicy SET NewPolicyId = PolicyId WHERE isOffline = 0
-
+			UPDATE @tblFamilySMS SET NewFamilyId = ABS(FamilyId)
+			
 			UPDATE TP SET TP.NewFamilyId = TF.FamilyId FROM @tblPolicy TP 
 			INNER JOIN @tblFamilies TF ON TF.FamilyId = TP.FamilyId 
 			WHERE TF.isOffline = 0
@@ -10130,6 +10194,11 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 						 INNER JOIN @tblFamilies src ON ABS(src.FamilyID)= dst.FamilyID WHERE src.isOffline = 0 AND src.FamilyId < 0
 				SELECT @FamiliesUpd = ISNULL(@@ROWCOUNT	,0)
 
+				UPDATE dst SET dst.[ApprovalOfSMS] = src.ApprovalOfSMS,  dst.[LanguageOfSMS] = src.LanguageOfSMS, dst.[ValidityFrom] = GETDATE()
+						 FROM tblFamilySMS dst
+						 INNER JOIN @tblFamilySMS src ON ABS(src.FamilyID) = dst.FamilyId WHERE src.FamilyId < 0
+				
+
 			END
 
 			--new family
@@ -10142,17 +10211,26 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 								WHILE @@FETCH_STATUS = 0
 								BEGIN
 								INSERT INTO tblFamilies(InsureeId, LocationId, Poverty, ValidityFrom, AuditUserId, FamilyType, FamilyAddress, Ethnicity, ConfirmationNo, ConfirmationType, isOffline) 
-								SELECT 0 , TF.LocationId, TF.Poverty, GETDATE() , @AuditUserId , TF.FamilyType, TF.FamilyAddress, TF.Ethnicity, TF.ConfirmationNo, ConfirmationType,1 isOffline FROM @tblFamilies TF
+								SELECT 0 , TF.LocationId, TF.Poverty, GETDATE() , @AuditUserId , TF.FamilyType, TF.FamilyAddress, TF.Ethnicity, TF.ConfirmationNo, ConfirmationType, 0 FROM @tblFamilies TF
 								DECLARE @NewFamilyId  INT  =0
 								SELECT @NewFamilyId= SCOPE_IDENTITY();
+
+								
 								IF @@ROWCOUNT > 0
 									BEGIN
 										SET @FamilyImported = ISNULL(@FamilyImported,0) + 1
 										UPDATE @tblFamilies SET NewFamilyId = @NewFamilyId WHERE FamilyId = @CurFamilyId
 										UPDATE @tblInsuree SET NewFamilyId = @NewFamilyId WHERE FamilyId = @CurFamilyId
 										UPDATE @tblPolicy SET NewFamilyId = @NewFamilyId WHERE FamilyId = @CurFamilyId
+										UPDATE @tblFamilySMS SET NewFamilyId = @NewFamilyId WHERE FamilyId = @CurFamilyId
+										
 									END
 								
+								INSERT INTO tblFamilySMS(FamilyId, ApprovalOfSMS, LanguageOfSMS, ValidityFrom) 
+									SELECT @NewFamilyID, dst.ApprovalOfSMS, dst.LanguageOfSMS, GETDATE() FROM @tblFamilySMS dst
+								Where dst.FamilyId = @CurFamilyId;
+								
+
 								FETCH NEXT FROM CurFamily INTO @CurFamilyId;
 							END
 							CLOSE CurFamily
@@ -10229,7 +10307,7 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 								INSERT INTO tblInsuree(FamilyId, CHFID, LastName, OtherNames, DOB, Gender, Marital, IsHead, passport, Phone, CardIssued, ValidityFrom,
 								AuditUserId, Relationship, Profession, Education, Email, TypeOfId, HFID, CurrentAddress, GeoLocation, CurrentVillage, isOffline)
 								SELECT NewFamilyId, CHFID, LastName, OtherNames, DOB, Gender, Marital, IsHead, passport, Phone, CardIssued, GETDATE() ValidityFrom,
-								@AuditUserId AuditUserId, Relationship, Profession, Education, Email, TypeOfId, HFID, CurrentAddress, GeoLocation, CurVillage, 1 isOffLine
+								@AuditUserId AuditUserId, Relationship, Profession, Education, Email, TypeOfId, HFID, CurrentAddress, GeoLocation, CurVillage,  0
 								FROM @tblInsuree WHERE InsureeId = @CurInsureeId;
 								DECLARE @NewInsureeId  INT  =0
 								SELECT @NewInsureeId= SCOPE_IDENTITY();
@@ -10318,7 +10396,7 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 							EXEC @PolicyValue = uspPolicyValue @FamilyId, @ProdId, 0, @PolicyStage, @EnrollDate, 0, @ErrorCode OUTPUT;
 
 							INSERT INTO tblPolicy(FamilyID,EnrollDate,StartDate,EffectiveDate,ExpiryDate,PolicyStatus,PolicyValue,ProdID,OfficerID,PolicyStage,ValidityFrom,AuditUserID, isOffline)
-							SELECT	 ABS(NewFamilyID),EnrollDate,StartDate,@EffectiveDate,ExpiryDate,@PolicyStatus,@PolicyValue,ProdID,@OfficerID,PolicyStage,GETDATE(),@AuditUserId, 1 isOffline FROM @tblPolicy WHERE PolicyId=@PolicyId
+							SELECT	 ABS(NewFamilyID),EnrollDate,StartDate,@EffectiveDate,ExpiryDate,@PolicyStatus,@PolicyValue,ProdID,@OfficerID,PolicyStage,GETDATE(),@AuditUserId,  0 FROM @tblPolicy WHERE PolicyId=@PolicyId
 							SELECT @NewPolicyId = SCOPE_IDENTITY()
 							INSERT INTO @tblIds(OldId, [NewId]) VALUES(@PolicyId, @NewPolicyId)
 							
@@ -10328,7 +10406,7 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 									UPDATE @tblInureePolicy SET NewPolicyId = @NewPolicyId WHERE PolicyId=@PolicyId
 									UPDATE @tblPremium SET NewPolicyId =@NewPolicyId  WHERE PolicyId = @PolicyId
 									INSERT INTO tblPremium(PolicyID,PayerID,Amount,Receipt,PayDate,PayType,ValidityFrom,AuditUserID,isPhotoFee,isOffline)
-									SELECT NewPolicyId,PayerID,Amount,Receipt,PayDate,PayType,GETDATE(),@AuditUserId,isPhotoFee, 1 isOffline
+									SELECT NewPolicyId,PayerID,Amount,Receipt,PayDate,PayType,GETDATE(),@AuditUserId,isPhotoFee,  0
 									FROM @tblPremium WHERE NewPolicyId = @NewPolicyId
 									SELECT @PremiumImported = ISNULL(@PremiumImported,0) +1
 								END
@@ -10345,7 +10423,7 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 							INSERT INTO tblInsureePolicy
 								([InsureeId],[PolicyId],[EnrollmentDate],[StartDate],[EffectiveDate],[ExpiryDate],[ValidityFrom],[AuditUserId], isOffline) 
 							SELECT
-								 NewInsureeId,IP.NewPolicyId,@EnrollDate,@StartDate,IP.[EffectiveDate],@ExpiryDate,GETDATE(),@AuditUserId, 1 isOffline FROM @tblInureePolicy IP
+								 NewInsureeId,IP.NewPolicyId,@EnrollDate,@StartDate,IP.[EffectiveDate],@ExpiryDate,GETDATE(),@AuditUserId,  0 FROM @tblInureePolicy IP
 							     WHERE IP.PolicyId=@PolicyId
 						END
 					ELSE
@@ -10659,7 +10737,7 @@ SELECT F.FamilyId,F.InsureeId, I.CHFID , F.LocationId, F.Poverty
 	LEFT OUTER JOIN tblPremium PR ON PR.PolicyID = PL.PolicyID AND PR.ValidityTo IS NULL
 	WHERE F.ValidityTo IS NULL 
 	AND (F.isOffline = 1 OR I.isOffline = 1 OR PL.isOffline = 1 OR PR.isOffline = 1)	
-	GROUP BY F.FamilyId,F.InsureeId,F.LocationId,F.Poverty,I.CHFID) aaa	
+	GROUP BY F.FamilyId,F.InsureeId,F.LocationId,F.Poverty, I.CHFID) aaa	
 	FOR XML PATH('Family'),ROOT('Families'),TYPE),
 	
 	(SELECT * FROM (
@@ -11083,7 +11161,7 @@ BEGIN
 	--**Families**
 	--SELECT [FamilyID],[InsureeID],[DistrictID],[VillageID],[WardID],[Poverty],[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],[FamilyType],[FamilyAddress],Ethnicity,ConfirmationNo FROM [dbo].[tblFamilies] WHERE RowID > @RowID AND (CASE @LocationId  WHEN 0 THEN 0 ELSE [DistrictID]  END) = @LocationId
 	;WITH Family AS (
-	SELECT F.[FamilyID],F.[InsureeID],F.[LocationId],[Poverty],F.[ValidityFrom],F.[ValidityTo],F.[LegacyID],F.[AuditUserID],[FamilyType],[FamilyAddress],Ethnicity,isOffline ,ConfirmationNo,F.ConfirmationType 
+	SELECT F.[FamilyID],F.[InsureeID],F.[LocationId],[Poverty],F.[ValidityFrom],F.[ValidityTo],F.[LegacyID],F.[AuditUserID],[FamilyType],[FamilyAddress],Ethnicity,isOffline ,ConfirmationNo,F.ConfirmationType  
 	FROM [dbo].[tblFamilies] F 
 	INNER JOIN tblVillages V ON V.VillageID = F.LocationId
 	INNER JOIN tblWards W ON W.WardId = V.WardId
@@ -23367,7 +23445,7 @@ TRY --THE MAIN TRY
 						UPDATE @Family SET FamilyId = @FamilyId
 						UPDATE @Policy SET FamilyId =  @FamilyId
 						 UPDATE  dst  SET dst.[Poverty] = src.Poverty,  dst.[ConfirmationType] = src.ConfirmationType, isOffline=0, dst.[ValidityFrom]=GETDATE(), dst.[AuditUserID] = @AuditUserID, dst.FamilyType = src.FamilyType,  dst.FamilyAddress = src.FamilyAddress,
-										   dst.Ethnicity = src.Ethnicity,  dst.ConfirmationNo = src.ConfirmationNo,  dst.LocationId = src.LocationId 
+										   dst.Ethnicity = src.Ethnicity,  dst.ConfirmationNo = src.ConfirmationNo,  dst.LocationId = src.LocationId
 						 FROM tblFamilies dst
 						 INNER JOIN @Family src ON src.FamilyID = dst.FamilyID
 					--	 WHERE  dst.FamilyID = @FamilyID;

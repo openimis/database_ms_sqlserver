@@ -10067,6 +10067,40 @@ CREATE   PROCEDURE [dbo].[uspConsumeEnrollments](
                 DEALLOCATE CurInsuree;	 
             END
 
+			--Validatiion For Phone only
+			IF @AuditUserId > 0
+				BEGIN
+
+					--*****************New Family*********
+					--Family already  exists
+					IF EXISTS(SELECT 1 FROM @tblFamilies TF INNER JOIN tblInsuree F ON F.CHFID = TF.CHFID WHERE TF.isOffline = 1 AND F.ValidityTo IS NULL )
+					RAISERROR(N'-2',16,1)
+					
+					
+					--Family has no HOF
+					IF EXISTS(SELECT 1 FROM @tblFamilies TF LEFT OUTER JOIN @tblInsuree TI ON TI.CHFID =TF.CHFID WHERE TF.isOffline = 1 AND TI.CHFID IS NULL)
+					RAISERROR(N'-1',16,1)
+
+					--Duplicate Insuree foundS
+					IF EXISTS(SELECT 1 FROM @tblInsuree TI INNER JOIN tblInsuree I ON TI.CHFID = I.CHFID WHERE I.ValidityTo IS NULL AND TI.isOffline = 1)
+					RAISERROR(N'-3',16,1)
+
+					--*****************Existing Family*********
+							--Family has no HOF
+					IF EXISTS(SELECT 1 FROM @tblFamilies TF 
+					LEFT OUTER JOIN tblInsuree I ON TF.CHFID = I.CHFID 
+					WHERE I.ValidityTo IS NULL AND I.IsHead = 1 AND I.CHFID IS NULL)
+					RAISERROR(N'-1',16,1)
+
+					--Duplicate Receipt
+					IF EXISTS(SELECT 1 FROM @tblPremium TPR
+					INNER JOIN tblPremium PR ON PR.PolicyID = TPR.PolicyID AND TPR.Amount = PR.Amount AND TPR.Receipt = PR.Receipt
+					INNER JOIN tblPolicy PL ON PL.PolicyID = PR.PolicyID)
+					RAISERROR(N'-4',16,1)
+
+
+				END
+
 
 			/********************************************************************************************************
 										DELETE REJECTED RECORDS		
@@ -10118,42 +10152,6 @@ CREATE   PROCEDURE [dbo].[uspConsumeEnrollments](
 			--Rejected Premium
 			DELETE TPR FROM @tblPremium TPR
 			INNER JOIN @tblRejectedPremium RP ON RP.PremiumId = TPR.PremiumId
-
-
-			--Validatiion For Phone only
-			IF @AuditUserId > 0
-				BEGIN
-
-					--*****************New Family*********
-					--Family already  exists
-					IF EXISTS(SELECT 1 FROM @tblFamilies TF INNER JOIN tblInsuree F ON F.CHFID = TF.CHFID WHERE TF.isOffline = 1 AND F.ValidityTo IS NULL )
-					RAISERROR(N'-2',16,1)
-					
-					--Family has no HOF
-					IF EXISTS(SELECT 1 FROM @tblFamilies TF LEFT OUTER JOIN @tblInsuree TI ON TI.CHFID =TF.CHFID WHERE TF.isOffline = 1 AND TI.CHFID IS NULL)
-					RAISERROR(N'-1',16,1)
-
-					--Duplicate Insuree found
-					IF EXISTS(SELECT 1 FROM @tblInsuree TI INNER JOIN tblInsuree I ON TI.CHFID = I.CHFID WHERE I.ValidityTo IS NULL AND TI.isOffline = 1)
-					RAISERROR(N'-3',16,1)
-
-					--*****************Existing Family*********
-							--Family has no HOF
-					IF EXISTS(SELECT 1 FROM @tblFamilies TF 
-					LEFT OUTER JOIN tblInsuree I ON TF.CHFID = I.CHFID 
-					WHERE I.ValidityTo IS NULL AND I.IsHead = 1 AND I.CHFID IS NULL)
-					RAISERROR(N'-1',16,1)
-
-					--Duplicate Receipt
-					IF EXISTS(SELECT 1 FROM @tblPremium TPR
-					INNER JOIN tblPremium PR ON PR.PolicyID = TPR.PolicyID AND TPR.Amount = PR.Amount AND TPR.Receipt = PR.Receipt
-					INNER JOIN tblPolicy PL ON PL.PolicyID = PR.PolicyID)
-					RAISERROR(N'-4',16,1)
-
-
-				END
-			
-
 			
 
 			--Making the first insuree to be head for the offline families which miss head of family ONLY for the new family

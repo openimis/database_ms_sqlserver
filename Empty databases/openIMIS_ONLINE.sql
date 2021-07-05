@@ -10633,7 +10633,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-ALTER PROCEDURE [dbo].[uspCreateEnrolmentXML]
+CREATE PROCEDURE [dbo].[uspCreateEnrolmentXML]
 (
 	@FamilyExported INT = 0 OUTPUT,
 	@InsureeExported INT = 0 OUTPUT,
@@ -11111,7 +11111,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-ALTER PROCEDURE [dbo].[uspExportOffLineExtract5]
+CREATE PROCEDURE [dbo].[uspExportOffLineExtract5]
 @RegionId INT = 0,
 	 @DistrictId INT = 0,
 	 @RowID as bigint = 0,

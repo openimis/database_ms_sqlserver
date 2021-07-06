@@ -6557,7 +6557,7 @@ IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
 	ALTER TABLE [dbo].[tblFamilySMS] WITH CHECK ADD CONSTRAINT [FK_tblFamilySMS_tblFamily-FamilyID] FOREIGN KEY([FamilyID]) REFERENCES [dbo].[tblFamilies]
 GO
 
-IF NOT EXISTS (SELECT * FROM tblControls where FieldName = 'ApprovalOfSMS')
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = 'ApprovalOfSMS')
     INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ApprovalOfSMS', N'N', N'Family')
 GO
 
@@ -7778,3 +7778,122 @@ BEGIN
 	
 END
 GO
+
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'Age')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Age', N'M', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'AntenatalAmountLeft')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'AntenatalAmountLeft', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'ApprovalOfSMS')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ApprovalOfSMS', N'N', N'Family')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'BeneficiaryCard')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'BeneficiaryCard', N'O', N'Family, Insuree')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'Ceiling1')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Ceiling1', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'Ceiling2')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Ceiling2', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'CHFID')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'CHFID', N'M', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'ClaimAdministrator')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ClaimAdministrator', N'M', N'FindClaim, Claim, ClaimReview, ClaimFeedback')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'Confirmation')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Confirmation', N'O', N'Family, Insuree, OverviewFamily, ChangeFamily')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'ConfirmationNo')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ConfirmationNo', N'O', N'Family, Insuree, FindFamily, OverviewFamily, ChangeFamily')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'ConsultationAmountLeft')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ConsultationAmountLeft', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'ContributionCategory')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ContributionCategory', N'O', N'Premium, FindPremium')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'CurrentAddress')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'CurrentAddress', N'O', N'Family, Insuree')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'CurrentDistrict')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'CurrentDistrict', N'O', N'Family, Insuree')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'CurrentMunicipality')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'CurrentMunicipality', N'O', N'Family, Insuree')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'CurrentVillage')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'CurrentVillage', N'O', N'Family, Insuree')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'Ded1')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Ded1', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'Ded2')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Ded2', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'DeliveryAmountLeft')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'DeliveryAmountLeft', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'DistrictOfFSP')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'DistrictOfFSP', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'DOB')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'DOB', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'Education')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Education', N'O', N'Family, Insuree')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'ExpiryDate')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ExpiryDate', N'M', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'FamilyType')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'FamilyType', N'O', N'Family, ChangeFamily')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'FirstServicePoint')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'FirstServicePoint', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'FSP')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'FSP', N'O', N'Family, Insuree')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'FSPCategory')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'FSPCategory', N'O', N'Family, Insuree')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'FSPDistrict')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'FSPDistrict', N'O', N'Family, Insuree')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'Gender')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Gender', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'GuaranteeNo')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'GuaranteeNo', N'O', N'Claim, ClaimReview')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'HFLevel')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'HFLevel', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'HospitalizationAmountLeft')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'HospitalizationAmountLeft', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'IdentificationNumber')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'IdentificationNumber', N'O', N'Family, Insuree')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'IdentificationType')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'IdentificationType', N'O', N'Family, Insuree')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'InsureeEmail')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'InsureeEmail', N'O', N'Family, Insuree, FindFamily')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'LastName')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'LastName', N'M', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'lblItemCode')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'lblItemCode', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'lblItemCodeL')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'lblItemCodeL', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'lblItemLeftL')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'lblItemLeftL', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'lblItemMinDate')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'lblItemMinDate', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'lblServiceLeft')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'lblServiceLeft', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'lblServiceMinDate')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'lblServiceMinDate', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'MaritalStatus')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'MaritalStatus', N'O', N'Family, Insuree')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'OtherNames')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'OtherNames', N'M', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'PermanentAddress')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'PermanentAddress', N'O', N'Family, Insuree, ChangeFamily')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'PolicyStatus')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'PolicyStatus', N'M', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'Poverty')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Poverty', N'O', N'Family, Insuree, Policy, Premium, FindFamily, ChangeFamily')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'ProductCode')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ProductCode', N'M', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'Profession')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Profession', N'O', N'Family, Insuree')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'RegionOfFSP')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'RegionOfFSP', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'Relationship')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Relationship', N'O', N'Insuree')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'SurgeryAmountLeft')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'SurgeryAmountLeft', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'TotalAdmissionsLeft')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalAdmissionsLeft', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'TotalAmount')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalAmount', N'R', N'AppPolicies')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'TotalAntenatalLeft')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalAntenatalLeft', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'TotalConsultationsLeft')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalConsultationsLeft', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'TotalDelivieriesLeft')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalDelivieriesLeft', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'TotalSurgeriesLeft')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalSurgeriesLeft', N'O', N'Search Insurance Number/Enquiry')GO
+IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'TotalVisitsLeft')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalVisitsLeft', N'O', N'Search Insurance Number/Enquiry')GO

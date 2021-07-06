@@ -193,7 +193,8 @@ CREATE TYPE [dbo].[xInsuree] AS TABLE(
 	[HFID] [int] NULL,
 	[CurrentAddress] [nvarchar](200) NULL,
 	[CurrentVillage] [int] NULL,
-	[GeoLocation] [nvarchar](250) NULL
+	[GeoLocation] [nvarchar](250) NULL,
+	[Vulnerability] [bit]  NULL
 )
 GO
 
@@ -2654,6 +2655,7 @@ CREATE TABLE [dbo].[tblInsuree](
 	[CurrentAddress] [nvarchar](200) NULL,
 	[GeoLocation] [nvarchar](250) NULL,
 	[CurrentVillage] [int] NULL,
+	[Vulnerability] [bit] NOT NULL DEFAULT 0,
  CONSTRAINT [PK_tblInsuree] PRIMARY KEY CLUSTERED 
 (
 	[InsureeID] ASC
@@ -7727,7 +7729,7 @@ BEGIN
 		CONVERT(VARCHAR,DOB,103) DOB, CASE WHEN I.Gender = 'M' THEN 'Male' ELSE 'Female' END Gender,PR.ProductCode,PR.ProductName,
 		CONVERT(VARCHAR(12),IP.ExpiryDate,103) ExpiryDate, 
 		CASE WHEN IP.EffectiveDate IS NULL OR CAST(GETDATE() AS DATE) < IP.EffectiveDate  THEN 'I' WHEN CAST(GETDATE() AS DATE) NOT BETWEEN IP.EffectiveDate AND IP.ExpiryDate THEN 'E' ELSE 
-		CASE PL.PolicyStatus WHEN 1 THEN 'I' WHEN 2 THEN 'A' WHEN 4 THEN 'S' ELSE 'E' END
+		CASE PL.PolicyStatus WHEN 1 THEN 'I' WHEN 2 THEN 'A' WHEN 4 THEN 'S' WHEN 16 THEN 'R' ELSE 'E' END
 		END  AS [Status]
 		INTO #tempBase
 		FROM tblInsuree I LEFT OUTER JOIN tblPhotos P ON I.PhotoID = P.PhotoID
@@ -14172,7 +14174,7 @@ BEGIN
 		CONVERT(VARCHAR,DOB,103) DOB, CASE WHEN I.Gender = 'M' THEN 'Male' ELSE 'Female' END Gender,PR.ProductCode,PR.ProductName,
 		CONVERT(VARCHAR(12),IP.ExpiryDate,103) ExpiryDate, 
 		CASE WHEN IP.EffectiveDate IS NULL THEN 'I' WHEN CAST(GETDATE() AS DATE) NOT BETWEEN IP.EffectiveDate AND IP.ExpiryDate THEN 'E' ELSE 
-		CASE PL.PolicyStatus WHEN 1 THEN 'I' WHEN 2 THEN 'A' WHEN 4 THEN 'S' ELSE 'E' END
+		CASE PL.PolicyStatus WHEN 1 THEN 'I' WHEN 2 THEN 'A' WHEN 4 THEN 'S' WHEN 16 THEN 'R' ELSE 'E' END
 		END  AS [Status], ISNULL(MemCount.Members ,0) as FamCount
 		INTO #tempBase
 		FROM tblInsuree I LEFT OUTER JOIN tblPhotos P ON I.PhotoID = P.PhotoID
@@ -14414,7 +14416,7 @@ BEGIN
 		CONVERT(VARCHAR,DOB,103) DOB, CASE WHEN I.Gender = 'M' THEN 'Male' ELSE 'Female' END Gender,PR.ProductCode,PR.ProductName,
 		CONVERT(VARCHAR(12),IP.ExpiryDate,103) ExpiryDate, 
 		CASE WHEN IP.EffectiveDate IS NULL OR CAST(GETDATE() AS DATE) < IP.EffectiveDate  THEN 'I' WHEN CAST(GETDATE() AS DATE) NOT BETWEEN IP.EffectiveDate AND IP.ExpiryDate THEN 'E' ELSE 
-		CASE PL.PolicyStatus WHEN 1 THEN 'I' WHEN 2 THEN 'A' WHEN 4 THEN 'S' ELSE 'E' END
+		CASE PL.PolicyStatus WHEN 1 THEN 'I' WHEN 2 THEN 'A' WHEN 4 THEN 'S' WHEN 16 THEN 'R' ELSE 'E' END
 		END  AS [Status]
 		INTO #tempBase
 		FROM tblInsuree I LEFT OUTER JOIN tblPhotos P ON I.PhotoID = P.PhotoID

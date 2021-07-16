@@ -22485,6 +22485,8 @@ BEGIN
 	DECLARE @isClaimAdminRequired BIT = (SELECT CASE Adjustibility WHEN N'M' THEN 1 ELSE 0 END FROM tblControls WHERE FieldName = N'ClaimAdministrator')
 	DECLARE @isClaimAdminOptional BIT = (SELECT CASE Adjustibility WHEN N'O' THEN 1 ELSE 0 END FROM tblControls WHERE FieldName = N'ClaimAdministrator')
 	
+	SELECT @ClaimRejected = 0
+
 	BEGIN TRY
 		
 			IF NOT OBJECT_ID('tempdb..#tblItem') IS NULL DROP TABLE #tblItem

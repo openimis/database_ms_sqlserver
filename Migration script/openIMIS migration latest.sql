@@ -4603,11 +4603,7 @@ BEGIN
 END
 GO
 
-IF OBJECT_ID('uspSSRSGetClaimHistory', 'P') IS NOT NULL
-    DROP PROCEDURE uspSSRSGetClaimHistory
-GO
-
-CREATE PROCEDURE [dbo].[uspSSRSGetClaimHistory]
+CREATE OR ALTER PROCEDURE [dbo].[uspSSRSGetClaimHistory]
 	(
 		@HFID INT,
 		@LocationId INT,
@@ -4676,7 +4672,9 @@ CREATE PROCEDURE [dbo].[uspSSRSGetClaimHistory]
 		CASE WHEN @Scope > 0 THEN  CONCAT(CS.RejectionReason,' - ', XCS.Name) ELSE NULL END ServiceRejectionReason,
 		CASE WHEN @Scope > 0 THEN CONCAT(CI.RejectionReason, ' - ', XCI.Name) ELSE NULL END ItemRejectionReason,
 		CS.RejectionReason [Services] ,
-		ci.RejectionReason Items
+		ci.RejectionReason Items,
+		TFS.Adjusted ServicePriceValuated,
+		TFI.Adjusted ItemPriceValuated
 
 	    FROM tblClaim C LEFT OUTER JOIN tblClaimItems CI ON C.ClaimId = CI.ClaimID
 	    LEFT OUTER JOIN tblClaimServices CS ON C.ClaimId = CS.ClaimID
@@ -4703,7 +4701,7 @@ CREATE PROCEDURE [dbo].[uspSSRSGetClaimHistory]
 		OR COALESCE(CS.ProdID, CI.ProdId) IS NULL OR @ProdId = 0) 
 	END
 
-Go
+GO
 
 
 -- OP-281: Set isOffline status to 0 for insurees in database 

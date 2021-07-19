@@ -22426,9 +22426,9 @@ GO
 
 CREATE PROCEDURE [dbo].[uspUpdateClaimFromPhone]
 (
-	--@FileName NVARCHAR(255),
 	@XML XML,
-	@ByPassSubmit BIT = 0
+	@ByPassSubmit BIT = 0,
+	@ClaimRejected BIT = 0 OUTPUT
 )
 
 /*
@@ -22445,13 +22445,10 @@ CREATE PROCEDURE [dbo].[uspUpdateClaimFromPhone]
 9	--Invalid Claim Admin
 */
 
-
 AS
 BEGIN
 	
 	SET XACT_ABORT ON
-
-	--DECLARE @XML XML
 	
 	DECLARE @Query NVARCHAR(3000)
 
@@ -22488,6 +22485,8 @@ BEGIN
 	DECLARE @isClaimAdminRequired BIT = (SELECT CASE Adjustibility WHEN N'M' THEN 1 ELSE 0 END FROM tblControls WHERE FieldName = N'ClaimAdministrator')
 	DECLARE @isClaimAdminOptional BIT = (SELECT CASE Adjustibility WHEN N'O' THEN 1 ELSE 0 END FROM tblControls WHERE FieldName = N'ClaimAdministrator')
 	
+	SELECT @ClaimRejected = 0
+
 	BEGIN TRY
 		
 			IF NOT OBJECT_ID('tempdb..#tblItem') IS NULL DROP TABLE #tblItem
@@ -22674,7 +22673,12 @@ BEGIN
 		SELECT @ClaimID  = IDENT_CURRENT('tblClaim')
 		
 		IF @ByPassSubmit = 0
-			EXEC uspSubmitSingleClaim -1, @ClaimID,0 
+		BEGIN
+			DECLARE @ClaimRejectionReason INT
+			EXEC @ClaimRejectionReason = uspSubmitSingleClaim -1, @ClaimID,0
+			IF @ClaimRejectionReason <> 0
+				SELECT @ClaimRejected = 1
+		END
 		
 	END TRY
 	BEGIN CATCH

@@ -26907,7 +26907,9 @@ GO
 		CASE WHEN @Scope > 0 THEN  CONCAT(CS.RejectionReason,' - ', XCS.Name) ELSE NULL END ServiceRejectionReason,
 		CASE WHEN @Scope > 0 THEN CONCAT(CI.RejectionReason, ' - ', XCI.Name) ELSE NULL END ItemRejectionReason,
 		CS.RejectionReason [Services] ,
-		ci.RejectionReason Items
+		ci.RejectionReason Items,
+		TFS.Adjusted ServicePriceValuated,
+		TFI.Adjusted ItemPriceValuated
 
 	    FROM tblClaim C LEFT OUTER JOIN tblClaimItems CI ON C.ClaimId = CI.ClaimID
 	    LEFT OUTER JOIN tblClaimServices CS ON C.ClaimId = CS.ClaimID

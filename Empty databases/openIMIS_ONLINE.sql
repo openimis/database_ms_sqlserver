@@ -2904,6 +2904,8 @@ CREATE TABLE [dbo].[tblPayment](
 	[TypeOfPayment] [nvarchar](50) NULL,
 	[TransferFee] [decimal](18, 2) NULL,
 	[SmsRequired] [bit] NULL,
+	[SpReconcReqId] [nvarchar](30) NULL,
+	[ReconciliationDate] [datetime] NULL
  CONSTRAINT [PK_tblPayment] PRIMARY KEY CLUSTERED 
 (
 	[PaymentID] ASC

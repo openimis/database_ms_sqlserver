@@ -182,6 +182,19 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID('tblBulkControlNumbers') IS NULL
+BEGIN
+	CREATE TABLE tblBulkControlNumbers 
+	(
+		Id INT IDENTITY(1, 1) CONSTRAINT PK_tblBulkControlNumbers PRIMARY KEY,
+		BillId INT UNIQUE CONSTRAINT UQ_tblBulkControlNumbers_BillId NOT NULL,
+		ControlNumber NVARCHAR(12) NOT NULL,
+		DateReceived DATETIME CONSTRAINT DF_tblBulkControlNumbers_DateReceived DEFAULT(GETDATE()) NOT NULL
+	)
+END 
+GO
+
+
 ALTER TABLE tblFamilySMS DROP CONSTRAINT IF EXISTS DF_tblFamilies_LanguageOfSMS;
 GO
 
@@ -8107,3 +8120,46 @@ BEGIN
 	RETURN 0
 END
 GO
+
+ALTER PROCEDURE [dbo].[uspReceiveControlNumber]
+(
+	@PaymentID INT,
+	@ControlNumber NVARCHAR(50),
+	@ResponseOrigin NVARCHAR(50) = NULL,
+	@Failed BIT = 0,
+	@Message NVARCHAR (100)=NULL
+)
+AS
+BEGIN
+	BEGIN TRY
+		IF EXISTS(SELECT 1 FROM tblControlNumber  WHERE PaymentID = @PaymentID AND ValidityTo IS NULL )
+		BEGIN
+			IF @Failed = 0
+			BEGIN
+				UPDATE tblPayment SET PaymentStatus = 3 WHERE PaymentID = @PaymentID AND ValidityTo IS NULL
+				UPDATE tblControlNumber SET ReceivedDate = GETDATE(), ResponseOrigin = @ResponseOrigin,  ValidityFrom = GETDATE() ,AuditedUserID =-1,ControlNumber = @ControlNumber  WHERE PaymentID = @PaymentID AND ValidityTo IS NULL
+				RETURN 0 
+			END
+			ELSE
+			BEGIN
+				UPDATE tblPayment SET PaymentStatus = -3, RejectedReason = @Message WHERE PaymentID = @PaymentID AND ValidityTo IS NULL
+				RETURN 2
+			END
+		END
+		ELSE
+		BEGIN
+			INSERT INTO tblBulkControlNumbers(BillId, ControlNumber)
+			VALUES(@PaymentID, @ControlNumber);
+			RETURN 0
+		END
+
+
+				
+	END TRY
+	BEGIN CATCH
+		RETURN -1
+	END CATCH
+
+	
+END
+	GO

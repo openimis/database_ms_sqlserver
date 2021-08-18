@@ -3613,6 +3613,19 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+
+F OBJECT_ID('tblBulkControlNumbers') IS NULL
+BEGIN
+	CREATE TABLE tblBulkControlNumbers 
+	(
+		Id INT IDENTITY(1, 1) CONSTRAINT PK_tblBulkControlNumbers PRIMARY KEY,
+		BillId INT UNIQUE CONSTRAINT UQ_tblBulkControlNumbers_BillId NOT NULL,
+		ControlNumber NVARCHAR(12) NOT NULL,
+		DateReceived DATETIME CONSTRAINT DF_tblBulkControlNumbers_DateReceived DEFAULT(GETDATE()) NOT NULL
+	)
+END 
+GO
+
 CREATE VIEW [dbo].[tblDistricts] AS
 SELECT LocationId DistrictId, LocationCode DistrictCode, LocationName DistrictName, ParentLocationId Region, ValidityFrom, ValidityTo, LegacyId, AuditUserId, RowId
 FROM tblLocations
@@ -18153,7 +18166,9 @@ AS
 			END
 			ELSE
 			BEGIN
-				RETURN 1
+				INSERT INTO tblBulkControlNumbers(BillId, ControlNumber)
+				VALUES(@PaymentID, @ControlNumber);
+				RETURN 0
 			END
 
 
@@ -27593,3 +27608,4 @@ BEGIN
 		AND(C.DateProcessed BETWEEN ISNULL(@DateProcessedFrom, CAST('1753-01-01' AS DATE)) AND ISNULL(@DateProcessedTo, GETDATE()) OR C.DateProcessed IS NULL)	
 END
 GO
+

@@ -3624,20 +3624,18 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-IF OBJECT_ID('tblBulkControlNumbers') IS NULL
-BEGIN
-	CREATE TABLE tblBulkControlNumbers 
-	(
-		Id INT IDENTITY(1, 1) CONSTRAINT PK_tblBulkControlNumbers PRIMARY KEY,
-		BillId INT UNIQUE CONSTRAINT UQ_tblBulkControlNumbers_BillId NOT NULL,
-		ProdId INT CONSTRAINT FK_tblBulkControlNumbers_tblProduct FOREIGN KEY REFERENCES tblProduct(ProdId) NOT NULL,
-		OfficerId INT CONSTRAINT FK_tblBulkControlNumbers_tblOfficer FOREIGN KEY REFERENCES tblOfficer(OfficerId) NOT NULL,
-		ControlNumber NVARCHAR(12) NULL,
-		Amount DECIMAL(18,2),
-		DateRequested DATETIME CONSTRAINT DF_tblBulkControlNumbers_DateRequested DEFAULT(GETDATE()) NOT NULL,
-		DateReceived DATETIME NULL
-	)
-END 
+CREATE TABLE tblBulkControlNumbers 
+(
+	Id INT IDENTITY(1, 1) CONSTRAINT PK_tblBulkControlNumbers PRIMARY KEY,
+	BillId INT UNIQUE CONSTRAINT UQ_tblBulkControlNumbers_BillId NOT NULL,
+	ProdId INT CONSTRAINT FK_tblBulkControlNumbers_tblProduct FOREIGN KEY REFERENCES tblProduct(ProdId) NOT NULL,
+	OfficerId INT CONSTRAINT FK_tblBulkControlNumbers_tblOfficer FOREIGN KEY REFERENCES tblOfficer(OfficerId) NOT NULL,
+	ControlNumber NVARCHAR(12) NULL,
+	Amount DECIMAL(18,2),
+	DateRequested DATETIME CONSTRAINT DF_tblBulkControlNumbers_DateRequested DEFAULT(GETDATE()) NOT NULL,
+	DateReceived DATETIME NULL,
+	FamilyId INT CONSTRAINT FK_tblBulkControlNumbers_tblFamilies FOREIGN KEY REFERENCES tblFamilies(FamilyId) NULL
+)
 GO
 
 CREATE VIEW [dbo].[tblDistricts] AS

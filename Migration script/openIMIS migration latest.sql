@@ -8148,8 +8148,7 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-			INSERT INTO tblBulkControlNumbers(BillId, ControlNumber)
-			VALUES(@PaymentID, @ControlNumber);
+			UPDATE tblBulkControlNumbers SET ControlNumber = @ControlNumber, DateReceived = GETDATE() WHERE BillId = @PaymentID;
 			RETURN 0
 		END
 

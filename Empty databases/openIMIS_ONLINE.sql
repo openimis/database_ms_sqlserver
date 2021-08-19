@@ -19,6 +19,16 @@ CREATE TYPE [dbo].[xAttributeV] AS TABLE(
 )
 GO
 
+CREATE TYPE xBulkControlNumbers AS TABLE
+(
+	BillId INT,
+	ProdId INT,
+	OfficerId INT,
+	Amount DECIMAL(18, 2)
+)
+GO
+
+
 CREATE TYPE [dbo].[xCareType] AS TABLE(
 	[Code] [char](1) NOT NULL,
 	[Name] [nvarchar](50) NULL,
@@ -3614,14 +3624,18 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-F OBJECT_ID('tblBulkControlNumbers') IS NULL
+IF OBJECT_ID('tblBulkControlNumbers') IS NULL
 BEGIN
 	CREATE TABLE tblBulkControlNumbers 
 	(
 		Id INT IDENTITY(1, 1) CONSTRAINT PK_tblBulkControlNumbers PRIMARY KEY,
 		BillId INT UNIQUE CONSTRAINT UQ_tblBulkControlNumbers_BillId NOT NULL,
-		ControlNumber NVARCHAR(12) NOT NULL,
-		DateReceived DATETIME CONSTRAINT DF_tblBulkControlNumbers_DateReceived DEFAULT(GETDATE()) NOT NULL
+		ProdId INT CONSTRAINT FK_tblBulkControlNumbers_tblProduct FOREIGN KEY REFERENCES tblProduct(ProdId) NOT NULL,
+		OfficerId INT CONSTRAINT FK_tblBulkControlNumbers_tblOfficer FOREIGN KEY REFERENCES tblOfficer(OfficerId) NOT NULL,
+		ControlNumber NVARCHAR(12) NULL,
+		Amount DECIMAL(18,2),
+		DateRequested DATETIME CONSTRAINT DF_tblBulkControlNumbers_DateRequested DEFAULT(GETDATE()) NOT NULL,
+		DateReceived DATETIME NULL
 	)
 END 
 GO
@@ -18166,8 +18180,7 @@ AS
 			END
 			ELSE
 			BEGIN
-				INSERT INTO tblBulkControlNumbers(BillId, ControlNumber)
-				VALUES(@PaymentID, @ControlNumber);
+				UPDATE tblBulkControlNumbers SET ControlNumber = @ControlNumber, DateReceived = GETDATE() WHERE BillId = @PaymentID;
 				RETURN 0
 			END
 

@@ -8148,8 +8148,7 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-			UPDATE tblBulkControlNumbers SET ControlNumber = @ControlNumber, DateReceived = GETDATE() WHERE BillId = @PaymentID;
-			RETURN 0
+			RETURN 1
 		END
 
 

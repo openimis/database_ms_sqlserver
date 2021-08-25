@@ -19,16 +19,6 @@ CREATE TYPE [dbo].[xAttributeV] AS TABLE(
 )
 GO
 
-CREATE TYPE xBulkControlNumbers AS TABLE
-(
-	BillId INT,
-	ProdId INT,
-	OfficerId INT,
-	Amount DECIMAL(18, 2)
-)
-GO
-
-
 CREATE TYPE [dbo].[xCareType] AS TABLE(
 	[Code] [char](1) NOT NULL,
 	[Name] [nvarchar](50) NULL,
@@ -3618,25 +3608,6 @@ CREATE TABLE [dbo].[tblUsersDistricts](
 ) ON [PRIMARY]
 GO
 
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-
-
-CREATE TABLE tblBulkControlNumbers 
-(
-	Id INT IDENTITY(1, 1) CONSTRAINT PK_tblBulkControlNumbers PRIMARY KEY,
-	BillId INT UNIQUE CONSTRAINT UQ_tblBulkControlNumbers_BillId NOT NULL,
-	ProdId INT CONSTRAINT FK_tblBulkControlNumbers_tblProduct FOREIGN KEY REFERENCES tblProduct(ProdId) NOT NULL,
-	OfficerId INT CONSTRAINT FK_tblBulkControlNumbers_tblOfficer FOREIGN KEY REFERENCES tblOfficer(OfficerId) NOT NULL,
-	ControlNumber NVARCHAR(12) NULL,
-	Amount DECIMAL(18,2),
-	DateRequested DATETIME CONSTRAINT DF_tblBulkControlNumbers_DateRequested DEFAULT(GETDATE()) NOT NULL,
-	DateReceived DATETIME NULL,
-	FamilyId INT CONSTRAINT FK_tblBulkControlNumbers_tblFamilies FOREIGN KEY REFERENCES tblFamilies(FamilyId) NULL
-)
-GO
 
 CREATE VIEW [dbo].[tblDistricts] AS
 SELECT LocationId DistrictId, LocationCode DistrictCode, LocationName DistrictName, ParentLocationId Region, ValidityFrom, ValidityTo, LegacyId, AuditUserId, RowId
@@ -13130,6 +13101,96 @@ BEGIN
 END
 GO
 
+CREATE PROCEDURE uspPrepareBulkControlNumberRequests
+(
+	@Count INT,
+	@ProductCode NVARCHAR(50),
+	@ErrorCode INT OUTPUT
+)		
+AS
+BEGIN
+	BEGIN TRY
+		/*
+			0	:	Success
+			1	:	Amount not valid
+			2	:	AccCodePremiums not found
+			3	:	Couldn't create exact numbers of count requests
+		*/
+
+		DECLARE @ExpectedAmount DECIMAL(18, 2),
+				@AccCodePremiums NVARCHAR(50),
+				@Status INT = 0,
+				@PolicyStage NCHAR(1) = N'N'
+
+		SELECT @ExpectedAmount = Lumpsum, @AccCodePremiums = AccCodePremiums FROM tblProduct WHERE ProductCode = @ProductCode AND ValidityTo IS NULL;
+		IF ISNULL(@ExpectedAmount, 0) = 0
+		BEGIN
+			SET @ErrorCode = 1;
+			RAISERROR (N'Invalid amount', 16, 1);
+		END
+
+		IF ISNULL(@AccCodePremiums, '') = ''
+		BEGIN
+			SET @ErrorCode = 2;
+			RAISERROR (N'Invalid AccCodePremium', 16, 1);
+		END
+
+		DECLARE @dt TABLE
+		(
+			BillId INT,
+			ProductCode NVARCHAR(50),
+			Amount DECIMAL(18, 2),
+			AccCodePremiums NVARCHAR(50)
+		)
+
+		DECLARE @PaymentId INT = 0;
+
+		BEGIN TRAN TRAN_CN
+			WHILE(@Count > 0)
+			BEGIN
+		
+				-- INSERT INTO Payment
+				INSERT INTO tblPayment (ExpectedAmount, RequestDate, ValidityFrom, AuditedUSerID)
+				SELECT @ExpectedAmount ExprectedAmount, GETDATE() RequestDate, GETDATE() ValidityFrom, -1 AuditUserId
+
+				SELECT @PaymentId = IDENT_CURRENT(N'tblPayment');
+
+
+				--INSERT INTO Payment details
+				INSERT INTO tblPaymentDetails(PaymentID, ProductCode, PolicyStage, ValidityFrom, AuditedUserId, ExpectedAmount)
+				SELECT @PaymentId PaymentId, @ProductCode ProductCode, @PolicyStage PolicyStage, GETDATE() ValidityFrom, -1 AuditUserId, @ExpectedAmount ExpectedAmount;
+
+				--INSERT INTO Control Number
+				INSERT INTO tblControlNumber(PaymentID, RequestedDate, [Status], ValidityFrom, AuditedUserID)
+				SELECT @PaymentId PaymentId, GETDATE() RequestedDate, @Status [Status], GETDATE() ValidityFrom, -1 AuditUserId;
+
+				--Prepare return table
+				INSERT INTO @dt(BillId, ProductCode, Amount, AccCodePremiums)
+				SELECT @PaymentId, @ProductCode ProductCode, @ExpectedAmount Amount, @AccCodePremiums AccCodePremium;
+
+				SET @Count = @Count - 1;
+			END
+
+			SELECT BillId, ProductCode, Amount FROM @dt;
+			IF (SELECT COUNT(1) FROM @dt) <> @Count
+			BEGIN
+				SET @ErrorCode = 0;
+				COMMIT TRAN TRAN_CN;
+			END
+			ELSE
+			BEGIN 
+				SET @ErrorCode = 3;
+				RAISERROR (N'Could not create all the requests', 16, 1);
+			END
+	END TRY
+	BEGIN CATCH
+		SET @ErrorCode = 99;
+		ROLLBACK TRAN TRAN_CN;
+		THROW;
+	END CATCH
+END
+
+
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -18178,8 +18239,7 @@ AS
 			END
 			ELSE
 			BEGIN
-				UPDATE tblBulkControlNumbers SET ControlNumber = @ControlNumber, DateReceived = GETDATE() WHERE BillId = @PaymentID;
-				RETURN 0
+				RETURN 1
 			END
 
 

@@ -182,18 +182,6 @@ BEGIN
 END
 GO
 
-IF OBJECT_ID('tblBulkControlNumbers') IS NULL
-BEGIN
-	CREATE TABLE tblBulkControlNumbers 
-	(
-		Id INT IDENTITY(1, 1) CONSTRAINT PK_tblBulkControlNumbers PRIMARY KEY,
-		BillId INT UNIQUE CONSTRAINT UQ_tblBulkControlNumbers_BillId NOT NULL,
-		ControlNumber NVARCHAR(12) NOT NULL,
-		DateReceived DATETIME CONSTRAINT DF_tblBulkControlNumbers_DateReceived DEFAULT(GETDATE()) NOT NULL
-	)
-END 
-GO
-
 
 ALTER TABLE tblFamilySMS DROP CONSTRAINT IF EXISTS DF_tblFamilies_LanguageOfSMS;
 GO
@@ -8160,4 +8148,94 @@ BEGIN
 
 	
 END
-	GO
+GO
+
+CREATE OR ALTER PROCEDURE uspPrepareBulkControlNumberRequests
+(
+	@Count INT,
+	@ProductCode NVARCHAR(50),
+	@ErrorCode INT OUTPUT
+)		
+AS
+BEGIN
+	BEGIN TRY
+		/*
+			0	:	Success
+			1	:	Amount not valid
+			2	:	AccCodePremiums not found
+			3	:	Couldn't create exact numbers of count requests
+		*/
+
+		DECLARE @ExpectedAmount DECIMAL(18, 2),
+				@AccCodePremiums NVARCHAR(50),
+				@Status INT = 0,
+				@PolicyStage NCHAR(1) = N'N'
+
+		SELECT @ExpectedAmount = Lumpsum, @AccCodePremiums = AccCodePremiums FROM tblProduct WHERE ProductCode = @ProductCode AND ValidityTo IS NULL;
+		IF ISNULL(@ExpectedAmount, 0) = 0
+		BEGIN
+			SET @ErrorCode = 1;
+			RAISERROR (N'Invalid amount', 16, 1);
+		END
+
+		IF ISNULL(@AccCodePremiums, '') = ''
+		BEGIN
+			SET @ErrorCode = 2;
+			RAISERROR (N'Invalid AccCodePremium', 16, 1);
+		END
+
+		DECLARE @dt TABLE
+		(
+			BillId INT,
+			ProductCode NVARCHAR(50),
+			Amount DECIMAL(18, 2),
+			AccCodePremiums NVARCHAR(50)
+		)
+
+		DECLARE @PaymentId INT = 0;
+
+		BEGIN TRAN TRAN_CN
+			WHILE(@Count > 0)
+			BEGIN
+		
+				-- INSERT INTO Payment
+				INSERT INTO tblPayment (ExpectedAmount, RequestDate, PaymentStatus, ValidityFrom, AuditedUSerID)
+				SELECT @ExpectedAmount ExprectedAmount, GETDATE() RequestDate, 1 PaymentStatus, GETDATE() ValidityFrom, -1 AuditUserId
+
+				SELECT @PaymentId = IDENT_CURRENT(N'tblPayment');
+
+
+				--INSERT INTO Payment details
+				INSERT INTO tblPaymentDetails(PaymentID, ProductCode, PolicyStage, ValidityFrom, AuditedUserId, ExpectedAmount)
+				SELECT @PaymentId PaymentId, @ProductCode ProductCode, @PolicyStage PolicyStage, GETDATE() ValidityFrom, -1 AuditUserId, @ExpectedAmount ExpectedAmount;
+
+				--INSERT INTO Control Number
+				INSERT INTO tblControlNumber(PaymentID, RequestedDate, [Status], ValidityFrom, AuditedUserID)
+				SELECT @PaymentId PaymentId, GETDATE() RequestedDate, @Status [Status], GETDATE() ValidityFrom, -1 AuditUserId;
+
+				--Prepare return table
+				INSERT INTO @dt(BillId, ProductCode, Amount, AccCodePremiums)
+				SELECT @PaymentId, @ProductCode ProductCode, @ExpectedAmount Amount, @AccCodePremiums AccCodePremium;
+
+				SET @Count = @Count - 1;
+			END
+
+			SELECT BillId, ProductCode, Amount FROM @dt;
+			IF (SELECT COUNT(1) FROM @dt) <> @Count
+			BEGIN
+				SET @ErrorCode = 0;
+				COMMIT TRAN TRAN_CN;
+			END
+			ELSE
+			BEGIN 
+				SET @ErrorCode = 3;
+				RAISERROR (N'Could not create all the requests', 16, 1);
+			END
+	END TRY
+	BEGIN CATCH
+		SET @ErrorCode = 99;
+		ROLLBACK TRAN TRAN_CN;
+		THROW;
+	END CATCH
+END
+GO

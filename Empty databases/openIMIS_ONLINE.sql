@@ -13150,8 +13150,8 @@ BEGIN
 			BEGIN
 		
 				-- INSERT INTO Payment
-				INSERT INTO tblPayment (ExpectedAmount, RequestDate, ValidityFrom, AuditedUSerID)
-				SELECT @ExpectedAmount ExprectedAmount, GETDATE() RequestDate, GETDATE() ValidityFrom, -1 AuditUserId
+				INSERT INTO tblPayment (ExpectedAmount, RequestDate, PaymentStatus, ValidityFrom, AuditedUSerID)
+				SELECT @ExpectedAmount ExprectedAmount, GETDATE() RequestDate, 1 PaymentStatus, GETDATE() ValidityFrom, -1 AuditUserId
 
 				SELECT @PaymentId = IDENT_CURRENT(N'tblPayment');
 
@@ -13189,7 +13189,7 @@ BEGIN
 		THROW;
 	END CATCH
 END
-
+GO
 
 SET ANSI_NULLS ON
 GO

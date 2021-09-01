@@ -649,6 +649,16 @@ IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'TotalVisitsLeft')
 		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalVisitsLeft', N'O', N'Search Insurance Number/Enquiry')
 GO
 
+
+--New fields in tblPayment
+IF COL_LENGTH(N'tblPayment', N'SpReconcReqId') IS NULL
+	ALTER TABLE tblPayment ADD SpReconcReqId NVARCHAR(30) NULL
+GO
+
+IF COL_LENGTH(N'tblPayment', N'ReconciliationDate') IS NULL
+	ALTER TABLE tblPayment ADD ReconciliationDate DATETIME NULL
+GO
+
 ------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------
 ------------------------------- Stored Procedures ----------------------------------------

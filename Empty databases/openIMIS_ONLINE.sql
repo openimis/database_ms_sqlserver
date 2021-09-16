@@ -2698,6 +2698,7 @@ CREATE TABLE [dbo].[tblItems](
 	[ItemCode] [nvarchar](6) NOT NULL,
 	[ItemName] [nvarchar](100) NOT NULL,
 	[ItemType] [char](1) NOT NULL,
+	[Quantity] [decimal](18,2) NULL,
 	[ItemPackage] [nvarchar](255) NULL,
 	[ItemPrice] [decimal](18, 2) NOT NULL,
 	[ItemCareType] [char](1) NOT NULL,

@@ -8249,3 +8249,7 @@ BEGIN
 	END CATCH
 END
 GO
+
+IF COL_LENGTH(N'tblItems', N'Quantity')  IS NULL
+ALTER TABLE tblItems ADD Quantity DECIMAL(18, 2) NULL
+GO

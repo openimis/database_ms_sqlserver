@@ -4426,72 +4426,72 @@ BEGIN
 			SELECT @ErrorMessage = 'End report date must be before today'
 			RETURN
 		END
-					SELECT TOP(1) @ReportingId = ReportingId FROM tblReporting WHERE LocationId = @LocationId AND ISNULL(ProdId,0) = ISNULL(@ProdId,0) 
+		SELECT TOP(1) @ReportingId = ReportingId FROM tblReporting WHERE LocationId = @LocationId AND ISNULL(ProdId,0) = ISNULL(@ProdId,0) 
 						AND StartDate = @FirstDay AND EndDate = @LastDay AND ISNULL(OfficerID,0) = ISNULL(@OfficerID,0) AND ReportMode = 0 AND ISNULL(PayerId,0) = ISNULL(@PayerId,0)
-				IF @ReportingId is NULL
-				BEGIN
+		IF @ReportingId is NULL
+		BEGIN
 			BEGIN TRY
 				BEGIN TRAN
 					-- if @Mode = 0 -- prescribed
-					INSERT INTO tblReporting(ReportingDate,LocationId, ProdId, PayerId, StartDate, EndDate, RecordFound,OfficerID,ReportType,CommissionRate,ReportMode,Scope)
-					SELECT GETDATE(),@LocationId,ISNULL(@ProdId,0), @PayerId, @FirstDay, @LastDay, 0,@OfficerId,2,@Rate,@Mode,@Scope; 
-					--Get the last inserted reporting Id
-					SELECT @ReportingId =  SCOPE_IDENTITY();
-
+						INSERT INTO tblReporting(ReportingDate,LocationId, ProdId, PayerId, StartDate, EndDate, RecordFound,OfficerID,ReportType,CommissionRate,ReportMode,Scope)
+						SELECT GETDATE(),@LocationId,ISNULL(@ProdId,0), @PayerId, @FirstDay, @LastDay, 0,@OfficerId,2,@Rate,@Mode,@Scope; 
+						--Get the last inserted reporting Id
+						SELECT @ReportingId =  SCOPE_IDENTITY();
+			
 					UPDATE tblPremium SET ReportingCommissionID =  @ReportingId
-					WHERE PremiumId IN (
-					SELECT  Pr.PremiumId
+						WHERE PremiumId IN (
+						SELECT  Pr.PremiumId
 						FROM tblPremium Pr INNER JOIN tblPolicy PL ON Pr.PolicyID = PL.PolicyID -- AND (PL.PolicyStatus=1 OR PL.PolicyStatus=2)
-					LEFT JOIN tblPaymentDetails PD ON PD.PremiumID = Pr.PremiumId
-					LEFT JOIN tblPayment PY ON PY.PaymentID = PD.PaymentID 
-					INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID
-					INNER JOIN tblFamilies F ON PL.FamilyID = F.FamilyID
-					INNER JOIN tblLocations V ON V.LocationId = F.LocationId
-					INNER JOIN tblLocations W ON W.LocationId = V.ParentLocationId
-					INNER JOIN tblLocations D ON D.LocationId = W.ParentLocationId
-					INNER JOIN tblOfficer O ON O.LocationId = D.LocationId AND O.ValidityTo IS NULL AND O.Officerid = PL.OfficerID
+						LEFT JOIN tblPaymentDetails PD ON PD.PremiumID = Pr.PremiumId
+						LEFT JOIN tblPayment PY ON PY.PaymentID = PD.PaymentID 
+						INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID
+						INNER JOIN tblFamilies F ON PL.FamilyID = F.FamilyID
+						INNER JOIN tblLocations V ON V.LocationId = F.LocationId
+						INNER JOIN tblLocations W ON W.LocationId = V.ParentLocationId
+						INNER JOIN tblLocations D ON D.LocationId = W.ParentLocationId
+						INNER JOIN tblOfficer O ON O.LocationId = D.LocationId AND O.ValidityTo IS NULL AND O.Officerid = PL.OfficerID
 						INNER JOIN tblInsuree Ins ON F.InsureeID = Ins.InsureeID  
-					LEFT OUTER JOIN tblPayer Payer ON Pr.PayerId = Payer.PayerID 
-					WHERE( (@Mode = 1 and PY.MatchedDate IS NOT NULL ) OR  (PY.MatchedDate IS NULL AND @Mode = 0))
+						LEFT OUTER JOIN tblPayer Payer ON Pr.PayerId = Payer.PayerID 
+						WHERE( (@Mode = 1 and PY.MatchedDate IS NOT NULL ) OR  (PY.MatchedDate IS NULL AND @Mode = 0))
 						-- AND Year(Pr.PayDate) = @Year AND Month(Pr.paydate) = @Month -- To be change
 						and ((Year(Py.[PaymentDate]) = @Year AND Month(Py.[PaymentDate]) = @Month and @Mode = 1 ) OR (Year(Pr.ValidityFrom) = @Year AND Month(Pr.ValidityFrom) = @Month and @Mode = 0 ) )
 						AND D.LocationId = @LocationId	or D.ParentLocationId = @LocationId
-					AND (ISNULL(Prod.ProdID,0) = ISNULL(@ProdId,0) OR @ProdId is null)
-					AND (ISNULL(O.OfficerID,0) = ISNULL(@OfficerId,0) OR @OfficerId IS NULL)
-					AND (ISNULL(Payer.PayerID,0) = ISNULL(@PayerId,0) OR @PayerId IS NULL)
-					-- AND (Pr.ReportingId IS NULL OR Pr.ReportingId < 0 ) -- not matched will be with negative ID
-					AND PR.PayType <> N'F'
+						AND (ISNULL(Prod.ProdID,0) = ISNULL(@ProdId,0) OR @ProdId is null)
+						AND (ISNULL(O.OfficerID,0) = ISNULL(@OfficerId,0) OR @OfficerId IS NULL)
+						AND (ISNULL(Payer.PayerID,0) = ISNULL(@PayerId,0) OR @PayerId IS NULL)
+						-- AND (Pr.ReportingId IS NULL OR Pr.ReportingId < 0 ) -- not matched will be with negative ID
+						AND PR.PayType <> N'F'
 						AND (Pr.ReportingCommissionID IS NULL)
-					GROUP BY Pr.PremiumId
-					HAVING SUM(ISNULL(PD.Amount,0)) = MAX(ISNULL(PY.ExpectedAmount,0))
-					)	
+						GROUP BY Pr.PremiumId
+						HAVING SUM(ISNULL(PD.Amount,0)) = MAX(ISNULL(PY.ExpectedAmount,0))
+						)	
 				
-				SELECT @RecordFound = @@ROWCOUNT;
-				IF @RecordFound = 0 
-				BEGIN
-					SELECT @ErrorMessage = 'No Data'
-					DELETE tblReporting WHERE ReportingId = @ReportingId;
-					ROLLBACK TRAN; 
-					RETURN -- To avoid a second rollback
-				END
-				ELSE
-				BEGIN
-					UPDATE tblReporting SET RecordFound = @RecordFound WHERE ReportingId = @ReportingId;
-					--UPDATE tblPremium SET OverviewCommissionReport = GETDATE() WHERE ReportingCommissionID = @ReportingId AND @Scope = 0 AND OverviewCommissionReport IS NULL;
-					--UPDATE tblPremium SET AllDetailsCommissionReport = GETDATE() WHERE ReportingCommissionID = @ReportingId AND @Scope = 1 AND AllDetailsCommissionReport IS NULL;
-				END
-			COMMIT TRAN;
-		END TRY
-		BEGIN CATCH
-			--SELECT @ErrorMessage = ERROR_MESSAGE(); ERROR MESSAGE WAS COMMENTED BY SALUMU ON 12-11-2019
-			ROLLBACK TRAN;
-			--RETURN -2 RETURN WAS COMMENTED BY SALUMU ON 12-11-2019
-		END CATCH
-	END
+					SELECT @RecordFound = @@ROWCOUNT;
+					IF @RecordFound = 0 
+					BEGIN
+						SELECT @ErrorMessage = 'No Data'
+						DELETE tblReporting WHERE ReportingId = @ReportingId;
+						ROLLBACK TRAN; 
+						RETURN -- To avoid a second rollback
+					END
+					ELSE
+					BEGIN
+						UPDATE tblReporting SET RecordFound = @RecordFound WHERE ReportingId = @ReportingId;
+						--UPDATE tblPremium SET OverviewCommissionReport = GETDATE() WHERE ReportingCommissionID = @ReportingId AND @Scope = 0 AND OverviewCommissionReport IS NULL;
+						--UPDATE tblPremium SET AllDetailsCommissionReport = GETDATE() WHERE ReportingCommissionID = @ReportingId AND @Scope = 1 AND AllDetailsCommissionReport IS NULL;
+					END
+				COMMIT TRAN;
+			END TRY
+			BEGIN CATCH
+				--SELECT @ErrorMessage = ERROR_MESSAGE(); ERROR MESSAGE WAS COMMENTED BY SALUMU ON 12-11-2019
+				ROLLBACK TRAN;
+				--RETURN -2 RETURN WAS COMMENTED BY SALUMU ON 12-11-2019
+			END CATCH
+		END
 	END
 	      
 					    
-	-- FETCHT THE DATA FOR THE REPORT		 
+	-- FETCHT THE DATA FOR THE REPORT		
 	-- OTC 70 - don-t put the familly details, insuree head, dob, pazer village and ward
 
 		SELECT  
@@ -4511,17 +4511,17 @@ BEGIN
 		PY.PaymentDate, ISNULL(PD.Amount,0) ActualPayment , PY.ExpectedAmount PaymentAmount, TransactionNo
 		-- Payer.PayerName
 		FROM tblPremium Pr INNER JOIN tblPolicy PL ON Pr.PolicyID = PL.PolicyID  AND PL.ValidityTo IS NULL
-	LEFT JOIN tblPaymentDetails PD ON PD.PremiumID = Pr.PremiumId AND PD.ValidityTo IS NULl AND PR.ValidityTo IS NULL
-	LEFT JOIN tblPayment PY ON PY.PaymentID = PD.PaymentID AND PY.ValidityTo IS NULL
-	INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID AND Prod.ValidityTo IS NULL
-	INNER JOIN tblFamilies F ON PL.FamilyID = F.FamilyID AND F.ValidityTo IS NULL
-	INNER JOIN tblLocations V ON V.LocationId = F.LocationId
-	INNER JOIN tblLocations W ON W.LocationId = V.ParentLocationId
-	INNER JOIN tblLocations D ON D.LocationId = W.ParentLocationId
-	INNER JOIN tblOfficer O ON O.Officerid = PL.OfficerID AND  O.LocationId = D.LocationId AND O.ValidityTo IS NULL
+		LEFT JOIN tblPaymentDetails PD ON PD.PremiumID = Pr.PremiumId AND PD.ValidityTo IS NULl AND PR.ValidityTo IS NULL
+		LEFT JOIN tblPayment PY ON PY.PaymentID = PD.PaymentID AND PY.ValidityTo IS NULL
+		INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID AND Prod.ValidityTo IS NULL
+		INNER JOIN tblFamilies F ON PL.FamilyID = F.FamilyID AND F.ValidityTo IS NULL
+		INNER JOIN tblLocations V ON V.LocationId = F.LocationId
+		INNER JOIN tblLocations W ON W.LocationId = V.ParentLocationId
+		INNER JOIN tblLocations D ON D.LocationId = W.ParentLocationId
+		INNER JOIN tblOfficer O ON O.Officerid = PL.OfficerID AND  O.LocationId = D.LocationId AND O.ValidityTo IS NULL
 		--  JUST the HEAD INNER JOIN tblInsuree Ins ON F.FamilyID = Ins.FamilyID  AND Ins.ValidityTo IS NULL
 		LEFT JOIN tblInsuree Ins ON F.InsureeID = Ins.InsureeID  
-	INNER JOIN tblReporting REP ON REP.ReportingId = @ReportingId
+		INNER JOIN tblReporting REP ON REP.ReportingId = @ReportingId
 		-- LEFT OUTER JOIN tblPayer Payer ON Pr.PayerId = Payer.PayerID
 		WHERE Pr.ReportingCommissionID = @ReportingId and Pr.ValidityTo is null
 		GROUP BY Pr.PremiumId,Prod.ProductCode,Prod.ProdID,Prod.ProductName,prod.ProductCode +' ' + prod.ProductName , PL.PolicyID ,  F.FamilyID, D.LocationName,D.LocationID,o.OfficerID , Ins.CHFID, Ins.LastName + ' ' + Ins.OtherNames ,O.Code + ' ' + O.LastName ,
@@ -4529,9 +4529,9 @@ BEGIN
 		--  Ins.IsHead,Payer.PayerName,Ins.DOB,V.LocationName,W.LocationName,
 		ORDER BY PremiumId, O.OfficerID,F.FamilyID DESC;
 
-		
 
-	END
+
+END
 
 GO
 
@@ -5023,7 +5023,7 @@ GO
 IF OBJECT_ID('[uspInsertIndexMonthly]', 'P') IS NOT NULL
     DROP PROCEDURE [uspInsertIndexMonthly]
 GO
- CREATE PROCEDURE [dbo].[uspInsertIndexMonthly]
+ALTER PROCEDURE [dbo].[uspInsertIndexMonthly]
 (
 @Type varchar(1),
 @RelType INT, -- M 12, Q 4, Y 1 
@@ -5043,8 +5043,8 @@ BEGIN
 	DECLARE @ClaimValueItems as decimal(18,2)
 	DECLARE @ClaimValueservices as decimal(18,2)
 	DECLARE @RelIndex as decimal(18,4)
-
-
+	DECLARE @CeilingInterpretation as varchar(1)
+	SELECT @CeilingInterpretation = ISNULL(CeilingInterpretation,'H') FROM tblProduct WHERE ProdID = @ProductID
 
 	SELECT @DistrPerc = ISNULL(DistrPerc,1) FROM dbo.tblRelDistr WHERE ProdID = @ProductID AND Period = @Period AND DistrType = @RelType AND DistrCareType = @Type AND ValidityTo IS NULL
 			
@@ -5057,7 +5057,11 @@ BEGIN
 										tblClaim.ClaimStatus = 8) AND (ISNULL(MONTH(tblClaim.ProcessStamp) ,-1) BETWEEN @MStart AND @MEnd ) AND
 										(ISNULL(YEAR(tblClaim.ProcessStamp) ,-1) = @Year) AND
 										(tblClaimItems.ProdID = @ProductID) 
-										AND ((@TYPE =  'O' AND (tblHF.HFLevel = 'H')) OR (@TYPE =  'I' AND (tblHF.HFLevel <> 'H'))  OR @TYPE =  'B')
+										AND ((@TYPE =  'O' and @CeilingInterpretation = 'H' AND tblHF.HFLevel <> 'H') 
+										OR (@TYPE =  'O' and @CeilingInterpretation = 'I' AND DATEDIFF(d,tblClaim.DateFrom,tblClaim.DateTo)<1) 
+										OR (@TYPE =  'I' and @CeilingInterpretation = 'H' AND tblHF.HFLevel = 'H')
+										OR (@TYPE =  'I'and @CeilingInterpretation = 'I' AND DATEDIFF(d,tblClaim.DateFrom,tblClaim.DateTo)>=1)  
+										OR @TYPE =  'B')
 
 			
 			SELECT @ClaimValueservices = ISNULL(SUM(tblClaimServices.PriceValuated) ,0)
@@ -5069,7 +5073,11 @@ BEGIN
 										tblClaim.ClaimStatus = 8) AND (ISNULL(MONTH(tblClaim.ProcessStamp) ,-1) BETWEEN @MStart AND @MEnd ) AND 
 										(ISNULL(YEAR(tblClaim.ProcessStamp) ,-1) = @Year) AND
 										(tblClaimServices.ProdID = @ProductID) 
-										AND ((@TYPE =  'O' AND (tblHF.HFLevel = 'H')) OR (@TYPE =  'I' AND (tblHF.HFLevel <> 'H'))  OR @TYPE =  'B')
+										AND ((@TYPE =  'O' and @CeilingInterpretation = 'H' AND tblHF.HFLevel <> 'H') 
+										OR (@TYPE =  'O' and @CeilingInterpretation = 'I' AND DATEDIFF(d,tblClaim.DateFrom,tblClaim.DateTo)<1) 
+										OR (@TYPE =  'I' and @CeilingInterpretation = 'H' AND tblHF.HFLevel = 'H')
+										OR (@TYPE =  'I'and @CeilingInterpretation = 'I' AND DATEDIFF(d,tblClaim.DateFrom,tblClaim.DateTo)>=1)  
+										OR @TYPE =  'B')
 			
 			
 			IF @ClaimValueItems + @ClaimValueservices = 0 

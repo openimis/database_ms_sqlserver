@@ -30,35 +30,35 @@ jobs:
           path: './new'
       - name: install linux packages
         run: |
-          mkdir ./oldMain 
-          wget https://raw.githubusercontent.com/openimis/database_ms_sqlserver/main/Empty%20databases/openIMIS_ONLINE.sql -O oldMain/openIMIS_ONLINE.sql
-          wget https://raw.githubusercontent.com/openimis/database_ms_sqlserver/main/Demo%20database/openIMIS_demo_ONLINE.sql -O oldMain/openIMIS_demo_ONLINE.sql
-          mkdir ./1.30
-          wget https://raw.githubusercontent.com/openimis/database_ms_sqlserver/v1.3.0/Empty databases/openIMIS_ONLINE.sql -O 1.30/openIMIS_ONLINE.sql
-          wget https://raw.githubusercontent.com/openimis/database_ms_sqlserver/v1.3.0/Empty databases/openIMIS_demo_ONLINE.sql -O 1.30/openIMIS_demo_ONLINE.sql          
-          curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
-          curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list | sudo tee /etc/apt/sources.list.d/msprod.list
-          sudo apt-get update
-          sudo ACCEPT_EULA=Y apt-get install -y  mssql-tools build-essential dialog apt-utils unixodbc-dev -y
+            mkdir ./oldMain 
+            wget https://raw.githubusercontent.com/openimis/database_ms_sqlserver/main/Empty%20databases/openIMIS_ONLINE.sql -O oldMain/openIMIS_ONLINE.sql
+            wget https://raw.githubusercontent.com/openimis/database_ms_sqlserver/main/Demo%20database/openIMIS_demo_ONLINE.sql -O oldMain/openIMIS_demo_ONLINE.sql
+            mkdir ./1.30
+            wget https://raw.githubusercontent.com/openimis/database_ms_sqlserver/v1.3.0/Empty databases/openIMIS_ONLINE.sql -O 1.30/openIMIS_ONLINE.sql
+            wget https://raw.githubusercontent.com/openimis/database_ms_sqlserver/v1.3.0/Empty databases/openIMIS_demo_ONLINE.sql -O 1.30/openIMIS_demo_ONLINE.sql          
+            curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+            curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list | sudo tee /etc/apt/sources.list.d/msprod.list
+            sudo apt-get update
+            sudo ACCEPT_EULA=Y apt-get install -y  mssql-tools build-essential dialog apt-utils unixodbc-dev -y
       - name: Initialize DB latest
         run: |
-          /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'DROP DATABASE IF EXISTS imis'
-          /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'CREATE DATABASE imis'
-          /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/Empty databases/openIMIS_ONLINE.sql" | grep . | uniq -c
-          /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/openIMIS_demo_ONLINE.sql" | grep . | uniq -c
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'DROP DATABASE IF EXISTS imis'
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'CREATE DATABASE imis'
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/Empty databases/openIMIS_ONLINE.sql" | grep . | uniq -c
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/openIMIS_demo_ONLINE.sql" | grep . | uniq -c
         env:
           SA_PASSWORD: GitHub999
           ACCEPT_EULA: Y
       - name: DB migration prev main
         run: |
-        /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'DROP DATABASE IF EXISTS imis'
-        /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'CREATE DATABASE imis'
-        /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i oldMain/openIMIS_ONLINE.sql | grep . | uniq -c
-        /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i oldMain/openIMIS_demo_ONLINE.sql | grep . | uniq -c
-        /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/Migration script/openIMIS_demo_ONLINE.sql" | grep . | uniq -c
-        env:
-        SA_PASSWORD: GitHub999
-        ACCEPT_EULA: Y
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'DROP DATABASE IF EXISTS imis'
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'CREATE DATABASE imis'
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i oldMain/openIMIS_ONLINE.sql | grep . | uniq -c
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i oldMain/openIMIS_demo_ONLINE.sql | grep . | uniq -c
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/Migration script/openIMIS_demo_ONLINE.sql" | grep . | uniq -c
+            env:
+            SA_PASSWORD: GitHub999
+            ACCEPT_EULA: Y
       - name: DB migration 1.30
         run: |
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'DROP DATABASE IF EXISTS imis'

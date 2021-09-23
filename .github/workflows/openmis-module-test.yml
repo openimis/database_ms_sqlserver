@@ -50,15 +50,15 @@ jobs:
           SA_PASSWORD: GitHub999
           ACCEPT_EULA: Y
       - name: DB migration prev main
-          run: |
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'DROP DATABASE IF EXISTS imis'
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'CREATE DATABASE imis'
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i oldMain/openIMIS_ONLINE.sql | grep . | uniq -c
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i oldMain/openIMIS_demo_ONLINE.sql | grep . | uniq -c
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/Migration script/openIMIS_demo_ONLINE.sql" | grep . | uniq -c
-          env:
-            SA_PASSWORD: GitHub999
-            ACCEPT_EULA: Y
+        run: |
+        /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'DROP DATABASE IF EXISTS imis'
+        /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'CREATE DATABASE imis'
+        /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i oldMain/openIMIS_ONLINE.sql | grep . | uniq -c
+        /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i oldMain/openIMIS_demo_ONLINE.sql | grep . | uniq -c
+        /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/Migration script/openIMIS_demo_ONLINE.sql" | grep . | uniq -c
+        env:
+        SA_PASSWORD: GitHub999
+        ACCEPT_EULA: Y
       - name: DB migration 1.30
         run: |
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'DROP DATABASE IF EXISTS imis'

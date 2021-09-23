@@ -1,4 +1,4 @@
-﻿
+
 CREATE SCHEMA [dw]
 GO
 CREATE TYPE [dbo].[xClaimRejReasons] AS TABLE(
@@ -27027,6 +27027,8 @@ GO
 
 
 Go
+-- OTC 70 
+--UPDATE tblPremium set ReportingCommissionID = NULL WHERE 1 =1
 
 CREATE PROCEDURE [dbo].[uspSSRSOverviewOfCommissions]
 (

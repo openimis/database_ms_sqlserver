@@ -74,10 +74,11 @@ jobs:
             ACCEPT_EULA: Y
     
       - name: Django tests
-        working-directory: ./openimis/openIMIS
+        working-directory: ./openimis
         run: |
             python -V
             ls -l
+            cd openIMIS
             python manage.py migrate
             python init_test_db.py | grep . | uniq -c
             python manage.py test --keepdb $(jq   -r '(.modules[]|.name)' ../openimis.json)

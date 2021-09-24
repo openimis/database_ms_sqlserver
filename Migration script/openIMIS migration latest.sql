@@ -5021,7 +5021,7 @@ GO
 IF OBJECT_ID('[uspInsertIndexMonthly]', 'P') IS NOT NULL
     DROP PROCEDURE [uspInsertIndexMonthly]
 GO
-ALTER PROCEDURE [dbo].[uspInsertIndexMonthly]
+CREATE PROCEDURE [dbo].[uspInsertIndexMonthly]
 (
 @Type varchar(1),
 @RelType INT, -- M 12, Q 4, Y 1 
@@ -6953,9 +6953,11 @@ BEGIN
 END
 GO 
 
+IF OBJECT_ID('uspAcknowledgeControlNumberRequest', 'P') IS NOT NULL
+    DROP PROCEDURE uspAcknowledgeControlNumberRequest
+GO
 
-
-ALTER PROCEDURE [dbo].[uspAcknowledgeControlNumberRequest]
+CREATE PROCEDURE [dbo].[uspAcknowledgeControlNumberRequest]
 (
 	
 	@XML XML
@@ -7284,7 +7286,7 @@ GO
 IF OBJECT_ID('uspAPIGetCoverage', 'P') IS NOT NULL
     DROP PROCEDURE uspAPIGetCoverage
 GO
-CREATE OR ALTER PROCEDURE [dbo].[uspAPIGetCoverage]
+CREATE PROCEDURE [dbo].[uspAPIGetCoverage]
 (
 	
 	@InsureeNumber NVARCHAR(12),
@@ -8460,7 +8462,11 @@ BEGIN
 END
 GO
 
-ALTER PROCEDURE [dbo].[uspReceiveControlNumber]
+IF OBJECT_ID('uspReceiveControlNumber', 'P') IS NOT NULL
+    DROP PROCEDURE uspReceiveControlNumber
+GO
+
+CREATE PROCEDURE [dbo].[uspReceiveControlNumber]
 (
 	@PaymentID INT,
 	@ControlNumber NVARCHAR(50),

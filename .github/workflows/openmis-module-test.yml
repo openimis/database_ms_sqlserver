@@ -73,7 +73,7 @@ jobs:
             SA_PASSWORD: GitHub999
             ACCEPT_EULA: Y
       - name: pull openimis backend
-            run: |
+        run: |
               rm ./openimis -rf
               git clone --depth 1 --branch develop https://github.com/openimis/openimis-be_py.git ./openimis
       - name: Django tests

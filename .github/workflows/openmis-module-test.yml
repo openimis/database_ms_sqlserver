@@ -49,7 +49,7 @@ jobs:
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'DROP DATABASE IF EXISTS imis'
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'CREATE DATABASE imis'
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i 1.30/openIMIS_ONLINE.sql | grep . | uniq -c
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/Migration script/openIMIS_demo_ONLINE.sql" | grep . | uniq -c
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/Migration script/openIMIS migration latest.sql" | grep . | uniq -c
         env:
             SA_PASSWORD: GitHub999
             ACCEPT_EULA: Y
@@ -58,7 +58,7 @@ jobs:
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'DROP DATABASE IF EXISTS imis'
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'CREATE DATABASE imis'
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/Empty databases/openIMIS_ONLINE.sql" | grep . | uniq -c
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/openIMIS_demo_ONLINE.sql" | grep . | uniq -c
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/Demo database/openIMIS_demo_ONLINE.sql" | grep . | uniq -c
         env:
           SA_PASSWORD: GitHub999
           ACCEPT_EULA: Y
@@ -68,7 +68,7 @@ jobs:
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'CREATE DATABASE imis'
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i oldMain/openIMIS_ONLINE.sql | grep . | uniq -c
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i oldMain/openIMIS_demo_ONLINE.sql | grep . | uniq -c
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/Migration script/openIMIS_demo_ONLINE.sql" | grep . | uniq -c
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/Migration script/openIMIS migration latest.sql" | grep . | uniq -c
             env:
             SA_PASSWORD: GitHub999
             ACCEPT_EULA: Y

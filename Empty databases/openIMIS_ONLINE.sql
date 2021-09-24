@@ -8478,7 +8478,7 @@ BEGIN
 END
 GO
 
-ALTER PROCEDURE [dbo].[uspInsertIndexMonthly]
+CREATE PROCEDURE [dbo].[uspInsertIndexMonthly]
 (
 @Type varchar(1),
 @RelType INT, -- M 12, Q 4, Y 1 
@@ -8764,7 +8764,7 @@ END
 GO
 -- OTC 223
 /****** Object:  StoredProcedure [dbo].[uspBatchProcess]    Script Date: 6/15/2021 3:19:43 PM ******/
-ALTER PROCEDURE [dbo].[uspBatchProcess]
+CREATE PROCEDURE [dbo].[uspBatchProcess]
 	
 	@AuditUser as int = 0,
 	@LocationId as int, 

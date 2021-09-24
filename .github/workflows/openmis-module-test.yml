@@ -76,10 +76,19 @@ jobs:
         run: |
               rm ./openimis -rf
               git clone --depth 1 --branch develop https://github.com/openimis/openimis-be_py.git ./openimis
+      - name: Install openIMIS Python dependencies
+        working-directory: ./openimis
+        run: |
+              python -m pip install --upgrade pip
+              pip install -r requirements.txt
+              python modules-requirements.py openimis.json > modules-requirements.txt
+              cat modules-requirements.txt
+              pip install -r modules-requirements.txt      
       - name: Django tests
         working-directory: ./openimis
         run: |
             python -V
+            
             ls -l
             cd openIMIS
             python manage.py migrate

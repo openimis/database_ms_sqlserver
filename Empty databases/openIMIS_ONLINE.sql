@@ -27180,7 +27180,7 @@ BEGIN
 
 
 END
-GOGO
+GO
 
 CREATE PROCEDURE [dbo].[uspCreateCapitationPaymentReportData]
 (

@@ -8491,7 +8491,6 @@ CREATE PROCEDURE [dbo].[uspInsertIndexMonthly]
 @PrdValue decimal(18,2) =0,
 @AuditUser int = -1
 )
-
 AS
 BEGIN
 	DECLARE @DistrPerc as decimal(18,2)
@@ -8549,7 +8548,7 @@ BEGIN
 				VALUES (@ProductID,@RelType,@Type,@Year,@Period,GETDATE(),@RelIndex,@AuditUser,@LocationId )
 			END
 END
-
+GO
 -- OTC 223
 CREATE PROCEDURE [dbo].[uspRelativeIndexCalculationMonthly]
 (

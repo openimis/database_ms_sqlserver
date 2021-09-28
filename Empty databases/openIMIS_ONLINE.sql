@@ -22603,13 +22603,13 @@ BEGIN
 			--EXECUTE SP_EXECUTESQL @Query,N'@XML XML OUTPUT',@XML OUTPUT
 
 			SELECT
-			@ClaimDate = CONVERT(DATE,Claim.value('(ClaimDate)[1]','NVARCHAR(10)'),103),
+			@ClaimDate = Claim.value('(ClaimDate)[1]','DATE'),
 			@HFCode = Claim.value('(HFCode)[1]','NVARCHAR(8)'),
 			@ClaimAdmin = Claim.value('(ClaimAdmin)[1]','NVARCHAR(8)'),
 			@ClaimCode = Claim.value('(ClaimCode)[1]','NVARCHAR(8)'),
 			@CHFID = Claim.value('(CHFID)[1]','NVARCHAR(12)'),
-			@StartDate = CONVERT(DATE,Claim.value('(StartDate)[1]','NVARCHAR(10)'),103),
-			@EndDate = CONVERT(DATE,Claim.value('(EndDate)[1]','NVARCHAR(10)'),103),
+			@StartDate = Claim.value('(StartDate)[1]','DATE'),
+			@EndDate = Claim.value('(EndDate)[1]','DATE'),
 			@ICDCode = Claim.value('(ICDCode)[1]','NVARCHAR(6)'),
 			@Comment = Claim.value('(Comment)[1]','NVARCHAR(MAX)'),
 			@Total = CASE Claim.value('(Total)[1]','VARCHAR(10)') WHEN '' THEN 0 ELSE CONVERT(DECIMAL(18,2),ISNULL(Claim.value('(Total)[1]','VARCHAR(10)'),0)) END,
@@ -27696,4 +27696,3 @@ BEGIN
 		AND(C.DateProcessed BETWEEN ISNULL(@DateProcessedFrom, CAST('1753-01-01' AS DATE)) AND ISNULL(@DateProcessedTo, GETDATE()) OR C.DateProcessed IS NULL)	
 END
 GO
-

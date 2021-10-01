@@ -7301,15 +7301,19 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE OR ALTER PROCEDURE [dbo].[uspAPIGetCoverage]
+
+IF OBJECT_ID('uspAPIGetCoverage', 'P') IS NOT NULL
+    DROP PROCEDURE uspAPIGetCoverage
+GO
+CREATE PROCEDURE [dbo].[uspAPIGetCoverage]
 (
 	@InsureeNumber NVARCHAR(12),
-	@MinDateService DATE=NULL  OUTPUT,
-	@MinDateItem DATE=NULL OUTPUT,
-	@ServiceLeft INT=0 OUTPUT,
-	@ItemLeft INT =0 OUTPUT,
-	@isItemOK BIT =0 OUTPUT,
-	@isServiceOK BIT=0 OUTPUT
+	@MinDateService DATE = NULL  OUTPUT,
+	@MinDateItem DATE = NULL OUTPUT,
+	@ServiceLeft INT = 0 OUTPUT,
+	@ItemLeft INT = 0 OUTPUT,
+	@isItemOK BIT = 0 OUTPUT,
+	@isServiceOK BIT = 0 OUTPUT
 )
 AS
 BEGIN
@@ -7317,7 +7321,6 @@ BEGIN
 	RESPONSE CODE
 		1-Wrong format or missing insurance number of head
 		2-Insurance number of head not found
-		
 	*/
 
 	/**********************************************************************************************************************

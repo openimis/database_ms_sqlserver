@@ -630,7 +630,7 @@ IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'TotalAdmissionsLeft
 GO
 
 IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'TotalAmount')
-		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalAmount', N'R', N'AppPolicies')
+		INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalAmount', N'N', N'AppPolicies')
 GO
 
 IF NOT EXISTS (SELECT 1 FROM tblControls where FieldName = N'TotalAntenatalLeft')

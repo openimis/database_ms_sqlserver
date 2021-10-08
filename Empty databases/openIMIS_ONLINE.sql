@@ -4948,7 +4948,7 @@ INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Reg
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Relationship', N'O', N'Insuree')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'SurgeryAmountLeft', N'O', N'Search Insurance Number/Enquiry')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalAdmissionsLeft', N'O', N'Search Insurance Number/Enquiry')
-INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalAmount', N'R', N'AppPolicies')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalAmount', N'N', N'AppPolicies')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalAntenatalLeft', N'O', N'Search Insurance Number/Enquiry')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalConsultationsLeft', N'O', N'Search Insurance Number/Enquiry')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalDelivieriesLeft', N'O', N'Search Insurance Number/Enquiry')

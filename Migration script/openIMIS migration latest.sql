@@ -8451,9 +8451,9 @@ BEGIN
 
 		IF @ByPassSubmit = 0
 		BEGIN
-			DECLARE @ClaimRejectionReason INT
-			EXEC @ClaimRejectionReason = uspSubmitSingleClaim -1, @ClaimID,0
-			IF @ClaimRejectionReason <> 0
+			DECLARE @@ClaimRejectionStatus INT
+			EXEC @ClaimRejectionReason = uspSubmitSingleClaim -1, @ClaimID, 0, @RtnStatus=@ClaimRejectionStatus OUTPUT
+			IF @ClaimRejectionStatus = 2
 				SELECT @ClaimRejected = 1
 		END
 

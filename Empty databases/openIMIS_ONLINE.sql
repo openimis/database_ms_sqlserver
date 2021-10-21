@@ -2616,7 +2616,8 @@ SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[tblIMISDefaultsPhone](
 	[RuleName] [nvarchar](100) NULL,
-	[RuleValue] [bit] NULL
+	[RuleValue] [bit] NULL,
+	[Usage] [nvarchar](200) NULL
 ) ON [PRIMARY]
 GO
 
@@ -4982,9 +4983,10 @@ SET IDENTITY_INSERT [dbo].[tblIMISDefaults] ON
 
 INSERT [dbo].[tblIMISDefaults] ([DefaultID], [PolicyRenewalInterval], [FTPHost], [FTPUser], [FTPPassword], [FTPPort], [FTPEnrollmentFolder], [AssociatedPhotoFolder], [FTPClaimFolder], [FTPFeedbackFolder], [FTPPolicyRenewalFolder], [FTPPhoneExtractFolder], [FTPOffLineExtractFolder], [AppVersionBackEnd], [AppVersionEnquire], [AppVersionEnroll], [AppVersionRenewal], [AppVersionFeedback], [AppVersionClaim], [OffLineHF], [WinRarFolder], [DatabaseBackupFolder], [OfflineCHF], [SMSLink], [SMSIP], [SMSUserName], [SMSPassword], [SMSSource], [SMSDlr], [SMSType], [AppVersionFeedbackRenewal], [AppVersionImis]) VALUES (1, 14, N'', N'', N'', 0, N'/Images/Submitted', N'/Images/Updated', N'', N'', N'', N'', N'', CAST(1.2 AS Decimal(3, 1)), CAST(0.0 AS Decimal(3, 1)), CAST(0.0 AS Decimal(3, 1)), CAST(0.0 AS Decimal(3, 1)), CAST(0.0 AS Decimal(3, 1)), CAST(0.0 AS Decimal(3, 1)), 0, N'C:\Program Files (x86)\WinRAR\', N'', 0, N'', N'', N'', N'', N'', 1, 1, CAST(1.2 AS Decimal(3, 1)), CAST(0.0 AS Decimal(3, 1)))
 SET IDENTITY_INSERT [dbo].[tblIMISDefaults] OFF
-INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue]) VALUES (N'AllowInsureeWithoutPhoto', 0)
-INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue]) VALUES (N'AllowFamilyWithoutPolicy', 0)
-INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue]) VALUES (N'AllowPolicyWithoutPremium', 0)
+INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue], [Usage]) VALUES (N'AllowInsureeWithoutPhoto', 0, 'Allow synchronization of Insurees without a Photo.')
+INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue], [Usage]) VALUES (N'AllowFamilyWithoutPolicy', 0, 'Allow synchronization of Families without a Policy.')
+INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue], [Usage]) VALUES (N'AllowPolicyWithoutPremium', 0, 'Allow synchronization of Policies without a Contribution. If ShowPaymentOption is false, this rule value is read as true.')
+INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue], [Usage]) VALUES (N'ShowPaymentOption', 1, 'Show or hide the Payment option to allow or not to add a Contribution for a Policy. ')
 INSERT [dbo].[tblLanguages] ([LanguageCode], [LanguageName], [SortOrder]) VALUES (N'en', N'English', 1) -- By default english is set as primary language, required by SMS
 INSERT [dbo].[tblLanguages] ([LanguageCode], [LanguageName], [SortOrder]) VALUES (N'fr', N'Français', 2)
 INSERT [dbo].[tblLegalForms] ([LegalFormCode], [LegalForms], [SortOrder], [AltLanguage]) VALUES (N'C', N'Charity', NULL, N'Charité')

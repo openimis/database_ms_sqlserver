@@ -8612,3 +8612,26 @@ GO
 IF COL_LENGTH(N'tblItems', N'Quantity')  IS NULL
 ALTER TABLE tblItems ADD Quantity DECIMAL(18, 2) NULL
 GO
+
+IF NOT EXISTS(SELECT RuleName from tblIMISDefaultsPhone WHERE RuleName='ShowPaymentOption')
+	INSERT INTO tblIMISDefaultsPhone(RuleName, RuleValue) VALUES('ShowPaymentOption', 1)
+GO
+
+IF COL_LENGTH(N'dbo.tblIMISDefaultsPhone', N'Usage') IS NULL
+	ALTER TABLE [dbo].[tblIMISDefaultsPhone] ADD [Usage] [nvarchar](200) NULL
+GO
+
+IF EXISTS (SELECT [RuleName] FROM [dbo].[tblIMISDefaultsPhone]
+	WHERE [RuleName] in ('AllowInsureeWithoutPhoto', 'AllowFamilyWithoutPolicy', 'AllowPolicyWithoutPremium', 'ShowPaymentOption')
+	and [Usage] IS NULL)
+BEGIN
+	UPDATE	[dbo].[tblIMISDefaultsPhone]
+	SET [Usage] = CASE
+		WHEN [RuleName] = 'AllowInsureeWithoutPhoto' THEN 'Allow synchronization of Insurees without a Photo.'
+		WHEN [RuleName] = 'AllowFamilyWithoutPolicy' THEN 'Allow synchronization of Families without a Policy.'
+		WHEN [RuleName] = 'AllowPolicyWithoutPremium' THEN 'Allow synchronization of Policies without a Contribution. If ShowPaymentOption is false, this rule value is read as true.'
+		WHEN [RuleName] = 'ShowPaymentOption' THEN 'Show or hide the Payment option to allow or not to add a Contribution for a Policy.'
+		END
+	WHERE [RuleName] in ('AllowInsureeWithoutPhoto', 'AllowFamilyWithoutPolicy', 'AllowPolicyWithoutPremium', 'ShowPaymentOption')
+END
+GO

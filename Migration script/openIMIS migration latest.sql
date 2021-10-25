@@ -8636,7 +8636,11 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE [dbo].[uspPolicyRenewalInserts](
+IF NOT OBJECT_ID('uspPolicyRenewalInserts') IS NULL
+	DROP PROCEDURE uspPolicyRenewalInserts
+GO
+
+CREATE PROCEDURE [dbo].[uspPolicyRenewalInserts](
 	--@RenewalWarning --> 1 = no valid product for renewal  2= No enrollment officer found (no photo)  4= INVALID Enrollment officer
 	@RemindingInterval INT = NULL,
 	@RegionId INT = NULL,

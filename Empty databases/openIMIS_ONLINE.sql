@@ -15207,16 +15207,21 @@ BEGIN
 		SELECT PL.PolicyID, PL.FamilyID, DATEADD(DAY, 1, PL.ExpiryDate) AS RenewalDate, F.InsureeID, Prod.ProdID, Prod.ProductCode, Prod.ProductName,
 		Prod.DateFrom, Prod.DateTo, D.DistrictName, V.VillageName, W.WardName, I.CHFID, I.LastName, I.OtherNames, I.DOB, Prod.ConversionProdID, 
 		O.OfficerID, O.Code, O.LastName OffLastName, O.OtherNames OffOtherNames, O.Phone, O.OfficerIDSubst, O.WorksTo
-		FROM tblPolicy PL INNER JOIN tblFamilies F ON PL.FamilyId = F.FamilyID
+		FROM tblPolicy PL 
+		INNER JOIN tblFamilies F ON PL.FamilyId = F.FamilyID
 		INNER JOIN tblInsuree I ON F.InsureeId = I.InsureeID
 		INNER JOIN tblProduct Prod ON PL.ProdId = Prod.ProdID
 		INNER JOIN tblVillages V ON V.VillageId = F.LocationId
 		INNER JOIN tblWards W ON W.WardId = V.WardId
 		INNER JOIN tblDistricts D ON D.DistrictId = W.DistrictId
 		INNER JOIN tblOfficer O ON PL.OfficerId = O.OfficerID
+		LEFT OUTER JOIN tblPolicyRenewals PR ON PL.PolicyID = PR.PolicyID
+											AND I.InsureeID = PR.InsureeID
 		WHERE PL.ValidityTo IS NULL
+		AND PR.ValidityTo IS NULL
+		AND PR.PolicyID IS NULL
 		AND PL.PolicyStatus IN  (2, 8)
-		AND (DATEDIFF(DAY, GETDATE(), PL.ExpiryDate) = @RemindingInterval OR ISNULL(@RemindingInterval, 0) = 0)
+		AND (DATEDIFF(DAY, GETDATE(), PL.ExpiryDate) <= @RemindingInterval OR ISNULL(@RemindingInterval, 0) = 0)
 		AND (V.VillageId = @VillageId OR @VillageId IS NULL)
 		AND (W.WardId = @WardId OR @WardId IS NULL)
 		AND (D.DistrictId = @DistrictId OR @DistrictId IS NULL)
@@ -15303,7 +15308,8 @@ BEGIN
 
 		--Code added by Hiren to check if the policy has another following policy
 		IF EXISTS(SELECT 1 FROM tblPolicy 
-							WHERE FamilyId = @FamilyId 
+							WHERE ValidityTo IS NULL 
+							AND FamilyId = @FamilyId 
 							AND (ProdId = @ProductID OR ProdId = @ConvProdID) 
 							AND StartDate >= @RenewalDate)
 

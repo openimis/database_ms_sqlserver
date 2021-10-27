@@ -13703,8 +13703,12 @@ BEGIN
 		
 				DECLARE @PolicyID INT = (SELECT SCOPE_IDENTITY())
 		
-				INSERT INTO tblPremium(PolicyID, Amount, Receipt, PayDate, PayType, AuditUserID, PayerID)
-								Values(@PolicyID, @Amount, @Receipt, @Date, 'C',0, @PayerId)
+				-- No need to create contribution if the payment is not made yet
+					IF @Amount > 0
+					BEGIN
+						INSERT INTO tblPremium(PolicyID, Amount, Receipt, PayDate, PayType, AuditUserID, PayerID)
+										Values(@PolicyID, @Amount, @Receipt, @Date, 'C',0, @PayerId)
+					END
 				
 
 				

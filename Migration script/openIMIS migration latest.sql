@@ -7317,10 +7317,12 @@ CREATE PROCEDURE [dbo].[uspAPIGetCoverage]
 )
 AS
 BEGIN
+
 	/*
 	RESPONSE CODE
 		1-Wrong format or missing insurance number of head
 		2-Insurance number of head not found
+
 	*/
 
 	/**********************************************************************************************************************
@@ -8886,3 +8888,4 @@ NextPolicy:
 
 END
 GO
+

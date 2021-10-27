@@ -46,10 +46,11 @@ jobs:
             python -m pip install --upgrade pip
       - name: DB migration 1.42
         run: |
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'DROP DATABASE IF EXISTS imis.1.4.2'
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'CREATE DATABASE imis.1.4.2'
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis.1.4.2 -i 1.42/openIMIS_ONLINE.sql | grep . | uniq -c
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis.1.4.2 -i "new/Migration script/openIMIS migration latest.sql" | grep . | uniq -c
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'DROP DATABASE IF EXISTS imis_1_4_2'
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'CREATE DATABASE imis_1_4_2'
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_1_4_2 -i 1.42/openIMIS_ONLINE.sql | grep . | uniq -c
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_1_4_2 -i "new/Migration script/openIMIS migration latest.sql" | grep . | uniq -c
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_1_4_2 -i "new/Demo database/openIMIS_demo_ONLINE.sql" | grep . | uniq -c           
         env:
             SA_PASSWORD: GitHub999
             ACCEPT_EULA: Y
@@ -59,6 +60,7 @@ jobs:
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'CREATE DATABASE imis'
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/Empty databases/openIMIS_ONLINE.sql" | grep . | uniq -c
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/Demo database/openIMIS_demo_ONLINE.sql" | grep . | uniq -c
+
         env:
           SA_PASSWORD: GitHub999
           ACCEPT_EULA: Y
@@ -69,6 +71,8 @@ jobs:
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_main -i oldMain/openIMIS_ONLINE.sql | grep . | uniq -c
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_main -i oldMain/openIMIS_demo_ONLINE.sql | grep . | uniq -c
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_main -i "new/Migration script/openIMIS migration latest.sql" | grep . | uniq -c
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_main -i "new/Demo database/openIMIS_demo_ONLINE.sql" | grep . | uniq -c
+
         env:
             SA_PASSWORD: GitHub999
             ACCEPT_EULA: Y
@@ -120,7 +124,7 @@ jobs:
             #DJANGO_SETTINGS_MODULE: hat.settings
             DB_HOST: localhost
             DB_PORT: 1433
-            DB_NAME: imis.1.4.2
+            DB_NAME: imis_1_4_2
             DB_USER: sa
             DB_PASSWORD: GitHub999
             #DEV_SERVER: true

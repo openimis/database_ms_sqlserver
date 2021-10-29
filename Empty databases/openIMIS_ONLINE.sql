@@ -26727,10 +26727,8 @@ BEGIN TRY
 
 	CREATE UNIQUE CLUSTERED INDEX CI_tblLocations ON tblLocations (
 		[ValidityTo] ASC,
-		[LocationId] ASC,
-		[LocationCode] ASC,
-		[LocationName] ASC,
-		[LocationType] ASC
+		[LocationType] ASC,
+		[LocationId] ASC		
 		)
 	WITH
 		( PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 

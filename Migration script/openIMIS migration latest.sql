@@ -9136,7 +9136,10 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE OR ALTER PROCEDURE [dbo].[uspRestAPIUpdateClaimFromPhone]
+IF OBJECT_ID('[uspRestAPIUpdateClaimFromPhone]', 'P') IS NOT NULL
+    DROP PROCEDURE [uspRestAPIUpdateClaimFromPhone]
+GO
+CREATE PROCEDURE [dbo].[uspRestAPIUpdateClaimFromPhone]
 (
 	@XML XML,
 	@ByPassSubmit BIT = 0,
@@ -9413,7 +9416,10 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-CREATE OR ALTER PROCEDURE [dbo].[uspRestAPIConsumeEnrollments](
+IF OBJECT_ID('[uspRestAPIConsumeEnrollments]', 'P') IS NOT NULL
+    DROP PROCEDURE [uspRestAPIConsumeEnrollments]
+GO
+CREATE PROCEDURE [dbo].[uspRestAPIConsumeEnrollments](
 	@XML XML,
 	@FamilySent INT = 0 OUTPUT ,
 	@FamilyImported INT = 0 OUTPUT,
@@ -10471,7 +10477,10 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE OR ALTER PROCEDURE [dbo].[uspRestAPISubmitSingleClaim]
+IF OBJECT_ID('[uspRestAPISubmitSingleClaim]', 'P') IS NOT NULL
+    DROP PROCEDURE [uspRestAPISubmitSingleClaim]
+GO
+CREATE PROCEDURE [dbo].[uspRestAPISubmitSingleClaim]
 	
 	@AuditUser as int = 0,
 	@ClaimID as int,
@@ -11412,7 +11421,10 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE OR ALTER PROCEDURE [dbo].[uspUpdateClaimFromPhone]
+IF OBJECT_ID('[uspUpdateClaimFromPhone]', 'P') IS NOT NULL
+    DROP PROCEDURE [uspUpdateClaimFromPhone]
+GO
+CREATE PROCEDURE [dbo].[uspUpdateClaimFromPhone]
 (
 	--@FileName NVARCHAR(255),
 	@XML XML,
@@ -11686,7 +11698,10 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-CREATE OR ALTER PROCEDURE [dbo].[uspConsumeEnrollments](
+IF OBJECT_ID('[uspConsumeEnrollments]', 'P') IS NOT NULL
+    DROP PROCEDURE [uspConsumeEnrollments]
+GO
+CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 	@XML XML,
 	@FamilySent INT = 0 OUTPUT ,
 	@FamilyImported INT = 0 OUTPUT,
@@ -12659,7 +12674,10 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE OR ALTER PROCEDURE [dbo].[uspSubmitSingleClaim]
+IF OBJECT_ID('[uspSubmitSingleClaim]', 'P') IS NOT NULL
+    DROP PROCEDURE [uspSubmitSingleClaim]
+GO
+CREATE PROCEDURE [dbo].[uspSubmitSingleClaim]
 	
 	@AuditUser as int = 0,
 	@ClaimID as int,

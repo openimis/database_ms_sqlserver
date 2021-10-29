@@ -9541,7 +9541,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-CREATE OR ALTER PROCEDURE [dbo].[uspConsumeEnrollments](
+CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 	@XML XML,
 	@FamilySent INT = 0 OUTPUT ,
 	@FamilyImported INT = 0 OUTPUT,
@@ -22443,7 +22443,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE OR ALTER PROCEDURE [dbo].[uspUpdateClaimFromPhone]
+
+CREATE PROCEDURE [dbo].[uspUpdateClaimFromPhone]
 (
 	--@FileName NVARCHAR(255),
 	@XML XML,
@@ -27633,7 +27634,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE OR ALTER PROCEDURE [dbo].[uspRestAPIUpdateClaimFromPhone]
+CREATE PROCEDURE [dbo].[uspRestAPIUpdateClaimFromPhone]
 (
 	@XML XML,
 	@ByPassSubmit BIT = 0,
@@ -27910,7 +27911,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-CREATE OR ALTER PROCEDURE [dbo].[uspRestAPIConsumeEnrollments](
+CREATE PROCEDURE [dbo].[uspRestAPIConsumeEnrollments](
 	@XML XML,
 	@FamilySent INT = 0 OUTPUT ,
 	@FamilyImported INT = 0 OUTPUT,
@@ -28968,7 +28969,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE OR ALTER PROCEDURE [dbo].[uspRestAPISubmitSingleClaim]
+CREATE PROCEDURE [dbo].[uspRestAPISubmitSingleClaim]
 	
 	@AuditUser as int = 0,
 	@ClaimID as int,

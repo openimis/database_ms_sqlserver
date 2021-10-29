@@ -29900,3 +29900,65 @@ END
 
 GO
 
+CREATE TABLE [dbo].[tblCapitationPayment](
+	[ValidityFrom] [datetime2](7) NOT NULL,
+	[ValidityTo] [datetime2](7) NULL,
+	[LegacyID] [int] NULL,
+	[CapitationPaymentID] [int] IDENTITY(1,1) NOT NULL,
+	[CapitationPaymentUUID] [nvarchar](36) NOT NULL,
+	[year] [int] NOT NULL,
+	[month] [int] NOT NULL,
+	[RegionCode] [nvarchar](8) NULL,
+	[RegionName] [nvarchar](50) NULL,
+	[DistrictCode] [nvarchar](8) NULL,
+	[DistrictName] [nvarchar](50) NULL,
+	[HFCode] [nvarchar](8) NOT NULL,
+	[HFName] [nvarchar](100) NOT NULL,
+	[AccCode] [nvarchar](25) NULL,
+	[HFLevel] [nvarchar](100) NULL,
+	[HFSublevel] [nvarchar](100) NULL,
+	[TotalPopulation] [numeric](18, 2) NULL,
+	[TotalFamilies] [numeric](18, 2) NULL,
+	[TotalInsuredInsuree] [numeric](18, 2) NULL,
+	[TotalInsuredFamilies] [numeric](18, 2) NULL,
+	[TotalClaims] [numeric](18, 2) NULL,
+	[AlcContriPopulation] [numeric](18, 2) NULL,
+	[AlcContriNumFamilies] [numeric](18, 2) NULL,
+	[AlcContriInsPopulation] [numeric](18, 2) NULL,
+	[AlcContriInsFamilies] [numeric](18, 2) NULL,
+	[AlcContriVisits] [numeric](18, 2) NULL,
+	[AlcContriAdjustedAmount] [numeric](18, 2) NULL,
+	[UPPopulation] [numeric](18, 2) NULL,
+	[UPNumFamilies] [numeric](18, 2) NULL,
+	[UPInsPopulation] [numeric](18, 2) NULL,
+	[UPInsFamilies] [numeric](18, 2) NULL,
+	[UPVisits] [numeric](18, 2) NULL,
+	[UPAdjustedAmount] [numeric](18, 2) NULL,
+	[PaymentCathment] [numeric](18, 2) NULL,
+	[TotalAdjusted] [numeric](18, 2) NULL,
+	[HfID] [int] NOT NULL,
+	[ProductID] [int] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[CapitationPaymentID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY],
+UNIQUE NONCLUSTERED 
+(
+	[CapitationPaymentUUID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+ALTER TABLE [dbo].[tblCapitationPayment]  WITH CHECK ADD  CONSTRAINT [tblCapitationPayment_HfID_caa4854f_fk_tblHF_HfID] FOREIGN KEY([HfID])
+REFERENCES [dbo].[tblHF] ([HfID])
+GO
+
+ALTER TABLE [dbo].[tblCapitationPayment] CHECK CONSTRAINT [tblCapitationPayment_HfID_caa4854f_fk_tblHF_HfID]
+GO
+
+ALTER TABLE [dbo].[tblCapitationPayment]  WITH CHECK ADD  CONSTRAINT [tblCapitationPayment_ProductID_748cacf7_fk_tblProduct_ProdID] FOREIGN KEY([ProductID])
+REFERENCES [dbo].[tblProduct] ([ProdID])
+GO
+
+ALTER TABLE [dbo].[tblCapitationPayment] CHECK CONSTRAINT [tblCapitationPayment_ProductID_748cacf7_fk_tblProduct_ProdID]
+GO

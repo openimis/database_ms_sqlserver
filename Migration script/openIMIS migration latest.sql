@@ -2545,6 +2545,9 @@ CREATE PROCEDURE [dbo].[uspSSRSPremiumCollection]
 END
 GO
 
+ALTER TABLE tblInsuree ALTER COLUMN [FamilyID] [int] NULL
+GO
+
 IF OBJECT_ID('uspSSRSProductSales', 'P') IS NOT NULL
     DROP PROCEDURE uspSSRSProductSales
 GO

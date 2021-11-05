@@ -8750,31 +8750,29 @@ GO
 CREATE PROCEDURE [dbo].[uspBatchProcess]
 	
 	@AuditUser as int = 0,
-	@LocationId as int, 
+	@LocationId as int,
 	@Period as int,
 	@Year as int,
-	@RtnStatus as int = 0 OUTPUT 
+	@RtnStatus as int = 0 OUTPUT
 	
 	--@RtnStatus 0=OK --> 1 General fault  --> 2 = Already run before 
 AS
 BEGIN
 	DECLARE @tblClaimIDs TABLE(ClaimID INT)
-
+	DECLARE @Months TABLE(month INT)
 	IF @LocationId=-1
 	BEGIN
 	SET @LocationId=NULL
 	END
 
 	DECLARE @oReturnValue as INT
-	SET @oReturnValue = 0 	
+	SET @oReturnValue = 0
 	
-	DECLARE @InTopIsolation as bit 
+	DECLARE @InTopIsolation as bit
 	
-	SET @InTopIsolation = -1 
+	SET @InTopIsolation = -1
 	
-	BEGIN TRY 
-	
-	
+	BEGIN TRY
 	
 	IF @@TRANCOUNT = 0 	
 		SET @InTopIsolation =0
@@ -8783,7 +8781,7 @@ BEGIN
 	IF @InTopIsolation = 0
 	BEGIN
 		--SELECT 'SET ISOLATION TNX ON'
-		SET TRANSACTION  ISOLATION LEVEL SERIALIZABLE
+		-- SET TRANSACTION  ISOLATION LEVEL SERIALIZABLE
 		BEGIN TRANSACTION PROCESSCLAIMS
 	END
 
@@ -8813,32 +8811,71 @@ BEGIN
 	END
 	
 	
+	--NOW insert a new batch run record and keep latest ID in memory
+	INSERT INTO tblBatchRun
+           ([LocationId],[RunYear],[RunMonth],[RunDate],[AuditUserID])
+    VALUES (@LocationId ,@Year, @Period , GETDATE() ,@AuditUser )
+    
+    DECLARE @RunID as int
+    
+    SELECT @RunID = SCOPE_IDENTITY ()
+
 	EXEC @oReturnValue = [uspRelativeIndexCalculationMonthly] 12, @Period, @Year , @LocationId, 0, @AuditUser, @RtnStatus
 	
 	IF @Period = 3 
+	BEGIN
 		EXEC @oReturnValue = [uspRelativeIndexCalculationMonthly] 4, 1, @Year , @LocationId, 0, @AuditUser, @RtnStatus
-	IF @Period = 6 
+		INSERT INTO @Months(month) VALUES (1),(2),(3)
+	END
+	ELSE IF @Period = 6 
+	BEGIN
 		EXEC @oReturnValue = [uspRelativeIndexCalculationMonthly] 4, 2, @Year , @LocationId, 0, @AuditUser, @RtnStatus
-	IF @Period = 9 
+		INSERT INTO @Months(month) VALUES (4),(5),(6)
+	END
+	ELSE IF @Period = 9 
+	BEGIN
 		EXEC @oReturnValue = [uspRelativeIndexCalculationMonthly] 4, 3, @Year , @LocationId, 0, @AuditUser, @RtnStatus
-	IF @Period = 12
-	BEGIN 
+		INSERT INTO @Months(month) VALUES (7),(8),(9)
+	END
+	ELSE IF @Period = 12
+	BEGIN
+		INSERT INTO @Months(month) VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12)
 		EXEC @oReturnValue = [uspRelativeIndexCalculationMonthly] 4, 4, @Year , @LocationId, 0, @AuditUser, @RtnStatus
 		EXEC @oReturnValue = [uspRelativeIndexCalculationMonthly] 1, 1, @Year , @LocationId, 0, @AuditUser, @RtnStatus
 	END
-	
-	DECLARE PRODUCTLOOPITEMS CURSOR LOCAL FORWARD_ONLY FOR 
-					SELECT    tblHF.HFLevel, tblProduct.ProdID, tblProduct.PeriodRelPrices, tblProduct.PeriodRelPricesOP, tblProduct.PeriodRelPricesIP,ISNULL(MONTH(tblClaim.ProcessStamp) ,-1) 
-										  AS Period, ISNULL(YEAR(tblClaim.ProcessStamp ), -1) AS [Year]
-					FROM         tblClaim INNER JOIN
-										  tblClaimItems ON tblClaim.ClaimID = tblClaimItems.ClaimID INNER JOIN
-										  tblHF ON tblClaim.HFID = tblHF.HfID INNER JOIN
-										  tblProduct ON tblClaimItems.ProdID = tblProduct.ProdID
-					WHERE     (tblClaim.ClaimStatus = 8) AND (tblClaim.ValidityTo IS NULL) AND (tblClaimItems.ValidityTo IS NULL) AND (tblClaimItems.ClaimItemStatus = 1) AND 
-										  (tblClaimItems.PriceOrigin = 'R') and ISNULL(tblProduct.LocationId,-1) = ISNULL(@LocationId,-1) 
-					GROUP BY tblHF.HFLevel, tblProduct.ProdID ,tblProduct.PeriodRelPrices, tblProduct.PeriodRelPricesOP, tblProduct.PeriodRelPricesIP, ISNULL(MONTH(tblClaim.ProcessStamp) ,-1)
-										  , ISNULL(YEAR(tblClaim.ProcessStamp ), -1) 
+	ELSE
+		INSERT INTO @Months(month) VALUES (@Period)
 
+			-- get all claim Id for 
+		INSERT INTO @tblClaimIDs (claimID)
+		SELECT claimID FROM tblClaim 
+		INNER JOIN tblHF HF ON tblClaim.HFID = HF.HFID
+		INNER JOIN tblLocations District on HF.LocationId = District.LocationId
+		INNER JOIN @Months on month = ISNULL(MONTH(tblClaim.ProcessStamp) , -1) 
+		WHERE     (tblClaim.ClaimStatus = 8) AND (tblClaim.ValidityTo IS NULL) AND HFLevel = @HFLevel 
+		--  limit with date
+		AND ISNULL(YEAR(tblClaim.ProcessStamp) , -1) = @Year
+		
+		-- limit with location
+		AND (@LocationId = -1 or District.LocationId = @LocationId or  District.ParentLocationId = @LocationId )
+
+	DECLARE PRODUCTLOOPITEMS CURSOR LOCAL FORWARD_ONLY FOR 
+					
+					SELECT    tblHF.HFLevel, tblProduct.ProdID, MAX(tblProduct.PeriodRelPrices) PeriodRelPrices , MAX(tblProduct.PeriodRelPricesOP) PeriodRelPricesOP, MAX(tblProduct.PeriodRelPricesIP) PeriodRelPricesIP,ISNULL(MONTH(tblClaim.ProcessStamp) ,-1) 
+										  AS Period, ISNULL(YEAR(tblClaim.ProcessStamp ), -1) AS [Year]
+					FROM         tblClaim INNER JOIN (
+						SELECT ClaimID,ProdID FROM tblClaimItems WHERE  (tblClaimItems.ValidityTo IS NULL) AND (tblClaimItems.ClaimItemStatus = 1) AND (tblClaimItems.PriceOrigin = 'R')
+						UNION
+						SELECT ClaimID,ProdID FROM tblclaimServices WHERE  (tblclaimServices.ValidityTo IS NULL) AND (tblclaimServices.ClaimServiceStatus = 1) AND (tblclaimServices.PriceOrigin = 'R')
+						) as CDetails on tblClaim.ClaimID = CDetails.ClaimID		  
+						INNER JOIN tblHF ON tblClaim.HFID = tblHF.HfID 
+						INNER JOIN @tblClaimIDs Listclaims on Listclaims.ClaimID = tblClaim.ClaimID
+						INNER JOIN tblProduct ON CDetails.ProdID = tblProduct.ProdID
+					WHERE     (tblClaim.ClaimStatus = 8) AND (tblClaim.ValidityTo IS NULL)  and ISNULL(tblProduct.LocationId,-1) = ISNULL(@LocationId,-1) 
+
+					GROUP BY tblHF.HFLevel, tblProduct.ProdID , ISNULL(MONTH(tblClaim.ProcessStamp) ,-1)
+										  , ISNULL(YEAR(tblClaim.ProcessStamp ), -1) 
+					ORDER BY ISNULL(YEAR(tblClaim.ProcessStamp ), -1)
 	--DECLARE @Test as decimal(18,2)
 	OPEN PRODUCTLOOPITEMS
 	FETCH NEXT FROM PRODUCTLOOPITEMS INTO @HFLevel,@ProdID,@RP_G,@RP_OP,@RP_IP,@RP_Period,@RP_Year
@@ -8909,7 +8946,6 @@ BEGIN
 				--SET @Index = 1   --> simply never pay more than claimed although index is higher than 1
 			
 			UPDATE tblClaimItems SET RemuneratedAmount = @Index * PriceValuated 
-			OUTPUT Deleted.ClaimID into @tblClaimIDs
 			FROM         tblClaim INNER JOIN
 										  tblClaimItems ON tblClaim.ClaimID = tblClaimItems.ClaimID INNER JOIN
 										  tblHF ON tblClaim.HFID = tblHF.HfID INNER JOIN
@@ -8921,99 +8957,7 @@ BEGIN
 										  AND ISNULL(YEAR(tblClaim.ProcessStamp) , -1) = @RP_Year;
 
 
-		
-
-		END 
-		
-		
-NextProdItems:
-		FETCH NEXT FROM PRODUCTLOOPITEMS INTO @HFLevel,@ProdID,@RP_G,@RP_OP,@RP_IP,@RP_Period,@RP_Year
-	END
-	CLOSE PRODUCTLOOPITEMS
-	DEALLOCATE PRODUCTLOOPITEMS
-	
-	--NOW RUN SERVICES 
-
-	DECLARE PRODUCTLOOPSERVICES CURSOR LOCAL FORWARD_ONLY FOR 
-					SELECT    tblHF.HFLevel, tblProduct.ProdID, tblProduct.PeriodRelPrices, tblProduct.PeriodRelPricesOP, tblProduct.PeriodRelPricesIP, ISNULL(MONTH(tblClaim.ProcessStamp) , -1) 
-										  AS Period, ISNULL(YEAR(tblClaim.ProcessStamp), -1) AS [Year]
-					FROM         tblClaim INNER JOIN
-										  tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID INNER JOIN
-										  tblHF ON tblClaim.HFID = tblHF.HfID INNER JOIN
-										  tblProduct ON tblClaimServices.ProdID = tblProduct.ProdID
-					WHERE     (tblClaim.ClaimStatus = 8) AND (tblClaim.ValidityTo IS NULL) AND (tblClaimServices.ValidityTo IS NULL) AND (tblClaimServices.ClaimServiceStatus = 1) AND 
-										  (tblClaimServices.PriceOrigin = 'R') and ISNULL(tblProduct.LocationId,-1) = ISNULL(@LocationId ,-1)
-					GROUP BY tblHF.HFLevel, tblProduct.ProdID ,tblProduct.PeriodRelPrices, tblProduct.PeriodRelPricesOP, tblProduct.PeriodRelPricesIP, ISNULL(MONTH(tblClaim.ProcessStamp) , -1) 
-										  , ISNULL(YEAR(tblClaim.ProcessStamp), -1)
-
-	OPEN PRODUCTLOOPSERVICES
-	FETCH NEXT FROM PRODUCTLOOPSERVICES INTO @HFLevel,@ProdID,@RP_G,@RP_OP,@RP_IP,@RP_Period,@RP_Year
-	WHILE @@FETCH_STATUS = 0 
-	BEGIN
-		--IF @ProdID = 108 
-		--BEGIN
-		--	SET @Test = 0
-		--END
-		SET @Index = -1
-		--Determine the actual index for this combination 
-		SET @TargetMonth = @RP_Period 
-		SET @TargetYear = @RP_Year
-
-		IF @RP_Period = 1 or @RP_Period = 2 OR @RP_Period = 3 
-			SET @TargetQuarter = 1
-		IF @RP_Period = 4 or @RP_Period = 5 OR @RP_Period = 6 
-			SET @TargetQuarter = 2
-		IF @RP_Period = 7 or @RP_Period = 8 OR @RP_Period = 9 
-			SET @TargetQuarter = 3
-		IF @RP_Period = 10 or @RP_Period = 11 OR @RP_Period = 12 
-			SET @TargetQuarter = 4
-		
-		
-		IF ISNULL(@RP_G,'') <> '' 
-		BEGIN
-			IF @RP_G = 'M' 
-				SELECT @Index = RelIndex FROM dbo.tblRelIndex WHERE ProdID = @ProdID AND RelCareType = 'B' AND RelType = 12 AND RelPeriod = @TargetMonth  AND RelYear = @TargetYear AND ValidityTo IS NULL  
-			IF @RP_G = 'Q' 
-				SELECT @Index = RelIndex FROM dbo.tblRelIndex WHERE ProdID = @ProdID AND RelCareType = 'B' AND RelType = 4 AND RelPeriod = @TargetQuarter   AND RelYear = @TargetYear AND ValidityTo IS NULL
-			IF @RP_G = 'Y' 
-				SELECT @Index = RelIndex FROM dbo.tblRelIndex WHERE ProdID = @ProdID AND RelCareType = 'B' AND RelType = 1 AND RelPeriod = 1  AND RelYear = @TargetYear AND ValidityTo IS NULL
-					
-		END 	
-		ELSE
-		BEGIN
-					
-			IF @HFLevel = 'H' AND ISNULL(@RP_IP,'') <> ''
-			BEGIN
-				IF @RP_IP = 'M' 
-					SELECT @Index = RelIndex FROM dbo.tblRelIndex WHERE ProdID = @ProdID AND RelCareType = 'I' AND RelType = 12 AND RelPeriod = @TargetMonth  AND RelYear = @TargetYear AND ValidityTo IS NULL  
-				IF @RP_IP = 'Q' 
-					SELECT @Index = RelIndex FROM dbo.tblRelIndex WHERE ProdID = @ProdID AND RelCareType = 'I' AND RelType = 4 AND RelPeriod = @TargetQuarter   AND RelYear = @TargetYear AND ValidityTo IS NULL
-				IF @RP_IP = 'Y' 
-					SELECT @Index = RelIndex FROM dbo.tblRelIndex WHERE ProdID = @ProdID AND RelCareType = 'I' AND RelType = 1 AND RelPeriod = 1  AND RelYear = @TargetYear AND ValidityTo IS NULL
-			END
-			
-			IF @HFLevel <> 'H' AND ISNULL(@RP_OP,'') <> ''
-			BEGIN
-				IF @RP_OP = 'M' 
-					SELECT @Index = RelIndex FROM dbo.tblRelIndex WHERE ProdID = @ProdID AND RelCareType = 'O' AND RelType = 12 AND RelPeriod = @TargetMonth  AND RelYear = @TargetYear AND ValidityTo IS NULL  
-				IF @RP_OP = 'Q' 
-					SELECT @Index = RelIndex FROM dbo.tblRelIndex WHERE ProdID = @ProdID AND RelCareType = 'O' AND RelType = 4 AND RelPeriod = @TargetQuarter   AND RelYear = @TargetYear AND ValidityTo IS NULL
-				IF @RP_OP = 'Y' 
-					SELECT @Index = RelIndex FROM dbo.tblRelIndex WHERE ProdID = @ProdID AND RelCareType = 'O' AND RelType = 1 AND RelPeriod = 1  AND RelYear = @TargetYear AND ValidityTo IS NULL
-			END
-		END
-		
-		--IF ISNULL(@Index,-1) = -1 
-		--	SET @Index = 1   --> set index to use = 1 if no index could be found !
-		IF ISNULL(@Index,-1) > -1 
-		BEGIN
-			
-			--IF @Index > 1 
-				--SET @Index = 1   --> simply never pay more than claimed altehough index is higher than 1
-				
-				
 			UPDATE tblClaimServices SET RemuneratedAmount = @Index * PriceValuated 
-			OUTPUT Deleted.ClaimID into @tblClaimIDs
 			FROM         tblClaim INNER JOIN
 										  tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID INNER JOIN
 										  tblHF ON tblClaim.HFID = tblHF.HfID INNER JOIN
@@ -9025,124 +8969,36 @@ NextProdItems:
 										  AND ISNULL(MONTH(tblClaim.ProcessStamp) , -1) = @RP_Period
 										  AND ISNULL(YEAR(tblClaim.ProcessStamp) , -1) = @RP_Year;
 
+		END 
 
-			
+		UPDATE tblClaim SET RunID = @RunID ,  ClaimStatus = 16, Remunerated = CDetails.remunearated
+		FROM         tblClaim 
+		INNER JOIN (
+			SELECT claimID, MAX(prodID) prodID, SUM(remunearated)remunearated FROM(
+				SELECT tblClaimItems.ClaimID,ProdID, ISNULL(RemuneratedAmount, CASE PriceOrigin WHEN 'R' THEN 0 ELSE PriceValuated END) remunearated 
+				FROM tblClaimItems 
+				INNER JOIN @tblClaimIDs Listclaims on Listclaims.ClaimID = tblClaimItems.ClaimID
+				WHERE  (tblClaimItems.ValidityTo IS NULL) AND (tblClaimItems.ClaimItemStatus = 1) 
+				UNION ALL
+				SELECT  tblclaimServices.ClaimID,ProdID, ISNULL(RemuneratedAmount, CASE PriceOrigin WHEN 'R' THEN 0 ELSE PriceValuated END) remunearated  
+				FROM tblclaimServices 
+				INNER JOIN @tblClaimIDs Listclaims on Listclaims.ClaimID = tblclaimServices.ClaimID
+				WHERE  (tblclaimServices.ValidityTo IS NULL) AND (tblclaimServices.ClaimServiceStatus = 1) 
+			) as total GROUP BY claimID
+		) as CDetails on tblClaim.ClaimID = CDetails.ClaimID
+		INNER JOIN @tblClaimIDs Listclaims on Listclaims.ClaimID = tblClaim.ClaimID
+		INNER JOIN tblHF ON tblClaim.HFID = tblHF.HfID
+		-- claim with multiple productid will be on the batch on the product with highest productID (no business way defined)
+		INNER JOIN tblProduct ON CDetails.ProdID = tblProduct.ProdID
+		WHERE     (tblClaim.ClaimStatus = 8) AND (tblClaim.ValidityTo IS NULL) 
 		
-		END
-
-NextProdServices:
-		FETCH NEXT FROM PRODUCTLOOPSERVICES INTO @HFLevel,@ProdID,@RP_G,@RP_OP,@RP_IP,@RP_Period,@RP_Year
+NextProdItems:
+		FETCH NEXT FROM PRODUCTLOOPITEMS INTO @HFLevel,@ProdID,@RP_G,@RP_OP,@RP_IP,@RP_Period,@RP_Year
 	END
-	CLOSE PRODUCTLOOPSERVICES
-	DEALLOCATE PRODUCTLOOPSERVICES
+	CLOSE PRODUCTLOOPITEMS
+	DEALLOCATE PRODUCTLOOPITEMS
 
 
-	--Get all the claims in valuated state with no Relative index /Services
-
-	INSERT INTO @tblClaimIDs(ClaimID)
-
-	SELECT tblClaim.ClaimId
-	FROM  tblClaim 
-	INNER JOIN 	tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID 
-	INNER JOIN 	tblProduct ON tblClaimServices.ProdID = tblProduct.ProdID
-	WHERE (tblClaim.ClaimStatus = 16) 
-	AND (tblClaim.ValidityTo IS NULL) 
-	AND (tblClaimServices.ValidityTo IS NULL) 
-	AND (tblClaimServices.ClaimServiceStatus = 1) 
-	AND (tblClaimServices.PriceOrigin <> 'R') 
-	and ISNULL(tblProduct.LocationId,-1) = ISNULL(@LocationId ,-1)
-	AND tblClaim.RunId IS NULL
-	AND ISNULL(MONTH(tblClaim.ProcessStamp) , -1) = @Period
-	AND ISNULL(YEAR(tblClaim.ProcessStamp) , -1) = @Year
-	GROUP BY tblClaim.ClaimID
-
-	UNION
-
-	SELECT tblClaim.ClaimId
-	FROM  tblClaim 
-	INNER JOIN 	tblClaimItems ON tblClaim.ClaimID = tblClaimItems.ClaimID 
-	INNER JOIN 	tblProduct ON tblClaimItems.ProdID = tblProduct.ProdID
-	WHERE (tblClaim.ClaimStatus = 16) 
-	AND (tblClaim.ValidityTo IS NULL) 
-	AND (tblClaimItems.ValidityTo IS NULL) 
-	AND (tblClaimItems.ClaimItemStatus = 1) 
-	AND (tblClaimItems.PriceOrigin <> 'R') 
-	and ISNULL(tblProduct.LocationId,-1) = ISNULL(@LocationId ,-1)
-	AND tblClaim.RunId IS NULL
-	AND ISNULL(MONTH(tblClaim.ProcessStamp) , -1) = @Period
-	AND ISNULL(YEAR(tblClaim.ProcessStamp) , -1) = @Year
-	GROUP BY tblClaim.ClaimID;
-
-
-	
-	--NOW UPDATE the status of all Claims that have all remunerations values updated ==> set to 16
-	UPDATE tblClaim SET ClaimStatus = 16 FROM tblClaim 
-	INNER JOIN @tblClaimIDs UpdClaims on UpdClaims.ClaimID = tblClaim.ClaimID  WHERE ClaimStatus = 8 AND tblClaim.ValidityTo IS NULL AND
-	tblClaim.ClaimID NOT IN 
-	(SELECT tblClaim.ClaimID FROM tblClaim INNER JOIN tblClaimItems ON tblClaim.ClaimID = tblClaimItems.ClaimID INNER JOIN tblProduct ON tblClaimItems.ProdID = tblProduct.ProdID 
-	 WHERE tblClaim.ValidityTo IS NULL AND ISNULL(LocationId,-1) = ISNULL(@LocationId,-1) AND tblClaimItems.RemuneratedAmount IS NULL AND tblClaim.ClaimStatus = 8 AND tblClaimItems.ValidityTo IS NULL
-	 AND tblClaimItems.ClaimItemStatus = 1
-	 GROUP BY tblClaim.ClaimID 
-	)
-	AND 
-	tblClaim.ClaimID NOT IN 
-	(SELECT tblClaim.ClaimID FROM tblClaim
-	INNER JOIN tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID 
-	INNER JOIN tblProduct  ON tblClaimServices.ProdID = tblProduct.ProdID  
-	 WHERE tblClaim.ValidityTo IS NULL AND ISNULL(LocationId,-1) = ISNULL(@LocationId,-1) AND tblClaimServices.RemuneratedAmount IS NULL AND tblClaim.ClaimStatus = 8 AND tblClaimServices.ValidityTo IS NULL
-	 AND tblClaimServices.ClaimServiceStatus  = 1
-	 GROUP BY tblClaim.ClaimID  
-	)
-	
-	--NOW insert a new batch run record and keep latest ID in memory
-	INSERT INTO tblBatchRun
-           ([LocationId],[RunYear],[RunMonth],[RunDate],[AuditUserID])
-    VALUES (@LocationId ,@Year, @Period , GETDATE() ,@AuditUser )
-    
-    DECLARE @RunID as int
-    
-    SELECT @RunID = SCOPE_IDENTITY ()
-    
-	DECLARE @MStart as INT  = 0 
-	DECLARE @MEnd as INT = 0 
-
-	
-	IF @Period = 3 
-	BEGIN
-		SET @MStart = 1 
-		SET @MEnd = 3 
-	END
-	IF @Period = 6 
-	BEGIN
-		SET @MStart = 4
-		SET @MEnd = 6
-	END
-	IF @Period = 9
-	BEGIN
-		SET @MStart = 7
-		SET @MEnd = 9
-	END
-	IF @Period = 12
-	BEGIN
-		SET @MStart = 1
-		SET @MEnd = 12
-	END
-	
-	
-	
-
-
-	UPDATE tblClaim SET RunID = @RunID FROM tblClaim inner join @tblClaimIDs UpdClaims on UpdClaims.ClaimID = tblClaim.ClaimID
-    WHERE tblClaim.ValidityTo IS NULL AND ClaimStatus = 16 AND RunID IS NULL AND ISNULL(MONTH(tblClaim.ProcessStamp) , -1) = @Period
-										  AND ISNULL(YEAR(tblClaim.ProcessStamp) , -1) = @Year
-
-	IF @MStart > 0 
-	BEGIN
-		-- we are running multiple batches e.g Quarterly or Yearly
-		UPDATE tblClaim SET RunID = @RunID FROM tblClaim inner join @tblClaimIDs UpdClaims on UpdClaims.ClaimID = tblClaim.ClaimID
-		WHERE tblClaim.ValidityTo IS NULL AND ClaimStatus = 16 AND RunID IS NULL AND (ISNULL(MONTH(tblClaim.ProcessStamp) , -1) BETWEEN @MStart  AND @MEnd )  AND ISNULL(YEAR(tblClaim.ProcessStamp) , -1) = @Year
-	END
-	
 FINISH:
 	IF @InTopIsolation = 0 COMMIT TRANSACTION PROCESSCLAIMS
 	SET @oReturnValue = 0 
@@ -9162,8 +9018,6 @@ ERR_HANDLER:
 	SELECT ERROR_MESSAGE () as ErrorMessage
 	IF @InTopIsolation = 0 ROLLBACK TRANSACTION PROCESSCLAIMS
 	RETURN @oReturnValue
-
-	
 END
 GO
 
@@ -19098,17 +18952,19 @@ BEGIN
 
 		    WHERE HF.ValidityTo IS NULL
 		    AND (((L.RegionId = @RegionId OR @RegionId IS NULL) AND (L.DistrictId = @DistrictId OR @DistrictId IS NULL)) OR CV.ProdID IS NOT NULL OR II.ProdId IS NOT NULL)
-		    AND (HF.HFLevel IN (@Level1, @Level2, @Level3, @Level4) OR (@Level1 IS NULL AND @Level2 IS NULL AND @Level3 IS NULL AND @Level4 IS NULL))
-		    AND(
-			    ((HF.HFLevel = @Level1 OR @Level1 IS NULL) AND (HF.HFSublevel = @Sublevel1 OR @Sublevel1 IS NULL))
-			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @Sublevel2 OR @Sublevel2 IS NULL))
-			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @Sublevel3 OR @Sublevel3 IS NULL))
-			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @Sublevel4 OR @Sublevel4 IS NULL))
-		      );
-
-
-
-
+		    
+	AND  CONCAT(HF.HFLevel,'.',HF.HFSublevel)  IN (
+		SELECT CONCAT(HFlevel,'.',HFSublevel) 
+		FROM  (values ('H'), ('C'), ('D')) v(HFLevel)
+		JOIN tblHFSublevel  on 1=1
+		INNER JOIN tblProduct Prod on prodid = @ProdID
+		AND
+		( (Prod.Level1 = HFLevel and Prod.Sublevel1 is NULL or Prod.Level1 = HFLevel and Prod.Sublevel1=HFSublevel)
+		OR (Prod.Level2 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel2=HFSublevel)
+		OR (Prod.Level3 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel3=HFSublevel)
+		OR (Prod.Level4 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel4=HFSublevel)
+		)
+	);
 
 	    SELECT  MAX (RegionCode)RegionCode, 
 			MAX(RegionName)RegionName,
@@ -20526,49 +20382,64 @@ CREATE PROCEDURE [dbo].[uspSSRSProcessBatch]
 	        SET @DateTo = N'3000-12-31'
         END
 
-        ;WITH CDetails AS
-	        (
-		        SELECT CI.ClaimId, CI.ProdId,
-		        SUM(ISNULL(CI.PriceApproved, CI.PriceAsked) * ISNULL(CI.QtyApproved, CI.QtyProvided)) PriceApproved,
-		        SUM(CI.PriceValuated) PriceAdjusted, SUM(CI.RemuneratedAmount)RemuneratedAmount
-		        FROM tblClaimItems CI
-		        WHERE CI.ValidityTo IS NULL
-		        AND CI.ClaimItemStatus = 1
-		        GROUP BY CI.ClaimId, CI.ProdId
-		        UNION ALL
 
-		        SELECT CS.ClaimId, CS.ProdId,
-		        SUM(ISNULL(CS.PriceApproved, CS.PriceAsked) * ISNULL(CS.QtyApproved, CS.QtyProvided)) PriceApproved,
-		        SUM(CS.PriceValuated) PriceValuated, SUM(CS.RemuneratedAmount) RemuneratedAmount
+    ;WITH CDetails AS
+	    (
+		    SELECT CI.ClaimId, CI.ProdId,
+		    SUM(ISNULL(CI.PriceApproved, CI.PriceAsked) * ISNULL(CI.QtyApproved, CI.QtyProvided)) PriceApproved,
+		    SUM(CI.PriceValuated) PriceAdjusted, SUM(CI.RemuneratedAmount)RemuneratedAmount
+		    FROM tblClaimItems CI
+		    WHERE CI.ValidityTo IS NULL
+		    AND CI.ClaimItemStatus = 1
+		    GROUP BY CI.ClaimId, CI.ProdId
+		    UNION ALL
 
-		        FROM tblClaimServices CS
-		        WHERE CS.ValidityTo IS NULL
-		        AND CS.ClaimServiceStatus = 1
-		        GROUP BY CS.CLaimId, CS.ProdId
-	        )
-		SELECT R.RegionName, D.DistrictName, HF.HFCode, HF.HFName, Prod.ProductCode, Prod.ProductName, SUM(CDetails.RemuneratedAmount)Remunerated, Prod.AccCodeRemuneration, HF.AccCode
+		    SELECT CS.ClaimId, CS.ProdId,
+		    SUM(ISNULL(CS.PriceApproved, CS.PriceAsked) * ISNULL(CS.QtyApproved, CS.QtyProvided)) PriceApproved,
+		    SUM(CS.PriceValuated) PriceValuated, SUM(CS.RemuneratedAmount) RemuneratedAmount
 
-		FROM tblClaim C
-		INNER JOIN tblInsuree I ON I.InsureeId = C.InsureeID
-		INNER JOIN tblHF HF ON HF.HFID = C.HFID
-		INNER JOIN CDetails ON CDetails.ClaimId = C.ClaimID
-		INNER JOIN tblProduct Prod ON Prod.ProdId = CDetails.ProdID
-		INNER JOIN tblFamilies F ON F.FamilyId = I.FamilyID
-		INNER JOIN tblVillages V ON V.VillageID = F.LocationId
-		INNER JOIN tblWards W ON W.WardId = V.WardId
-		INNER JOIN tblDistricts D ON D.DistrictID = W.DistrictId
-		INNER JOIN tblRegions R ON R.RegionId = D.Region
+		    FROM tblClaimServices CS
+		    WHERE CS.ValidityTo IS NULL
+		    AND CS.ClaimServiceStatus = 1
+		    GROUP BY CS.CLaimId, CS.ProdId
+	    )
+	SELECT R.RegionName, D.DistrictName, HF.HFCode, HF.HFName, Prod.ProductCode, Prod.ProductName, SUM(CDetails.RemuneratedAmount)Remunerated, Prod.AccCodeRemuneration, HF.AccCode
 
-		WHERE C.ValidityTo IS NULL
-		AND (Prod.LocationId = @LocationId OR @LocationId = 0 OR Prod.LocationId IS NULL)
-		AND(Prod.ProdId = @ProdId OR @ProdId = 0)
-		AND (C.RunId IS NULL)
-		AND (HF.HFId = @HFID OR @HFId = 0)
-		AND (HF.HFLevel = @HFLevel OR @HFLevel = N'')
-		AND (C.DateTo BETWEEN @DateFrom AND @DateTo)
-		GROUP BY  R.RegionName,D.DistrictName, HF.HFCode, HF.HFName, Prod.ProductCode, Prod.ProductName, Prod.AccCodeRemuneration, HF.AccCode
-		HAVING SUM(CDetails.RemuneratedAmount) > @MinRemunerated
-	END
+	FROM tblClaim C
+	INNER JOIN tblInsuree I ON I.InsureeId = C.InsureeID
+	INNER JOIN tblHF HF ON HF.HFID = C.HFID
+	INNER JOIN CDetails ON CDetails.ClaimId = C.ClaimID
+	INNER JOIN tblProduct Prod ON Prod.ProdId = CDetails.ProdID
+	INNER JOIN tblFamilies F ON F.FamilyId = I.FamilyID
+	INNER JOIN tblVillages V ON V.VillageID = F.LocationId
+	INNER JOIN tblWards W ON W.WardId = V.WardId
+	INNER JOIN tblDistricts D ON D.DistrictID = W.DistrictId
+	INNER JOIN tblRegions R ON R.RegionId = D.Region
+
+	WHERE C.ValidityTo IS NULL
+	AND (Prod.LocationId = @LocationId OR @LocationId = 0 OR Prod.LocationId IS NULL)
+	AND(Prod.ProdId = @ProdId OR @ProdId = 0)
+	AND (C.RunId = @RunId OR @RunId = 0)
+	AND (HF.HFId = @HFID OR @HFId = 0)
+	AND (HF.HFLevel = @HFLevel OR @HFLevel = N'')
+	AND (C.DateTo BETWEEN @DateFrom AND @DateTo)
+	-- TO AVOID DOUBLE COUNT WITH CAPITATION
+	AND  CONCAT(HF.HFLevel,'.',HF.HFSublevel) NOT IN (
+		SELECT CONCAT(HFlevel,'.',HFSublevel) 
+		FROM  (values ('H'), ('C'), ('D')) v(HFLevel)
+		JOIN tblHFSublevel  on 1=1
+		INNER JOIN tblProduct Prod on prodid = @ProdID
+		AND
+		( (Prod.Level1 = HFLevel and Prod.Sublevel1 is NULL or Prod.Level1 = HFLevel and Prod.Sublevel1=HFSublevel)
+		OR (Prod.Level2 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel2=HFSublevel)
+		OR (Prod.Level3 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel3=HFSublevel)
+		OR (Prod.Level4 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel4=HFSublevel)
+		)
+	)
+		   
+	GROUP BY  R.RegionName,D.DistrictName, HF.HFCode, HF.HFName, Prod.ProductCode, Prod.ProductName, Prod.AccCodeRemuneration, HF.AccCode
+	HAVING SUM(CDetails.RemuneratedAmount) > @MinRemunerated
+END
 GO
 
 SET ANSI_NULLS ON
@@ -20596,64 +20467,66 @@ CREATE PROCEDURE [dbo].[uspSSRSProcessBatchWithClaim]
 	    END
 
 	    ;WITH CDetails AS
-	    (
-		    SELECT CI.ClaimId, CI.ProdId,
-		    SUM(ISNULL(CI.PriceApproved, CI.PriceAsked) * ISNULL(CI.QtyApproved, CI.QtyProvided)) PriceApproved,
-		    SUM(CI.PriceValuated) PriceAdjusted, SUM(CI.RemuneratedAmount)RemuneratedAmount
-		    FROM tblClaimItems CI
-		    WHERE CI.ValidityTo IS NULL
-		    AND CI.ClaimItemStatus = 1
-		    GROUP BY CI.ClaimId, CI.ProdId
-		    UNION ALL
+	(
+		SELECT CI.ClaimId, CI.ProdId,
+		SUM(ISNULL(CI.PriceApproved, CI.PriceAsked) * ISNULL(CI.QtyApproved, CI.QtyProvided)) PriceApproved,
+		SUM(CI.PriceValuated) PriceAdjusted, SUM(CI.RemuneratedAmount)RemuneratedAmount
+		FROM tblClaimItems CI
+		WHERE CI.ValidityTo IS NULL
+		AND CI.ClaimItemStatus = 1
+		GROUP BY CI.ClaimId, CI.ProdId
+		UNION ALL
 
-		    SELECT CS.ClaimId, CS.ProdId,
-		    SUM(ISNULL(CS.PriceApproved, CS.PriceAsked) * ISNULL(CS.QtyApproved, CS.QtyProvided)) PriceApproved,
-		    SUM(CS.PriceValuated) PriceValuated, SUM(CS.RemuneratedAmount) RemuneratedAmount
+		SELECT CS.ClaimId, CS.ProdId,
+		SUM(ISNULL(CS.PriceApproved, CS.PriceAsked) * ISNULL(CS.QtyApproved, CS.QtyProvided)) PriceApproved,
+		SUM(CS.PriceValuated) PriceValuated, SUM(CS.RemuneratedAmount) RemuneratedAmount
 
-		    FROM tblClaimServices CS
-		    WHERE CS.ValidityTo IS NULL
-		    AND CS.ClaimServiceStatus = 1
-		    GROUP BY CS.CLaimId, CS.ProdId
-	    )
-	    SELECT C.ClaimCode, C.DateClaimed, CA.OtherNames OtherNamesAdmin, CA.LastName LastNameAdmin, C.DateFrom, C.DateTo, I.CHFID, I.OtherNames,
-	I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
-	    I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
-	I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
-	    I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
-	I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
-	    I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
-	I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
-	    I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
-	I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
-	    I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
+		FROM tblClaimServices CS
+		WHERE CS.ValidityTo IS NULL
+		AND CS.ClaimServiceStatus = 1
+		GROUP BY CS.CLaimId, CS.ProdId
+	)
+	SELECT C.ClaimCode, C.DateClaimed, CA.OtherNames OtherNamesAdmin, CA.LastName LastNameAdmin, C.DateFrom, C.DateTo, I.CHFID, I.OtherNames,
 	I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
 	C.Claimed PriceAsked, SUM(CDetails.PriceApproved)PriceApproved, SUM(CDetails.PriceAdjusted)PriceAdjusted, SUM(CDetails.RemuneratedAmount)RemuneratedAmount,
 	D.DistrictID, D.DistrictName, R.RegionId, R.RegionName
 
-	    FROM tblClaim C
-	    LEFT OUTER JOIN tblClaimAdmin CA ON CA.ClaimAdminId = C.ClaimAdminId
-	    INNER JOIN tblInsuree I ON I.InsureeId = C.InsureeID
-	    INNER JOIN tblHF HF ON HF.HFID = C.HFID
-	    INNER JOIN CDetails ON CDetails.ClaimId = C.ClaimID
-	    INNER JOIN tblProduct Prod ON Prod.ProdId = CDetails.ProdID
-	    INNER JOIN tblFamilies F ON F.FamilyId = I.FamilyID
-	    INNER JOIN tblVillages V ON V.VillageID = F.LocationId
-	    INNER JOIN tblWards W ON W.WardId = V.WardId
-	    INNER JOIN tblDistricts D ON D.DistrictID = W.DistrictId
-	    INNER JOIN tblRegions R ON R.RegionId = D.Region
+	FROM tblClaim C
+	LEFT OUTER JOIN tblClaimAdmin CA ON CA.ClaimAdminId = C.ClaimAdminId
+	INNER JOIN tblInsuree I ON I.InsureeId = C.InsureeID
+	INNER JOIN tblHF HF ON HF.HFID = C.HFID
+	INNER JOIN CDetails ON CDetails.ClaimId = C.ClaimID
+	INNER JOIN tblProduct Prod ON Prod.ProdId = CDetails.ProdID
+	INNER JOIN tblFamilies F ON F.FamilyId = I.FamilyID
+	INNER JOIN tblVillages V ON V.VillageID = F.LocationId
+	INNER JOIN tblWards W ON W.WardId = V.WardId
+	INNER JOIN tblDistricts D ON D.DistrictID = W.DistrictId
+	INNER JOIN tblRegions R ON R.RegionId = D.Region
 
-	    WHERE C.ValidityTo IS NULL
-	    AND (Prod.LocationId = @LocationId OR @LocationId = 0 OR Prod.LocationId IS NULL)
-	    AND(Prod.ProdId = @ProdId OR @ProdId = 0)
-	    AND (C.RunId IS NULL)
-	    AND (HF.HFId = @HFID OR @HFId = 0)
-	    AND (HF.HFLevel = @HFLevel OR @HFLevel = N'')
-	    AND (C.DateTo BETWEEN @DateFrom AND @DateTo)
-
-	    GROUP BY C.ClaimCode, C.DateClaimed, CA.OtherNames, CA.LastName , C.DateFrom, C.DateTo, I.CHFID, I.OtherNames,
-	    I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, C.Claimed,
-	    D.DistrictId, D.DistrictName, R.RegionId, R.RegionName
-	END
+	WHERE C.ValidityTo IS NULL
+	AND (Prod.LocationId = @LocationId OR @LocationId = 0 OR Prod.LocationId IS NULL)
+	AND(Prod.ProdId = @ProdId OR @ProdId = 0)
+	AND (C.RunId IS NULL)
+	AND (HF.HFId = @HFID OR @HFId = 0)
+	AND (HF.HFLevel = @HFLevel OR @HFLevel = N'')
+	AND (C.DateTo BETWEEN @DateFrom AND @DateTo)
+		-- TO AVOID DOUBLE COUNT WITH CAPITATION
+	AND  CONCAT(HF.HFLevel,'.',HF.HFSublevel) NOT IN (
+		SELECT CONCAT(HFlevel,'.',HFSublevel) 
+		FROM  (values ('H'), ('C'), ('D')) v(HFLevel)
+		JOIN tblHFSublevel  on 1=1
+		INNER JOIN tblProduct Prod on prodid = @ProdID
+		AND
+		( (Prod.Level1 = HFLevel and Prod.Sublevel1 is NULL or Prod.Level1 = HFLevel and Prod.Sublevel1=HFSublevel)
+		OR (Prod.Level2 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel2=HFSublevel)
+		OR (Prod.Level3 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel3=HFSublevel)
+		OR (Prod.Level4 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel4=HFSublevel)
+		)
+	)
+	GROUP BY C.ClaimCode, C.DateClaimed, CA.OtherNames, CA.LastName , C.DateFrom, C.DateTo, I.CHFID, I.OtherNames,
+	I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, C.Claimed,
+	D.DistrictId, D.DistrictName, R.RegionId, R.RegionName
+END
 GO
 
 SET ANSI_NULLS ON

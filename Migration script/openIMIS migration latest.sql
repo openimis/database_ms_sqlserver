@@ -8406,7 +8406,7 @@ GO
 
 CREATE PROCEDURE [dbo].[uspIsValidRenewal]
 (
-	@FileName NVARCHAR(200),
+	@FileName NVARCHAR(200) = '',
 	@XML XML
 )
 /*
@@ -8485,10 +8485,21 @@ BEGIN
 
 	DECLARE @Tbl TABLE(Id INT)
 
+	
+	;WITH PrevProducts
+	AS
+	(
+		SELECT Prod.ProductCode, Prod.ProdId, OldProd.ProdID PrevProd
+		FROM tblProduct Prod
+		LEFT OUTER JOIN tblProduct OldProd ON Prod.ProdId = OldProd.ConversionProdId
+		WHERE Prod.ValidityTo IS NULL
+		AND OldProd.ValidityTo IS NULL
+		AND Prod.ProductCode = @ProductCode
+	)
 	INSERT INTO @Tbl(Id)
 	SELECT TOP 1 I.InsureeID Result
 	FROM tblInsuree I INNER JOIN tblPolicy PL ON I.FamilyID = PL.FamilyID
-	INNER JOIN tblProduct PR ON PL.ProdID = PR.ProdID
+	INNER JOIN PrevProducts PR ON PL.ProdId = PR.ProdId OR PL.ProdId = PR.PrevProd --PL.ProdID = PR.ProdID
 	WHERE CHFID = @CHFID
 	AND PR.ProductCode = @ProductCode
 	AND I.ValidityTo IS NULL
@@ -8506,12 +8517,30 @@ BEGIN
 	DECLARE @ExpiryDate DATE
 	DECLARE @HasCycle BIT
 	--PAUL -24/04/2019 INSERTED  @@AND tblPolicy.ValidityTo@@ to ensure that query does not include deleted policies
-	SELECT TOP 1 @ProdId = tblPolicy.ProdID, @ExpiryDate = tblPolicy.ExpiryDate from tblPolicy INNER JOIN tblProduct ON tblPolicy.ProdID = tblProduct.ProdID  AND tblPolicy.ValidityTo IS NULL WHERE FamilyID = @FamilyID AND tblProduct.ProductCode = @ProductCode AND tblProduct.ValidityTo IS NULL ORDER BY ExpiryDate DESC
-	
+	;WITH PrevProducts
+	AS
+	(
+		SELECT Prod.ProductCode, Prod.ProdId, OldProd.ProdID PrevProd
+		FROM tblProduct Prod
+		LEFT OUTER JOIN tblProduct OldProd ON Prod.ProdId = OldProd.ConversionProdId
+		WHERE Prod.ValidityTo IS NULL
+		AND OldProd.ValidityTo IS NULL
+		AND Prod.ProductCode = @ProductCode
+	)
+	SELECT TOP 1 @ProdId = PR.ProdId, @ExpiryDate = PL.ExpiryDate
+	FROM tblInsuree I INNER JOIN tblPolicy PL ON I.FamilyID = PL.FamilyID
+	INNER JOIN PrevProducts PR ON PL.ProdId = PR.ProdId OR PL.ProdId = PR.PrevProd 
+	WHERE CHFID = @CHFID
+	AND PR.ProductCode = @ProductCode
+	AND I.ValidityTo IS NULL
+	AND PL.ValidityTo IS NULL
+	ORDER BY PL.ExpiryDate DESC;
+
 	IF EXISTS(SELECT 1 FROM tblPremium PR INNER JOIN tblPolicy PL ON PR.PolicyID = PL.PolicyID 
 				WHERE PR.Receipt = @Receipt 
 				AND PL.ProdID = @ProdId
-				AND PR.ValidityTo IS NULL)
+				AND PR.ValidityTo IS NULL
+				AND LEN(PR.Receipt) > 0)
 
 				RETURN -1;
 	
@@ -8530,9 +8559,7 @@ BEGIN
 		--			RETURN -2
 		--		END
 		SELECT @RecordCount = COUNT(1) FROM @Tbl;
-	
-	
-	
+		
 	
 	IF @RecordCount = 2
 		BEGIN

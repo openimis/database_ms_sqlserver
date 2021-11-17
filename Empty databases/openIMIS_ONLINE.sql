@@ -12629,11 +12629,9 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-
 CREATE PROCEDURE [dbo].[uspInsertFeedback]
 (
 	@XML XML
-	--@FileName VARCHAR(100)
 )
 /*
 	-1: Fatal Error
@@ -12648,8 +12646,6 @@ AS
 BEGIN
 	
 	BEGIN TRY
-		--DECLARE @FilePath NVARCHAR(250)
-		--DECLARE @XML XML
 		DECLARE @Query NVARCHAR(3000)
 		
 		DECLARE @OfficerCode NVARCHAR(8)
@@ -12658,19 +12654,13 @@ BEGIN
 		DECLARE @CHFID VARCHAR(12)
 		DECLARE @Answers VARCHAR(5)
 		DECLARE @FeedbackDate DATE
-		
-		--SELECT @FilePath = 'C:/inetpub/wwwroot' + FTPFeedbackFolder + '/' + @FileName FROM tblIMISDefaults
-				
-		--SET @Query = (N'SELECT  @XML = (SELECT CAST(X AS XML) FROM OPENROWSET(BULK ''' + @FileName +''',SINGLE_BLOB) AS T(X))')
-		
-		--EXECUTE sp_executesql  @Query,N'@XML XML OUTPUT',@XML OUTPUT
-		
+
 		SELECT
 		@OfficerCode = feedback.value('(Officer)[1]','NVARCHAR(8)'),
 		@ClaimID = feedback.value('(ClaimID)[1]','NVARCHAR(8)'),
 		@CHFID  = feedback.value('(CHFID)[1]','VARCHAR(12)'),
 		@Answers = feedback.value('(Answers)[1]','VARCHAR(5)'),
-		@FeedbackDate = CONVERT(DATE,feedback.value('(Date)[1]','VARCHAR(10)'),103)
+		@FeedbackDate = feedback.value('(Date)[1]','VARCHAR(10)')
 		FROM @XML.nodes('feedback') AS T(feedback)
 
 		DECLARE @ClaimCode NVARCHAR(8)
@@ -12710,8 +12700,6 @@ BEGIN
 	
 	RETURN 0
 END
-
-
 GO
 
 SET ANSI_NULLS ON

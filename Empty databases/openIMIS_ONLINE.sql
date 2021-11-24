@@ -193,7 +193,8 @@ CREATE TYPE [dbo].[xInsuree] AS TABLE(
 	[HFID] [int] NULL,
 	[CurrentAddress] [nvarchar](200) NULL,
 	[CurrentVillage] [int] NULL,
-	[GeoLocation] [nvarchar](250) NULL
+	[GeoLocation] [nvarchar](250) NULL,
+	[Vulnerability] [bit]  NULL
 )
 GO
 
@@ -2262,6 +2263,38 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+CREATE TABLE [dbo].[tblLanguages](
+	[LanguageCode] [nvarchar](5) NOT NULL,
+	[LanguageName] [nvarchar](50) NOT NULL,
+	[SortOrder] [int] NULL,
+ CONSTRAINT [PK_Language] PRIMARY KEY CLUSTERED 
+(
+	[LanguageCode] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE FUNCTION [dbo].[udfDefaultLanguageCode]()
+RETURNS NVARCHAR(5)
+AS
+BEGIN
+	DECLARE @DefaultLanguageCode NVARCHAR(5)
+	IF EXISTS (SELECT DISTINCT SortOrder from tblLanguages where SortOrder is not null)
+	    SELECT TOP(1) @DefaultLanguageCode=LanguageCode FROM tblLanguages sort ORDER BY SortOrder ASC
+	ELSE
+	    SELECT TOP(1) @DefaultLanguageCode=LanguageCode FROM tblLanguages sort
+	RETURN(@DefaultLanguageCode)
+END
+GO
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 CREATE TABLE [dbo].[tblFamilies](
 	[FamilyID] [int] IDENTITY(1,1) NOT NULL,
 	[FamilyUUID] [uniqueidentifier] NOT NULL,
@@ -2278,13 +2311,27 @@ CREATE TABLE [dbo].[tblFamilies](
 	[isOffline] [bit] NULL,
 	[Ethnicity] [nvarchar](1) NULL,
 	[ConfirmationNo] [nvarchar](12) NULL,
-	[ConfirmationType] [nvarchar](3) NULL,
+	[ConfirmationType] [nvarchar](3) NULL
  CONSTRAINT [PK_tblFamilies] PRIMARY KEY CLUSTERED 
 (
 	[FamilyID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
+
+SET ANSI_NULLS ON
+GO 
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[tblFamilySMS](
+	[FamilyID] [int] NOT NULL, 
+	[ApprovalOfSMS] [bit] NULL,
+	[LanguageOfSMS] [nvarchar](5) NULL,
+	[ValidityFrom] [datetime] NOT NULL,
+	[ValidityTo] [datetime] NULL, 
+	CONSTRAINT UC_FamilySMS UNIQUE (FamilyID,ValidityTo)
+)
+GO 
 
 SET ANSI_NULLS ON
 GO
@@ -2569,7 +2616,8 @@ SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[tblIMISDefaultsPhone](
 	[RuleName] [nvarchar](100) NULL,
-	[RuleValue] [bit] NULL
+	[RuleValue] [bit] NULL,
+	[Usage] [nvarchar](200) NULL
 ) ON [PRIMARY]
 GO
 
@@ -2608,6 +2656,7 @@ CREATE TABLE [dbo].[tblInsuree](
 	[CurrentAddress] [nvarchar](200) NULL,
 	[GeoLocation] [nvarchar](250) NULL,
 	[CurrentVillage] [int] NULL,
+	[Vulnerability] [bit] NOT NULL DEFAULT 0,
  CONSTRAINT [PK_tblInsuree] PRIMARY KEY CLUSTERED 
 (
 	[InsureeID] ASC
@@ -2650,6 +2699,7 @@ CREATE TABLE [dbo].[tblItems](
 	[ItemCode] [nvarchar](6) NOT NULL,
 	[ItemName] [nvarchar](100) NOT NULL,
 	[ItemType] [char](1) NOT NULL,
+	[Quantity] [decimal](18,2) NULL,
 	[ItemPackage] [nvarchar](255) NULL,
 	[ItemPrice] [decimal](18, 2) NOT NULL,
 	[ItemCareType] [char](1) NOT NULL,
@@ -2667,20 +2717,6 @@ CREATE TABLE [dbo].[tblItems](
 ) ON [PRIMARY]
 GO
 
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[tblLanguages](
-	[LanguageCode] [nvarchar](5) NOT NULL,
-	[LanguageName] [nvarchar](50) NOT NULL,
-	[SortOrder] [int] NULL,
- CONSTRAINT [PK_Language] PRIMARY KEY CLUSTERED 
-(
-	[LanguageCode] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
-) ON [PRIMARY]
-GO
 
 SET ANSI_NULLS ON
 GO
@@ -2849,7 +2885,8 @@ CREATE TABLE [dbo].[tblPayment](
 	[ExpectedAmount] [decimal](18, 2) NULL,
 	[ReceivedAmount] [decimal](18, 2) NULL,
 	[OfficerCode] [nvarchar](50) NULL,
-	[PhoneNumber] [nvarchar](12) NULL,
+	[PhoneNumber] [nvarchar](15) NULL,
+	[PayerPhoneNumber] [nvarchar](15) NULL,
 	[RequestDate] [datetime] NULL,
 	[ReceivedDate] [datetime] NULL,
 	[PaymentStatus] [int] NULL,
@@ -2869,6 +2906,8 @@ CREATE TABLE [dbo].[tblPayment](
 	[TypeOfPayment] [nvarchar](50) NULL,
 	[TransferFee] [decimal](18, 2) NULL,
 	[SmsRequired] [bit] NULL,
+	[SpReconcReqId] [nvarchar](30) NULL,
+	[ReconciliationDate] [datetime] NULL
  CONSTRAINT [PK_tblPayment] PRIMARY KEY CLUSTERED 
 (
 	[PaymentID] ASC
@@ -3573,10 +3612,6 @@ CREATE TABLE [dbo].[tblUsersDistricts](
 ) ON [PRIMARY]
 GO
 
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 
 CREATE VIEW [dbo].[tblDistricts] AS
 SELECT LocationId DistrictId, LocationCode DistrictCode, LocationName DistrictName, ParentLocationId Region, ValidityFrom, ValidityTo, LegacyId, AuditUserId, RowId
@@ -4861,29 +4896,65 @@ INSERT [dbo].[tblConfirmationTypes] ([ConfirmationTypeCode], [ConfirmationType],
 INSERT [dbo].[tblConfirmationTypes] ([ConfirmationTypeCode], [ConfirmationType], [SortOrder], [AltLanguage]) VALUES (N'B', N'Municipality', NULL, N'Municipalité')
 INSERT [dbo].[tblConfirmationTypes] ([ConfirmationTypeCode], [ConfirmationType], [SortOrder], [AltLanguage]) VALUES (N'C', N'State', NULL, N'Etat')
 INSERT [dbo].[tblConfirmationTypes] ([ConfirmationTypeCode], [ConfirmationType], [SortOrder], [AltLanguage]) VALUES (N'D', N'Other', NULL, N'Autre')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Age', N'M', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'AntenatalAmountLeft', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ApprovalOfSMS', N'N', N'Family')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'BeneficiaryCard', N'O', N'Family, Insuree')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Ceiling1', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Ceiling2', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'CHFID', N'M', N'Search Insurance Number/Enquiry')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ClaimAdministrator', N'M', N'FindClaim, Claim, ClaimReview, ClaimFeedback')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Confirmation', N'O', N'Family, Insuree, OverviewFamily, ChangeFamily')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ConfirmationNo', N'O', N'Family, Insuree, FindFamily, OverviewFamily, ChangeFamily')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ConsultationAmountLeft', N'O', N'Search Insurance Number/Enquiry')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ContributionCategory', N'O', N'Premium, FindPremium')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'CurrentAddress', N'O', N'Family, Insuree')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'CurrentDistrict', N'O', N'Family, Insuree')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'CurrentMunicipality', N'O', N'Family, Insuree')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'CurrentVillage', N'O', N'Family, Insuree')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Ded1', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Ded2', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'DeliveryAmountLeft', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'DistrictOfFSP', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'DOB', N'O', N'Search Insurance Number/Enquiry')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Education', N'O', N'Family, Insuree')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ExpiryDate', N'M', N'Search Insurance Number/Enquiry')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'FamilyType', N'O', N'Family, ChangeFamily')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'FirstServicePoint', N'O', N'Search Insurance Number/Enquiry')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'FSP', N'O', N'Family, Insuree')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'FSPCategory', N'O', N'Family, Insuree')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'FSPDistrict', N'O', N'Family, Insuree')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Gender', N'O', N'Search Insurance Number/Enquiry')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'GuaranteeNo', N'O', N'Claim, ClaimReview')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'HFLevel', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'HospitalizationAmountLeft', N'O', N'Search Insurance Number/Enquiry')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'IdentificationNumber', N'O', N'Family, Insuree')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'IdentificationType', N'O', N'Family, Insuree')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'InsureeEmail', N'O', N'Family, Insuree, FindFamily')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'LastName', N'M', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'lblItemCode', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'lblItemCodeL', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'lblItemLeftL', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'lblItemMinDate', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'lblServiceLeft', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'lblServiceMinDate', N'O', N'Search Insurance Number/Enquiry')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'MaritalStatus', N'O', N'Family, Insuree')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'OtherNames', N'M', N'Search Insurance Number/Enquiry')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'PermanentAddress', N'O', N'Family, Insuree, ChangeFamily')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'PolicyStatus', N'M', N'Search Insurance Number/Enquiry')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Poverty', N'O', N'Family, Insuree, Policy, Premium, FindFamily, ChangeFamily')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'ProductCode', N'M', N'Search Insurance Number/Enquiry')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Profession', N'O', N'Family, Insuree')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'RegionOfFSP', N'O', N'Search Insurance Number/Enquiry')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Relationship', N'O', N'Insuree')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'SurgeryAmountLeft', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalAdmissionsLeft', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalAmount', N'N', N'AppPolicies')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalAntenatalLeft', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalConsultationsLeft', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalDelivieriesLeft', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalSurgeriesLeft', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalVisitsLeft', N'O', N'Search Insurance Number/Enquiry')
 INSERT [dbo].[tblEducations] ([EducationId], [Education], [SortOrder], [AltLanguage]) VALUES (1, N'Nursery', NULL, N'Garderie')
 INSERT [dbo].[tblEducations] ([EducationId], [Education], [SortOrder], [AltLanguage]) VALUES (2, N'Primary school', NULL, N'École primaire')
 INSERT [dbo].[tblEducations] ([EducationId], [Education], [SortOrder], [AltLanguage]) VALUES (3, N'Secondary school', NULL, N'École secondaire')
@@ -4912,11 +4983,12 @@ SET IDENTITY_INSERT [dbo].[tblIMISDefaults] ON
 
 INSERT [dbo].[tblIMISDefaults] ([DefaultID], [PolicyRenewalInterval], [FTPHost], [FTPUser], [FTPPassword], [FTPPort], [FTPEnrollmentFolder], [AssociatedPhotoFolder], [FTPClaimFolder], [FTPFeedbackFolder], [FTPPolicyRenewalFolder], [FTPPhoneExtractFolder], [FTPOffLineExtractFolder], [AppVersionBackEnd], [AppVersionEnquire], [AppVersionEnroll], [AppVersionRenewal], [AppVersionFeedback], [AppVersionClaim], [OffLineHF], [WinRarFolder], [DatabaseBackupFolder], [OfflineCHF], [SMSLink], [SMSIP], [SMSUserName], [SMSPassword], [SMSSource], [SMSDlr], [SMSType], [AppVersionFeedbackRenewal], [AppVersionImis]) VALUES (1, 14, N'', N'', N'', 0, N'/Images/Submitted', N'/Images/Updated', N'', N'', N'', N'', N'', CAST(1.2 AS Decimal(3, 1)), CAST(0.0 AS Decimal(3, 1)), CAST(0.0 AS Decimal(3, 1)), CAST(0.0 AS Decimal(3, 1)), CAST(0.0 AS Decimal(3, 1)), CAST(0.0 AS Decimal(3, 1)), 0, N'C:\Program Files (x86)\WinRAR\', N'', 0, N'', N'', N'', N'', N'', 1, 1, CAST(1.2 AS Decimal(3, 1)), CAST(0.0 AS Decimal(3, 1)))
 SET IDENTITY_INSERT [dbo].[tblIMISDefaults] OFF
-INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue]) VALUES (N'AllowInsureeWithoutPhoto', 0)
-INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue]) VALUES (N'AllowFamilyWithoutPolicy', 0)
-INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue]) VALUES (N'AllowPolicyWithoutPremium', 0)
-INSERT [dbo].[tblLanguages] ([LanguageCode], [LanguageName], [SortOrder]) VALUES (N'en', N'English', NULL)
-INSERT [dbo].[tblLanguages] ([LanguageCode], [LanguageName], [SortOrder]) VALUES (N'fr', N'Français', NULL)
+INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue], [Usage]) VALUES (N'AllowInsureeWithoutPhoto', 0, 'Allow synchronization of Insurees without a Photo.')
+INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue], [Usage]) VALUES (N'AllowFamilyWithoutPolicy', 0, 'Allow synchronization of Families without a Policy.')
+INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue], [Usage]) VALUES (N'AllowPolicyWithoutPremium', 0, 'Allow synchronization of Policies without a Contribution. If ShowPaymentOption is false, this rule value is read as true.')
+INSERT [dbo].[tblIMISDefaultsPhone] ([RuleName], [RuleValue], [Usage]) VALUES (N'ShowPaymentOption', 1, 'Show or hide the Payment option to allow or not to add a Contribution for a Policy. ')
+INSERT [dbo].[tblLanguages] ([LanguageCode], [LanguageName], [SortOrder]) VALUES (N'en', N'English', 1) -- By default english is set as primary language, required by SMS
+INSERT [dbo].[tblLanguages] ([LanguageCode], [LanguageName], [SortOrder]) VALUES (N'fr', N'Français', 2)
 INSERT [dbo].[tblLegalForms] ([LegalFormCode], [LegalForms], [SortOrder], [AltLanguage]) VALUES (N'C', N'Charity', NULL, N'Charité')
 INSERT [dbo].[tblLegalForms] ([LegalFormCode], [LegalForms], [SortOrder], [AltLanguage]) VALUES (N'D', N'District organization', NULL, N'Organisation du district')
 INSERT [dbo].[tblLegalForms] ([LegalFormCode], [LegalForms], [SortOrder], [AltLanguage]) VALUES (N'G', N'Government', NULL, N'Gouvernement')
@@ -5239,6 +5311,10 @@ ALTER TABLE [dbo].[tblFamilies] ADD  CONSTRAINT [DF_tblFamilies_ValidityFrom]  D
 GO
 ALTER TABLE [dbo].[tblFamilies] ADD  CONSTRAINT [DF__tblFamili__isOff__0D6FE0E5]  DEFAULT ((0)) FOR [isOffline]
 GO
+ALTER TABLE [dbo].[tblFamilySMS] ADD  CONSTRAINT [DF_tblFamilies_ApprovalOfSMS]  DEFAULT ((0)) FOR [ApprovalOfSMS]
+GO
+ALTER TABLE [dbo].[tblFamilySMS] ADD  CONSTRAINT [DF_tblFamilies_LanguageOfSMS]  DEFAULT([dbo].[udfDefaultLanguageCode]()) FOR [LanguageOfSMS]
+GO
 ALTER TABLE [dbo].[tblFeedback] ADD  DEFAULT (newid()) FOR [FeedbackUUID]
 GO
 ALTER TABLE [dbo].[tblFeedback] ADD  CONSTRAINT [DF_tblFeedback_CareRendered]  DEFAULT ((0)) FOR [CareRendered]
@@ -5521,6 +5597,9 @@ ALTER TABLE [dbo].[tblFamilies]  WITH CHECK ADD  CONSTRAINT [FK_tblFamilyTypes_t
 REFERENCES [dbo].[tblFamilyTypes] ([FamilyTypeCode])
 GO
 ALTER TABLE [dbo].[tblFamilies] CHECK CONSTRAINT [FK_tblFamilyTypes_tblFamilies]
+GO
+ALTER TABLE [dbo].[tblFamilySMS] WITH CHECK ADD CONSTRAINT [FK_tblFamilySMS_tblFamily-FamilyID] FOREIGN KEY([FamilyID])
+REFERENCES [dbo].[tblFamilies]
 GO
 ALTER TABLE [dbo].[tblFeedback]  WITH CHECK ADD  CONSTRAINT [FK_tblFeedback_tblClaim-ClaimID] FOREIGN KEY([ClaimID])
 REFERENCES [dbo].[tblClaim] ([ClaimID])
@@ -5868,7 +5947,12 @@ BEGIN
 
 				BEGIN TRY
 
-				UPDATE tblPayment SET PaymentStatus =  CASE @Success WHEN 1 THEN 2 ELSE-3 END, RejectedReason = CASE @Success WHEN 0 THEN  @Comment ELSE NULL END,  ValidityFrom = GETDATE(),AuditedUserID =-1 WHERE PaymentID = @PaymentID  AND ValidityTo IS NULL 
+				UPDATE tblPayment 
+					SET PaymentStatus =  CASE @Success WHEN 1 THEN 2 ELSE-3 END, 
+					RejectedReason = CASE @Success WHEN 0 THEN  @Comment ELSE NULL END,  
+					ValidityFrom = GETDATE(),
+					AuditedUserID = -1 
+				WHERE PaymentID = @PaymentID AND ValidityTo IS NULL AND PaymentStatus < 3
 
 				RETURN 0
 			END TRY
@@ -6374,7 +6458,7 @@ BEGIN TRY
 
 	--INSERT TEMPORARY FAMILY
 	INSERT INTO tblFamilies(InsureeID, LocationId, Poverty, ValidityFrom, ValidityTo, LegacyID, AuditUserID, FamilyType, FamilyAddress, isOffline, Ethnicity, ConfirmationNo, ConfirmationType)
-	SELECT					InsureeID, LocationId, Poverty, ValidityFrom, ValidityTo, LegacyID, AuditUserID, FamilyType, FamilyAddress, isOffline, Ethnicity, ConfirmationNo, ConfirmationType 
+	SELECT					InsureeID, LocationId, Poverty, ValidityFrom, ValidityTo, LegacyID, AuditUserID, FamilyType, FamilyAddress, isOffline, Ethnicity, ConfirmationNo, ConfirmationType
 	FROM tblFamilies WHERE FamilyID=@FamilyId  AND ValidityTo IS NULL 
 	SET @NewFamilyId = (SELECT SCOPE_IDENTITY());
 
@@ -6728,7 +6812,7 @@ BEGIN
 						SET @CurrentLocationId = ISNULL(@CurrentLocationId,@DBCurrentLocationId)
 
 						INSERT INTO tblFamilies ([insureeid],[Poverty],[ConfirmationType],isOffline,[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],FamilyType, FamilyAddress,Ethnicity,ConfirmationNo, LocationId) 
-						SELECT [insureeid],[Poverty],[ConfirmationType],isOffline,[ValidityFrom],getdate() ValidityTo,FamilyID, @AuditUserID,FamilyType, FamilyAddress,Ethnicity,ConfirmationNo,LocationId FROM tblFamilies
+						SELECT [insureeid], [Poverty], [ConfirmationType], isOffline, [ValidityFrom], getdate() ValidityTo, FamilyID, @AuditUserID, FamilyType, FamilyAddress, Ethnicity, ConfirmationNo, LocationId FROM tblFamilies
 						WHERE FamilyID = @FamilyID 
 								AND ValidityTo IS NULL
 						
@@ -7634,7 +7718,6 @@ SET QUOTED_IDENTIFIER ON
 GO
 CREATE PROCEDURE [dbo].[uspAPIGetCoverage]
 (
-	
 	@InsureeNumber NVARCHAR(12),
 	@MinDateService DATE=NULL  OUTPUT,
 	@MinDateItem DATE=NULL OUTPUT,
@@ -7643,20 +7726,14 @@ CREATE PROCEDURE [dbo].[uspAPIGetCoverage]
 	@isItemOK BIT =0 OUTPUT,
 	@isServiceOK BIT=0 OUTPUT
 )
-
 AS
-
 BEGIN
-
-
-
 	/*
 	RESPONSE CODE
 		1-Wrong format or missing insurance number of head
 		2-Insurance number of head not found
 		
 	*/
-
 
 	/**********************************************************************************************************************
 			VALIDATION STARTS
@@ -7669,8 +7746,6 @@ BEGIN
 	IF NOT EXISTS(SELECT 1 FROM tblInsuree WHERE CHFID = @InsureeNumber AND ValidityTo IS NULL)
 		RETURN 4
 
-
-
 	/**********************************************************************************************************************
 			VALIDATION ENDS
 	*********************************************************************************************************************/
@@ -7678,8 +7753,7 @@ BEGIN
 	IF NOT OBJECT_ID('tempdb..#tempBase') IS NULL DROP TABLE #tempBase
 
 		SELECT PL.PolicyValue,PL.EffectiveDate, PR.ProdID,PL.PolicyID,I.CHFID,P.PhotoFolder + case when RIGHT(P.PhotoFolder,1) = '\\' then '' else '\\' end + P.PhotoFileName PhotoPath,I.LastName, I.OtherNames,
-		CONVERT(VARCHAR,DOB,103) DOB, CASE WHEN I.Gender = 'M' THEN 'Male' ELSE 'Female' END Gender,PR.ProductCode,PR.ProductName,
-		CONVERT(VARCHAR(12),IP.ExpiryDate,103) ExpiryDate, 
+		DOB, CASE WHEN I.Gender = 'M' THEN 'Male' ELSE 'Female' END Gender,PR.ProductCode,PR.ProductName,IP.ExpiryDate, 
 		CASE WHEN IP.EffectiveDate IS NULL OR CAST(GETDATE() AS DATE) < IP.EffectiveDate  THEN 'I' WHEN CAST(GETDATE() AS DATE) NOT BETWEEN IP.EffectiveDate AND IP.ExpiryDate THEN 'E' ELSE 
 		CASE PL.PolicyStatus WHEN 1 THEN 'I' WHEN 2 THEN 'A' WHEN 4 THEN 'S' WHEN 16 THEN 'R' ELSE 'E' END
 		END  AS [Status]
@@ -8182,13 +8256,12 @@ END
  SELECT R.AntenatalAmountLeft,R.ConsultationAmountLeft,R.DeliveryAmountLeft, R.HospitalizationAmountLeft,R.SurgeryAmountLeft,R.TotalAdmissionsLeft,R.TotalAntenatalLeft, R.TotalConsultationsLeft,  r.TotalDelivieriesLeft, R.TotalSurgeriesLeft ,r.TotalVisitsLeft, PolicyValue, EffectiveDate, LastName, OtherNames,CHFID, PhotoPath,  DOB,Gender,ProductCode ,ProductName, ExpiryDate, [Status],DedType, Ded1,  Ded2, CASE WHEN Ceiling1 < 0 THEN 0 ELSE  Ceiling1 END Ceiling1 , CASE WHEN Ceiling2< 0 THEN 0 ELSE Ceiling2 END Ceiling2   from #tempBase T LEFT OUTER JOIN @Result R ON R.ProdId = T.ProdID WHERE [Status] = 'A';
 		
 	ELSE 
-		IF (SELECT COUNT(1) FROM #tempBase WHERE (YEAR(GETDATE()) - YEAR(CONVERT(DATETIME,ExpiryDate,103))) <= 2) > 1
-	  SELECT R.AntenatalAmountLeft,R.ConsultationAmountLeft,R.DeliveryAmountLeft, R.HospitalizationAmountLeft,R.SurgeryAmountLeft,R.TotalAdmissionsLeft,R.TotalAntenatalLeft, R.TotalConsultationsLeft,  r.TotalDelivieriesLeft, R.TotalSurgeriesLeft ,r.TotalVisitsLeft,  PolicyValue,EffectiveDate, LastName, OtherNames,CHFID, PhotoPath,  DOB,Gender,ProductCode,ProductName,ExpiryDate,[Status],DedType,Ded1,Ded2,CASE WHEN Ceiling1<0 THEN 0 ELSE Ceiling1 END Ceiling1,CASE WHEN Ceiling2<0 THEN 0 ELSE Ceiling2 END Ceiling2  from #tempBase T LEFT OUTER JOIN @Result R ON R.ProdId = T.ProdID WHERE (YEAR(GETDATE()) - YEAR(CONVERT(DATETIME,ExpiryDate,103))) <= 2;
+		IF (SELECT COUNT(1) FROM #tempBase WHERE (YEAR(GETDATE()) - YEAR(ExpiryDate)) <= 2) > 1
+	  SELECT R.AntenatalAmountLeft,R.ConsultationAmountLeft,R.DeliveryAmountLeft, R.HospitalizationAmountLeft,R.SurgeryAmountLeft,R.TotalAdmissionsLeft,R.TotalAntenatalLeft, R.TotalConsultationsLeft,  r.TotalDelivieriesLeft, R.TotalSurgeriesLeft ,r.TotalVisitsLeft,  PolicyValue,EffectiveDate, LastName, OtherNames,CHFID, PhotoPath,  DOB,Gender,ProductCode,ProductName,ExpiryDate,[Status],DedType,Ded1,Ded2,CASE WHEN Ceiling1<0 THEN 0 ELSE Ceiling1 END Ceiling1,CASE WHEN Ceiling2<0 THEN 0 ELSE Ceiling2 END Ceiling2  from #tempBase T LEFT OUTER JOIN @Result R ON R.ProdId = T.ProdID WHERE (YEAR(GETDATE()) - YEAR(ExpiryDate)) <= 2;
 		ELSE
 	
 			 SELECT R.AntenatalAmountLeft,R.ConsultationAmountLeft,R.DeliveryAmountLeft, R.HospitalizationAmountLeft,R.SurgeryAmountLeft,R.TotalAdmissionsLeft,R.TotalAntenatalLeft, R.TotalConsultationsLeft, r.TotalDelivieriesLeft, R.TotalSurgeriesLeft ,r.TotalVisitsLeft, PolicyValue,EffectiveDate, LastName, OtherNames, CHFID, PhotoPath,  DOB,Gender,ProductCode,ProductName,ExpiryDate,[Status],DedType,Ded1,Ded2,CASE WHEN Ceiling1<0 THEN 0 ELSE Ceiling1 END Ceiling1,CASE WHEN Ceiling2<0 THEN 0 ELSE Ceiling2 END Ceiling2  from #tempBase T LEFT OUTER JOIN @Result R  ON R.ProdId = T.ProdID
 END
-
 GO
 
 SET ANSI_NULLS ON
@@ -8389,12 +8462,7 @@ BEGIN
 END
 GO
 
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-
- CREATE PROCEDURE [dbo].[uspInsertIndexMonthly]
+CREATE PROCEDURE [dbo].[uspInsertIndexMonthly]
 (
 @Type varchar(1),
 @RelType INT, -- M 12, Q 4, Y 1 
@@ -8407,15 +8475,14 @@ GO
 @PrdValue decimal(18,2) =0,
 @AuditUser int = -1
 )
-
 AS
 BEGIN
 	DECLARE @DistrPerc as decimal(18,2)
 	DECLARE @ClaimValueItems as decimal(18,2)
 	DECLARE @ClaimValueservices as decimal(18,2)
 	DECLARE @RelIndex as decimal(18,4)
-
-
+	DECLARE @CeilingInterpretation as varchar(1)
+	SELECT @CeilingInterpretation = ISNULL(CeilingInterpretation,'H') FROM tblProduct WHERE ProdID = @ProductID
 
 	SELECT @DistrPerc = ISNULL(DistrPerc,1) FROM dbo.tblRelDistr WHERE ProdID = @ProductID AND Period = @Period AND DistrType = @RelType AND DistrCareType = @Type AND ValidityTo IS NULL
 			
@@ -8428,7 +8495,11 @@ BEGIN
 										tblClaim.ClaimStatus = 8) AND (ISNULL(MONTH(tblClaim.ProcessStamp) ,-1) BETWEEN @MStart AND @MEnd ) AND
 										(ISNULL(YEAR(tblClaim.ProcessStamp) ,-1) = @Year) AND
 										(tblClaimItems.ProdID = @ProductID) 
-										AND ((@TYPE =  'O' AND (tblHF.HFLevel = 'H')) OR (@TYPE =  'I' AND (tblHF.HFLevel <> 'H'))  OR @TYPE =  'B')
+										AND ((@TYPE =  'O' and @CeilingInterpretation = 'H' AND tblHF.HFLevel <> 'H') 
+										OR (@TYPE =  'O' and @CeilingInterpretation = 'I' AND DATEDIFF(d,tblClaim.DateFrom,tblClaim.DateTo)<1) 
+										OR (@TYPE =  'I' and @CeilingInterpretation = 'H' AND tblHF.HFLevel = 'H')
+										OR (@TYPE =  'I'and @CeilingInterpretation = 'I' AND DATEDIFF(d,tblClaim.DateFrom,tblClaim.DateTo)>=1)  
+										OR @TYPE =  'B')
 
 			
 			SELECT @ClaimValueservices = ISNULL(SUM(tblClaimServices.PriceValuated) ,0)
@@ -8440,7 +8511,11 @@ BEGIN
 										tblClaim.ClaimStatus = 8) AND (ISNULL(MONTH(tblClaim.ProcessStamp) ,-1) BETWEEN @MStart AND @MEnd ) AND 
 										(ISNULL(YEAR(tblClaim.ProcessStamp) ,-1) = @Year) AND
 										(tblClaimServices.ProdID = @ProductID) 
-										AND ((@TYPE =  'O' AND (tblHF.HFLevel = 'H')) OR (@TYPE =  'I' AND (tblHF.HFLevel <> 'H'))  OR @TYPE =  'B')
+										AND ((@TYPE =  'O' and @CeilingInterpretation = 'H' AND tblHF.HFLevel <> 'H') 
+										OR (@TYPE =  'O' and @CeilingInterpretation = 'I' AND DATEDIFF(d,tblClaim.DateFrom,tblClaim.DateTo)<1) 
+										OR (@TYPE =  'I' and @CeilingInterpretation = 'H' AND tblHF.HFLevel = 'H')
+										OR (@TYPE =  'I'and @CeilingInterpretation = 'I' AND DATEDIFF(d,tblClaim.DateFrom,tblClaim.DateTo)>=1)  
+										OR @TYPE =  'B')
 			
 			
 			IF @ClaimValueItems + @ClaimValueservices = 0 
@@ -8458,6 +8533,7 @@ BEGIN
 			END
 END
 GO
+-- OTC 223
 CREATE PROCEDURE [dbo].[uspRelativeIndexCalculationMonthly]
 (
 @RelType INT,   --Month = 12 Quarter = 4 Year = 1    
@@ -8657,7 +8733,7 @@ BEGIN
 FINISH:
 	
 	RETURN @oReturnValue
-	END TRY
+END TRY
 	
 	BEGIN CATCH
 		SELECT 'Unexpected error encountered'
@@ -8669,39 +8745,34 @@ FINISH:
 	
 END
 GO
-
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
+-- OTC 223
+/****** Object:  StoredProcedure [dbo].[uspBatchProcess]    Script Date: 6/15/2021 3:19:43 PM ******/
 CREATE PROCEDURE [dbo].[uspBatchProcess]
 	
 	@AuditUser as int = 0,
-	@LocationId as int, 
+	@LocationId as int,
 	@Period as int,
 	@Year as int,
-	@RtnStatus as int = 0 OUTPUT 
+	@RtnStatus as int = 0 OUTPUT
 	
 	--@RtnStatus 0=OK --> 1 General fault  --> 2 = Already run before 
 AS
 BEGIN
 	DECLARE @tblClaimIDs TABLE(ClaimID INT)
-
+	DECLARE @Months TABLE(month INT)
 	IF @LocationId=-1
 	BEGIN
 	SET @LocationId=NULL
 	END
 
 	DECLARE @oReturnValue as INT
-	SET @oReturnValue = 0 	
+	SET @oReturnValue = 0
 	
-	DECLARE @InTopIsolation as bit 
+	DECLARE @InTopIsolation as bit
 	
-	SET @InTopIsolation = -1 
+	SET @InTopIsolation = -1
 	
-	BEGIN TRY 
-	
-	
+	BEGIN TRY
 	
 	IF @@TRANCOUNT = 0 	
 		SET @InTopIsolation =0
@@ -8710,7 +8781,7 @@ BEGIN
 	IF @InTopIsolation = 0
 	BEGIN
 		--SELECT 'SET ISOLATION TNX ON'
-		SET TRANSACTION  ISOLATION LEVEL SERIALIZABLE
+		-- SET TRANSACTION  ISOLATION LEVEL SERIALIZABLE
 		BEGIN TRANSACTION PROCESSCLAIMS
 	END
 
@@ -8740,32 +8811,71 @@ BEGIN
 	END
 	
 	
+	--NOW insert a new batch run record and keep latest ID in memory
+	INSERT INTO tblBatchRun
+           ([LocationId],[RunYear],[RunMonth],[RunDate],[AuditUserID])
+    VALUES (@LocationId ,@Year, @Period , GETDATE() ,@AuditUser )
+    
+    DECLARE @RunID as int
+    
+    SELECT @RunID = SCOPE_IDENTITY ()
+
 	EXEC @oReturnValue = [uspRelativeIndexCalculationMonthly] 12, @Period, @Year , @LocationId, 0, @AuditUser, @RtnStatus
 	
 	IF @Period = 3 
+	BEGIN
 		EXEC @oReturnValue = [uspRelativeIndexCalculationMonthly] 4, 1, @Year , @LocationId, 0, @AuditUser, @RtnStatus
-	IF @Period = 6 
+		INSERT INTO @Months(month) VALUES (1),(2),(3)
+	END
+	ELSE IF @Period = 6 
+	BEGIN
 		EXEC @oReturnValue = [uspRelativeIndexCalculationMonthly] 4, 2, @Year , @LocationId, 0, @AuditUser, @RtnStatus
-	IF @Period = 9 
+		INSERT INTO @Months(month) VALUES (4),(5),(6)
+	END
+	ELSE IF @Period = 9 
+	BEGIN
 		EXEC @oReturnValue = [uspRelativeIndexCalculationMonthly] 4, 3, @Year , @LocationId, 0, @AuditUser, @RtnStatus
-	IF @Period = 12
-	BEGIN 
+		INSERT INTO @Months(month) VALUES (7),(8),(9)
+	END
+	ELSE IF @Period = 12
+	BEGIN
+		INSERT INTO @Months(month) VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12)
 		EXEC @oReturnValue = [uspRelativeIndexCalculationMonthly] 4, 4, @Year , @LocationId, 0, @AuditUser, @RtnStatus
 		EXEC @oReturnValue = [uspRelativeIndexCalculationMonthly] 1, 1, @Year , @LocationId, 0, @AuditUser, @RtnStatus
 	END
-	
-	DECLARE PRODUCTLOOPITEMS CURSOR LOCAL FORWARD_ONLY FOR 
-					SELECT    tblHF.HFLevel, tblProduct.ProdID, tblProduct.PeriodRelPrices, tblProduct.PeriodRelPricesOP, tblProduct.PeriodRelPricesIP,ISNULL(MONTH(tblClaim.ProcessStamp) ,-1) 
-										  AS Period, ISNULL(YEAR(tblClaim.ProcessStamp ), -1) AS [Year]
-					FROM         tblClaim INNER JOIN
-										  tblClaimItems ON tblClaim.ClaimID = tblClaimItems.ClaimID INNER JOIN
-										  tblHF ON tblClaim.HFID = tblHF.HfID INNER JOIN
-										  tblProduct ON tblClaimItems.ProdID = tblProduct.ProdID
-					WHERE     (tblClaim.ClaimStatus = 8) AND (tblClaim.ValidityTo IS NULL) AND (tblClaimItems.ValidityTo IS NULL) AND (tblClaimItems.ClaimItemStatus = 1) AND 
-										  (tblClaimItems.PriceOrigin = 'R') and ISNULL(tblProduct.LocationId,-1) = ISNULL(@LocationId,-1) 
-					GROUP BY tblHF.HFLevel, tblProduct.ProdID ,tblProduct.PeriodRelPrices, tblProduct.PeriodRelPricesOP, tblProduct.PeriodRelPricesIP, ISNULL(MONTH(tblClaim.ProcessStamp) ,-1)
-										  , ISNULL(YEAR(tblClaim.ProcessStamp ), -1) 
+	ELSE
+		INSERT INTO @Months(month) VALUES (@Period)
 
+			-- get all claim Id for 
+		INSERT INTO @tblClaimIDs (claimID)
+		SELECT claimID FROM tblClaim 
+		INNER JOIN tblHF HF ON tblClaim.HFID = HF.HFID
+		INNER JOIN tblLocations District on HF.LocationId = District.LocationId
+		INNER JOIN @Months on month = ISNULL(MONTH(tblClaim.ProcessStamp) , -1) 
+		WHERE     (tblClaim.ClaimStatus = 8) AND (tblClaim.ValidityTo IS NULL) AND HFLevel = @HFLevel 
+		--  limit with date
+		AND ISNULL(YEAR(tblClaim.ProcessStamp) , -1) = @Year
+		
+		-- limit with location
+		AND (@LocationId = -1 or District.LocationId = @LocationId or  District.ParentLocationId = @LocationId )
+
+	DECLARE PRODUCTLOOPITEMS CURSOR LOCAL FORWARD_ONLY FOR 
+					
+					SELECT    tblHF.HFLevel, tblProduct.ProdID, MAX(tblProduct.PeriodRelPrices) PeriodRelPrices , MAX(tblProduct.PeriodRelPricesOP) PeriodRelPricesOP, MAX(tblProduct.PeriodRelPricesIP) PeriodRelPricesIP,ISNULL(MONTH(tblClaim.ProcessStamp) ,-1) 
+										  AS Period, ISNULL(YEAR(tblClaim.ProcessStamp ), -1) AS [Year]
+					FROM         tblClaim INNER JOIN (
+						SELECT ClaimID,ProdID FROM tblClaimItems WHERE  (tblClaimItems.ValidityTo IS NULL) AND (tblClaimItems.ClaimItemStatus = 1) AND (tblClaimItems.PriceOrigin = 'R')
+						UNION
+						SELECT ClaimID,ProdID FROM tblclaimServices WHERE  (tblclaimServices.ValidityTo IS NULL) AND (tblclaimServices.ClaimServiceStatus = 1) AND (tblclaimServices.PriceOrigin = 'R')
+						) as CDetails on tblClaim.ClaimID = CDetails.ClaimID		  
+						INNER JOIN tblHF ON tblClaim.HFID = tblHF.HfID 
+						INNER JOIN @tblClaimIDs Listclaims on Listclaims.ClaimID = tblClaim.ClaimID
+						INNER JOIN tblProduct ON CDetails.ProdID = tblProduct.ProdID
+					WHERE     (tblClaim.ClaimStatus = 8) AND (tblClaim.ValidityTo IS NULL)  and ISNULL(tblProduct.LocationId,-1) = ISNULL(@LocationId,-1) 
+
+					GROUP BY tblHF.HFLevel, tblProduct.ProdID , ISNULL(MONTH(tblClaim.ProcessStamp) ,-1)
+										  , ISNULL(YEAR(tblClaim.ProcessStamp ), -1) 
+					ORDER BY ISNULL(YEAR(tblClaim.ProcessStamp ), -1)
 	--DECLARE @Test as decimal(18,2)
 	OPEN PRODUCTLOOPITEMS
 	FETCH NEXT FROM PRODUCTLOOPITEMS INTO @HFLevel,@ProdID,@RP_G,@RP_OP,@RP_IP,@RP_Period,@RP_Year
@@ -8836,7 +8946,6 @@ BEGIN
 				--SET @Index = 1   --> simply never pay more than claimed although index is higher than 1
 			
 			UPDATE tblClaimItems SET RemuneratedAmount = @Index * PriceValuated 
-			OUTPUT Deleted.ClaimID into @tblClaimIDs
 			FROM         tblClaim INNER JOIN
 										  tblClaimItems ON tblClaim.ClaimID = tblClaimItems.ClaimID INNER JOIN
 										  tblHF ON tblClaim.HFID = tblHF.HfID INNER JOIN
@@ -8848,99 +8957,7 @@ BEGIN
 										  AND ISNULL(YEAR(tblClaim.ProcessStamp) , -1) = @RP_Year;
 
 
-		
-
-		END 
-		
-		
-NextProdItems:
-		FETCH NEXT FROM PRODUCTLOOPITEMS INTO @HFLevel,@ProdID,@RP_G,@RP_OP,@RP_IP,@RP_Period,@RP_Year
-	END
-	CLOSE PRODUCTLOOPITEMS
-	DEALLOCATE PRODUCTLOOPITEMS
-	
-	--NOW RUN SERVICES 
-
-	DECLARE PRODUCTLOOPSERVICES CURSOR LOCAL FORWARD_ONLY FOR 
-					SELECT    tblHF.HFLevel, tblProduct.ProdID, tblProduct.PeriodRelPrices, tblProduct.PeriodRelPricesOP, tblProduct.PeriodRelPricesIP, ISNULL(MONTH(tblClaim.ProcessStamp) , -1) 
-										  AS Period, ISNULL(YEAR(tblClaim.ProcessStamp), -1) AS [Year]
-					FROM         tblClaim INNER JOIN
-										  tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID INNER JOIN
-										  tblHF ON tblClaim.HFID = tblHF.HfID INNER JOIN
-										  tblProduct ON tblClaimServices.ProdID = tblProduct.ProdID
-					WHERE     (tblClaim.ClaimStatus = 8) AND (tblClaim.ValidityTo IS NULL) AND (tblClaimServices.ValidityTo IS NULL) AND (tblClaimServices.ClaimServiceStatus = 1) AND 
-										  (tblClaimServices.PriceOrigin = 'R') and ISNULL(tblProduct.LocationId,-1) = ISNULL(@LocationId ,-1)
-					GROUP BY tblHF.HFLevel, tblProduct.ProdID ,tblProduct.PeriodRelPrices, tblProduct.PeriodRelPricesOP, tblProduct.PeriodRelPricesIP, ISNULL(MONTH(tblClaim.ProcessStamp) , -1) 
-										  , ISNULL(YEAR(tblClaim.ProcessStamp), -1)
-
-	OPEN PRODUCTLOOPSERVICES
-	FETCH NEXT FROM PRODUCTLOOPSERVICES INTO @HFLevel,@ProdID,@RP_G,@RP_OP,@RP_IP,@RP_Period,@RP_Year
-	WHILE @@FETCH_STATUS = 0 
-	BEGIN
-		--IF @ProdID = 108 
-		--BEGIN
-		--	SET @Test = 0
-		--END
-		SET @Index = -1
-		--Determine the actual index for this combination 
-		SET @TargetMonth = @RP_Period 
-		SET @TargetYear = @RP_Year
-
-		IF @RP_Period = 1 or @RP_Period = 2 OR @RP_Period = 3 
-			SET @TargetQuarter = 1
-		IF @RP_Period = 4 or @RP_Period = 5 OR @RP_Period = 6 
-			SET @TargetQuarter = 2
-		IF @RP_Period = 7 or @RP_Period = 8 OR @RP_Period = 9 
-			SET @TargetQuarter = 3
-		IF @RP_Period = 10 or @RP_Period = 11 OR @RP_Period = 12 
-			SET @TargetQuarter = 4
-		
-		
-		IF ISNULL(@RP_G,'') <> '' 
-		BEGIN
-			IF @RP_G = 'M' 
-				SELECT @Index = RelIndex FROM dbo.tblRelIndex WHERE ProdID = @ProdID AND RelCareType = 'B' AND RelType = 12 AND RelPeriod = @TargetMonth  AND RelYear = @TargetYear AND ValidityTo IS NULL  
-			IF @RP_G = 'Q' 
-				SELECT @Index = RelIndex FROM dbo.tblRelIndex WHERE ProdID = @ProdID AND RelCareType = 'B' AND RelType = 4 AND RelPeriod = @TargetQuarter   AND RelYear = @TargetYear AND ValidityTo IS NULL
-			IF @RP_G = 'Y' 
-				SELECT @Index = RelIndex FROM dbo.tblRelIndex WHERE ProdID = @ProdID AND RelCareType = 'B' AND RelType = 1 AND RelPeriod = 1  AND RelYear = @TargetYear AND ValidityTo IS NULL
-					
-		END 	
-		ELSE
-		BEGIN
-					
-			IF @HFLevel = 'H' AND ISNULL(@RP_IP,'') <> ''
-			BEGIN
-				IF @RP_IP = 'M' 
-					SELECT @Index = RelIndex FROM dbo.tblRelIndex WHERE ProdID = @ProdID AND RelCareType = 'I' AND RelType = 12 AND RelPeriod = @TargetMonth  AND RelYear = @TargetYear AND ValidityTo IS NULL  
-				IF @RP_IP = 'Q' 
-					SELECT @Index = RelIndex FROM dbo.tblRelIndex WHERE ProdID = @ProdID AND RelCareType = 'I' AND RelType = 4 AND RelPeriod = @TargetQuarter   AND RelYear = @TargetYear AND ValidityTo IS NULL
-				IF @RP_IP = 'Y' 
-					SELECT @Index = RelIndex FROM dbo.tblRelIndex WHERE ProdID = @ProdID AND RelCareType = 'I' AND RelType = 1 AND RelPeriod = 1  AND RelYear = @TargetYear AND ValidityTo IS NULL
-			END
-			
-			IF @HFLevel <> 'H' AND ISNULL(@RP_OP,'') <> ''
-			BEGIN
-				IF @RP_OP = 'M' 
-					SELECT @Index = RelIndex FROM dbo.tblRelIndex WHERE ProdID = @ProdID AND RelCareType = 'O' AND RelType = 12 AND RelPeriod = @TargetMonth  AND RelYear = @TargetYear AND ValidityTo IS NULL  
-				IF @RP_OP = 'Q' 
-					SELECT @Index = RelIndex FROM dbo.tblRelIndex WHERE ProdID = @ProdID AND RelCareType = 'O' AND RelType = 4 AND RelPeriod = @TargetQuarter   AND RelYear = @TargetYear AND ValidityTo IS NULL
-				IF @RP_OP = 'Y' 
-					SELECT @Index = RelIndex FROM dbo.tblRelIndex WHERE ProdID = @ProdID AND RelCareType = 'O' AND RelType = 1 AND RelPeriod = 1  AND RelYear = @TargetYear AND ValidityTo IS NULL
-			END
-		END
-		
-		--IF ISNULL(@Index,-1) = -1 
-		--	SET @Index = 1   --> set index to use = 1 if no index could be found !
-		IF ISNULL(@Index,-1) > -1 
-		BEGIN
-			
-			--IF @Index > 1 
-				--SET @Index = 1   --> simply never pay more than claimed altehough index is higher than 1
-				
-				
 			UPDATE tblClaimServices SET RemuneratedAmount = @Index * PriceValuated 
-			OUTPUT Deleted.ClaimID into @tblClaimIDs
 			FROM         tblClaim INNER JOIN
 										  tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID INNER JOIN
 										  tblHF ON tblClaim.HFID = tblHF.HfID INNER JOIN
@@ -8952,124 +8969,36 @@ NextProdItems:
 										  AND ISNULL(MONTH(tblClaim.ProcessStamp) , -1) = @RP_Period
 										  AND ISNULL(YEAR(tblClaim.ProcessStamp) , -1) = @RP_Year;
 
+		END 
 
-			
+		UPDATE tblClaim SET RunID = @RunID ,  ClaimStatus = 16, Remunerated = CDetails.remunearated
+		FROM         tblClaim 
+		INNER JOIN (
+			SELECT claimID, MAX(prodID) prodID, SUM(remunearated)remunearated FROM(
+				SELECT tblClaimItems.ClaimID,ProdID, ISNULL(RemuneratedAmount, CASE PriceOrigin WHEN 'R' THEN 0 ELSE PriceValuated END) remunearated 
+				FROM tblClaimItems 
+				INNER JOIN @tblClaimIDs Listclaims on Listclaims.ClaimID = tblClaimItems.ClaimID
+				WHERE  (tblClaimItems.ValidityTo IS NULL) AND (tblClaimItems.ClaimItemStatus = 1) 
+				UNION ALL
+				SELECT  tblclaimServices.ClaimID,ProdID, ISNULL(RemuneratedAmount, CASE PriceOrigin WHEN 'R' THEN 0 ELSE PriceValuated END) remunearated  
+				FROM tblclaimServices 
+				INNER JOIN @tblClaimIDs Listclaims on Listclaims.ClaimID = tblclaimServices.ClaimID
+				WHERE  (tblclaimServices.ValidityTo IS NULL) AND (tblclaimServices.ClaimServiceStatus = 1) 
+			) as total GROUP BY claimID
+		) as CDetails on tblClaim.ClaimID = CDetails.ClaimID
+		INNER JOIN @tblClaimIDs Listclaims on Listclaims.ClaimID = tblClaim.ClaimID
+		INNER JOIN tblHF ON tblClaim.HFID = tblHF.HfID
+		-- claim with multiple productid will be on the batch on the product with highest productID (no business way defined)
+		INNER JOIN tblProduct ON CDetails.ProdID = tblProduct.ProdID
+		WHERE     (tblClaim.ClaimStatus = 8) AND (tblClaim.ValidityTo IS NULL) 
 		
-		END
-
-NextProdServices:
-		FETCH NEXT FROM PRODUCTLOOPSERVICES INTO @HFLevel,@ProdID,@RP_G,@RP_OP,@RP_IP,@RP_Period,@RP_Year
+NextProdItems:
+		FETCH NEXT FROM PRODUCTLOOPITEMS INTO @HFLevel,@ProdID,@RP_G,@RP_OP,@RP_IP,@RP_Period,@RP_Year
 	END
-	CLOSE PRODUCTLOOPSERVICES
-	DEALLOCATE PRODUCTLOOPSERVICES
+	CLOSE PRODUCTLOOPITEMS
+	DEALLOCATE PRODUCTLOOPITEMS
 
 
-	--Get all the claims in valuated state with no Relative index /Services
-
-	INSERT INTO @tblClaimIDs(ClaimID)
-
-	SELECT tblClaim.ClaimId
-	FROM  tblClaim 
-	INNER JOIN 	tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID 
-	INNER JOIN 	tblProduct ON tblClaimServices.ProdID = tblProduct.ProdID
-	WHERE (tblClaim.ClaimStatus = 16) 
-	AND (tblClaim.ValidityTo IS NULL) 
-	AND (tblClaimServices.ValidityTo IS NULL) 
-	AND (tblClaimServices.ClaimServiceStatus = 1) 
-	AND (tblClaimServices.PriceOrigin <> 'R') 
-	and ISNULL(tblProduct.LocationId,-1) = ISNULL(@LocationId ,-1)
-	AND tblClaim.RunId IS NULL
-	AND ISNULL(MONTH(tblClaim.ProcessStamp) , -1) = @Period
-	AND ISNULL(YEAR(tblClaim.ProcessStamp) , -1) = @Year
-	GROUP BY tblClaim.ClaimID
-
-	UNION
-
-	SELECT tblClaim.ClaimId
-	FROM  tblClaim 
-	INNER JOIN 	tblClaimItems ON tblClaim.ClaimID = tblClaimItems.ClaimID 
-	INNER JOIN 	tblProduct ON tblClaimItems.ProdID = tblProduct.ProdID
-	WHERE (tblClaim.ClaimStatus = 16) 
-	AND (tblClaim.ValidityTo IS NULL) 
-	AND (tblClaimItems.ValidityTo IS NULL) 
-	AND (tblClaimItems.ClaimItemStatus = 1) 
-	AND (tblClaimItems.PriceOrigin <> 'R') 
-	and ISNULL(tblProduct.LocationId,-1) = ISNULL(@LocationId ,-1)
-	AND tblClaim.RunId IS NULL
-	AND ISNULL(MONTH(tblClaim.ProcessStamp) , -1) = @Period
-	AND ISNULL(YEAR(tblClaim.ProcessStamp) , -1) = @Year
-	GROUP BY tblClaim.ClaimID;
-
-
-	
-	--NOW UPDATE the status of all Claims that have all remunerations values updated ==> set to 16
-	UPDATE tblClaim SET ClaimStatus = 16 FROM tblClaim 
-	INNER JOIN @tblClaimIDs UpdClaims on UpdClaims.ClaimID = tblClaim.ClaimID  WHERE ClaimStatus = 8 AND tblClaim.ValidityTo IS NULL AND
-	tblClaim.ClaimID NOT IN 
-	(SELECT tblClaim.ClaimID FROM tblClaim INNER JOIN tblClaimItems ON tblClaim.ClaimID = tblClaimItems.ClaimID INNER JOIN tblProduct ON tblClaimItems.ProdID = tblProduct.ProdID 
-	 WHERE tblClaim.ValidityTo IS NULL AND ISNULL(LocationId,-1) = ISNULL(@LocationId,-1) AND tblClaimItems.RemuneratedAmount IS NULL AND tblClaim.ClaimStatus = 8 AND tblClaimItems.ValidityTo IS NULL
-	 AND tblClaimItems.ClaimItemStatus = 1
-	 GROUP BY tblClaim.ClaimID 
-	)
-	AND 
-	tblClaim.ClaimID NOT IN 
-	(SELECT tblClaim.ClaimID FROM tblClaim
-	INNER JOIN tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID 
-	INNER JOIN tblProduct  ON tblClaimServices.ProdID = tblProduct.ProdID  
-	 WHERE tblClaim.ValidityTo IS NULL AND ISNULL(LocationId,-1) = ISNULL(@LocationId,-1) AND tblClaimServices.RemuneratedAmount IS NULL AND tblClaim.ClaimStatus = 8 AND tblClaimServices.ValidityTo IS NULL
-	 AND tblClaimServices.ClaimServiceStatus  = 1
-	 GROUP BY tblClaim.ClaimID  
-	)
-	
-	--NOW insert a new batch run record and keep latest ID in memory
-	INSERT INTO tblBatchRun
-           ([LocationId],[RunYear],[RunMonth],[RunDate],[AuditUserID])
-    VALUES (@LocationId ,@Year, @Period , GETDATE() ,@AuditUser )
-    
-    DECLARE @RunID as int
-    
-    SELECT @RunID = SCOPE_IDENTITY ()
-    
-	DECLARE @MStart as INT  = 0 
-	DECLARE @MEnd as INT = 0 
-
-	
-	IF @Period = 3 
-	BEGIN
-		SET @MStart = 1 
-		SET @MEnd = 3 
-	END
-	IF @Period = 6 
-	BEGIN
-		SET @MStart = 4
-		SET @MEnd = 6
-	END
-	IF @Period = 9
-	BEGIN
-		SET @MStart = 7
-		SET @MEnd = 9
-	END
-	IF @Period = 12
-	BEGIN
-		SET @MStart = 1
-		SET @MEnd = 12
-	END
-	
-	
-	
-
-
-	UPDATE tblClaim SET RunID = @RunID FROM tblClaim inner join @tblClaimIDs UpdClaims on UpdClaims.ClaimID = tblClaim.ClaimID
-    WHERE tblClaim.ValidityTo IS NULL AND ClaimStatus = 16 AND RunID IS NULL AND ISNULL(MONTH(tblClaim.ProcessStamp) , -1) = @Period
-										  AND ISNULL(YEAR(tblClaim.ProcessStamp) , -1) = @Year
-
-	IF @MStart > 0 
-	BEGIN
-		-- we are running multiple batches e.g Quarterly or Yearly
-		UPDATE tblClaim SET RunID = @RunID FROM tblClaim inner join @tblClaimIDs UpdClaims on UpdClaims.ClaimID = tblClaim.ClaimID
-		WHERE tblClaim.ValidityTo IS NULL AND ClaimStatus = 16 AND RunID IS NULL AND (ISNULL(MONTH(tblClaim.ProcessStamp) , -1) BETWEEN @MStart  AND @MEnd )  AND ISNULL(YEAR(tblClaim.ProcessStamp) , -1) = @Year
-	END
-	
 FINISH:
 	IF @InTopIsolation = 0 COMMIT TRANSACTION PROCESSCLAIMS
 	SET @oReturnValue = 0 
@@ -9089,10 +9018,10 @@ ERR_HANDLER:
 	SELECT ERROR_MESSAGE () as ErrorMessage
 	IF @InTopIsolation = 0 ROLLBACK TRANSACTION PROCESSCLAIMS
 	RETURN @oReturnValue
-
-	
 END
 GO
+
+-- OTC 223
 
 SET ANSI_NULLS ON
 GO
@@ -9458,1032 +9387,6 @@ END
 
 GO
 
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-
-
-CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
-	@XML XML,
-	@FamilySent INT = 0 OUTPUT ,
-	@FamilyImported INT = 0 OUTPUT,
-	@FamiliesUpd INT =  0 OUTPUT,  
-	@FamilyRejected INT = 0 OUTPUT,
-	@InsureeSent INT = 0 OUTPUT,
-	@InsureeUpd INT =0 OUTPUT,
-	@InsureeImported INT = 0 OUTPUT ,
-	@PolicySent INT = 0 OUTPUT,
-	@PolicyImported INT = 0 OUTPUT,
-	@PolicyRejected INT = 0 OUTPUT,
-	@PolicyChanged INT = 0 OUTPUT,
-	@PremiumSent INT = 0 OUTPUT,
-	@PremiumImported INT = 0 OUTPUT,
-	@PremiumRejected INT =0 OUTPUT
-	
-	)
-	AS
-	BEGIN
-
-	/*=========ERROR CODES==========
-	-400	:Uncaught exception
-	0	:	All okay
-	-1	:	Given family has no HOF
-	-2	:	Insurance number of the HOF already exists
-	-3	:	Duplicate Insurance number found
-	-4	:	Duplicate receipt found
-	-5		Double Head of Family Found
-	
-	*/
-
-
-	DECLARE @Query NVARCHAR(500)
-	--DECLARE @XML XML
-	DECLARE @tblFamilies TABLE(FamilyId INT,InsureeId INT, CHFID nvarchar(12),  LocationId INT,Poverty NVARCHAR(1),FamilyType NVARCHAR(2),FamilyAddress NVARCHAR(200), Ethnicity NVARCHAR(1), ConfirmationNo NVARCHAR(12), ConfirmationType NVARCHAR(3), isOffline BIT, NewFamilyId INT)
-	DECLARE @tblInsuree TABLE(InsureeId INT,FamilyId INT,CHFID NVARCHAR(12),LastName NVARCHAR(100),OtherNames NVARCHAR(100),DOB DATE,Gender CHAR(1),Marital CHAR(1),IsHead BIT,Passport NVARCHAR(25),Phone NVARCHAR(50),CardIssued BIT,Relationship SMALLINT,Profession SMALLINT,Education SMALLINT,Email NVARCHAR(100), TypeOfId NVARCHAR(1), HFID INT,CurrentAddress NVARCHAR(200),GeoLocation NVARCHAR(200),CurVillage INT,isOffline BIT,PhotoPath NVARCHAR(100), NewFamilyId INT, NewInsureeId INT)
-	DECLARE @tblPolicy TABLE(PolicyId INT,FamilyId INT,EnrollDate DATE,StartDate DATE,EffectiveDate DATE,ExpiryDate DATE,PolicyStatus TINYINT,PolicyValue DECIMAL(18,2),ProdId INT,OfficerId INT,PolicyStage CHAR(1), isOffline BIT, NewFamilyId INT, NewPolicyId INT)
-	DECLARE @tblInureePolicy TABLE(PolicyId INT,InsureeId INT,EffectiveDate DATE, NewInsureeId INT, NewPolicyId INT)
-	DECLARE @tblPremium TABLE(PremiumId INT,PolicyId INT,PayerId INT,Amount DECIMAL(18,2),Receipt NVARCHAR(50),PayDate DATE,PayType CHAR(1),isPhotoFee BIT, NewPolicyId INT)
-	DECLARE @tblRejectedFamily TABLE(FamilyID INT)
-	DECLARE @tblRejectedInsuree TABLE(InsureeID INT)
-	DECLARE @tblRejectedPolicy TABLE(PolicyId INT)
-	DECLARE @tblRejectedPremium TABLE(PremiumId INT)
-
-
-	DECLARE @tblResult TABLE(Result NVARCHAR(Max))
-	DECLARE @tblIds TABLE(OldId INT, [NewId] INT)
-
-	BEGIN TRY
-
-		--SET @Query = (N'SELECT @XML = CAST(X as XML) FROM OPENROWSET(BULK  '''+ @File +''' ,SINGLE_BLOB) AS T(X)')
-
-		--EXECUTE SP_EXECUTESQL @Query,N'@XML XML OUTPUT',@XML OUTPUT
-
-
-		--GET ALL THE FAMILY FROM THE XML
-		INSERT INTO @tblFamilies(FamilyId,InsureeId,CHFID, LocationId,Poverty,FamilyType,FamilyAddress,Ethnicity, ConfirmationNo,ConfirmationType, isOffline)
-		SELECT 
-		T.F.value('(FamilyId)[1]','INT'),
-		T.F.value('(InsureeId)[1]','INT'),
-		T.F.value('(HOFCHFID)[1]','NVARCHAR(12)'),
-		T.F.value('(LocationId)[1]','INT'),
-		T.F.value('(Poverty)[1]','BIT'),
-		NULLIF(T.F.value('(FamilyType)[1]','NVARCHAR(2)'),''),
-		T.F.value('(FamilyAddress)[1]','NVARCHAR(200)'),
-		T.F.value('(Ethnicity)[1]','NVARCHAR(1)'),
-		T.F.value('(ConfirmationNo)[1]','NVARCHAR(12)'),
-		NULLIF(T.F.value('(ConfirmationType)[1]','NVARCHAR(3)'),''),
-		T.F.value('(isOffline)[1]','BIT')
-		FROM @XML.nodes('Enrolment/Families/Family') AS T(F)
-
-
-		--Get total number of families sent via XML
-		SELECT @FamilySent = COUNT(*) FROM @tblFamilies
-
-		--GET ALL THE INSUREES FROM XML
-		INSERT INTO @tblInsuree(InsureeId,FamilyId,CHFID,LastName,OtherNames,DOB,Gender,Marital,IsHead,Passport,Phone,CardIssued,Relationship,Profession,Education,Email, TypeOfId, HFID, CurrentAddress, GeoLocation, CurVillage, isOffline,PhotoPath)
-		SELECT
-		T.I.value('(InsureeId)[1]','INT'),
-		T.I.value('(FamilyId)[1]','INT'),
-		T.I.value('(CHFID)[1]','NVARCHAR(12)'),
-		T.I.value('(LastName)[1]','NVARCHAR(100)'),
-		T.I.value('(OtherNames)[1]','NVARCHAR(100)'),
-		T.I.value('(DOB)[1]','DATE'),
-		T.I.value('(Gender)[1]','CHAR(1)'),
-		T.I.value('(Marital)[1]','CHAR(1)'),
-		T.I.value('(isHead)[1]','BIT'),
-		T.I.value('(IdentificationNumber)[1]','NVARCHAR(25)'),
-		T.I.value('(Phone)[1]','NVARCHAR(50)'),
-		T.I.value('(CardIssued)[1]','BIT'),
-		NULLIF(T.I.value('(Relationship)[1]','SMALLINT'),''),
-		NULLIF(T.I.value('(Profession)[1]','SMALLINT'),''),
-		NULLIF(T.I.value('(Education)[1]','SMALLINT'),''),
-		T.I.value('(Email)[1]','NVARCHAR(100)'),
-		NULLIF(T.I.value('(TypeOfId)[1]','NVARCHAR(1)'),''),
-		NULLIF(T.I.value('(HFID)[1]','INT'),''),
-		T.I.value('(CurrentAddress)[1]','NVARCHAR(200)'),
-		T.I.value('(GeoLocation)[1]','NVARCHAR(200)'),
-		NULLIF(NULLIF(T.I.value('(CurVillage)[1]','INT'),''),0),
-		T.I.value('(isOffline)[1]','BIT'),
-		T.I.value('(PhotoPath)[1]','NVARCHAR(100)')
-		FROM @XML.nodes('Enrolment/Insurees/Insuree') AS T(I)
-
-		--Get total number of Insurees sent via XML
-		SELECT @InsureeSent = COUNT(*) FROM @tblInsuree
-
-		--GET ALL THE POLICIES FROM XML
-		DECLARE @ActivationOption INT
-		SELECT @ActivationOption = ActivationOption FROM tblIMISDefaults
-
-		DECLARE @ActiveStatus TINYINT = 2
-		DECLARE @ReadyStatus TINYINT = 16
-
-		INSERT INTO @tblPolicy(PolicyId,FamilyId,EnrollDate,StartDate,EffectiveDate,ExpiryDate,PolicyStatus,PolicyValue,ProdId,OfficerId,PolicyStage,isOffline)
-		SELECT 
-		T.P.value('(PolicyId)[1]','INT'),
-		T.P.value('(FamilyId)[1]','INT'),
-		T.P.value('(EnrollDate)[1]','DATE'),
-		T.P.value('(StartDate)[1]','DATE'),
-		T.P.value('(EffectiveDate)[1]','DATE'),
-		T.P.value('(ExpiryDate)[1]','DATE'),
-		IIF(T.P.value('(PolicyStatus)[1]','TINYINT') = @ActiveStatus AND @ActivationOption = 3, @ReadyStatus, T.P.value('(PolicyStatus)[1]','TINYINT')),
-		T.P.value('(PolicyValue)[1]','DECIMAL(18,2)'),
-		T.P.value('(ProdId)[1]','INT'),
-		T.P.value('(OfficerId)[1]','INT'),
-		T.P.value('(PolicyStage)[1]','CHAR(1)'),
-		T.P.value('(isOffline)[1]','BIT')
-		FROM @XML.nodes('Enrolment/Policies/Policy') AS T(P)
-
-		--Get total number of Policies sent via XML
-		SELECT @PolicySent = COUNT(*) FROM @tblPolicy
-			
-		--GET INSUREEPOLICY
-		INSERT INTO @tblInureePolicy(PolicyId,InsureeId,EffectiveDate)
-		SELECT 
-		T.P.value('(PolicyId)[1]','INT'),
-		T.P.value('(InsureeId)[1]','INT'),
-		NULLIF(T.P.value('(EffectiveDate)[1]','DATE'),'')
-		FROM @XML.nodes('Enrolment/InsureePolicies/InsureePolicy') AS T(P)
-
-		--GET ALL THE PREMIUMS FROM XML
-		INSERT INTO @tblPremium(PremiumId,PolicyId,PayerId,Amount,Receipt,PayDate,PayType,isPhotoFee)
-		SELECT
-		T.PR.value('(PremiumId)[1]','INT'),
-		T.PR.value('(PolicyId)[1]','INT'),
-		NULLIF(T.PR.value('(PayerId)[1]','INT'),0),
-		T.PR.value('(Amount)[1]','DECIMAL(18,2)'),
-		T.PR.value('(Receipt)[1]','NVARCHAR(50)'),
-		T.PR.value('(PayDate)[1]','DATE'),
-		T.PR.value('(PayType)[1]','CHAR(1)'),
-		T.PR.value('(isPhotoFee)[1]','BIT')
-		FROM @XML.nodes('Enrolment/Premiums/Premium') AS T(PR)
-
-		--Get total number of premium sent via XML
-		SELECT @PremiumSent = COUNT(*) FROM @tblPremium;
-
-		IF ( @XML.exist('(Enrolment/FileInfo)') = 0)
-			BEGIN
-				INSERT INTO @tblResult VALUES
-				(N'<h4 style="color:red;">Error: FileInfo doesn''t exists. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>')
-				RAISERROR (N'<h4 style="color:red;">Error: FileInfo doesn''t exists. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>', 16, 1);
-			END
-
-			DECLARE @AuditUserId INT =-2,@AssociatedPhotoFolder NVARCHAR(255), @OfficerID INT
-			IF ( @XML.exist('(Enrolment/FileInfo)')=1 )
-				SET	@AuditUserId= (SELECT T.PR.value('(UserId)[1]','INT') FROM @XML.nodes('Enrolment/FileInfo') AS T(PR))
-			
-			IF ( @XML.exist('(Enrolment/FileInfo)')=1 )
-				SET	@OfficerID= (SELECT T.PR.value('(OfficerId)[1]','INT') FROM @XML.nodes('Enrolment/FileInfo') AS T(PR))
-				SET @AssociatedPhotoFolder=(SELECT AssociatedPhotoFolder FROM tblIMISDefaults)
-
-		/********************************************************************************************************
-										VALIDATING FILE				
-		********************************************************************************************************/
-
-		
-
-		IF EXISTS(
-		--Online Insuree in Offline family
-		SELECT 1 FROM @tblInsuree TI
-		INNER JOIN @tblFamilies TF ON TI.FamilyId = TF.FamilyId
-		WHERE TF.isOffline = 1 AND TI.isOffline= 0
-		)
-		BEGIN
-			INSERT INTO @tblResult VALUES
-			(N'<h4 style="color:red;">Error: Online Insuree in Offline family. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>')
-		
-			RAISERROR (N'<h4 style="color:red;">Error: Online Insuree in Offline family. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>', 16, 1);
-		END
-		
-		IF EXISTS(
-		--online Policy in offline family
-		SELECT 1 FROM @tblPolicy TP 
-		INNER JOIN @tblFamilies TF ON TP.FamilyId = TF.FamilyId
-		WHERE TF.isOffline = 1 AND TP.isOffline =0
-		)
-		BEGIN
-			INSERT INTO @tblResult VALUES
-			(N'<h4 style="color:red;">Error: online Policy in offline family. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>')
-		
-			RAISERROR (N'<h4 style="color:red;">Error: online Policy in offline family. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>', 16, 1);
-		END
-		
-		IF EXISTS(
-		--Insuree without family
-		SELECT 1 
-		FROM @tblInsuree I LEFT OUTER JOIN @tblFamilies F ON I.FamilyId = F.FamilyID
-		WHERE F.FamilyID IS NULL
-
-		)
-		BEGIN
-			INSERT INTO @tblResult VALUES
-			(N'<h4 style="color:red;">Error: Insuree without family. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>')
-		
-			RAISERROR (N'<h4 style="color:red;">Error: Insuree without family. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>', 16, 1);
-		END
-		
-		IF EXISTS(
-		
-		--Policy without family
-		SELECT 1 FROM
-		@tblPolicy PL LEFT OUTER JOIN @tblFamilies F ON PL.FamilyId = F.FamilyId
-		WHERE F.FamilyId IS NULL
-
-		)
-		BEGIN
-			INSERT INTO @tblResult VALUES
-			(N'<h4 style="color:red;">Error: Policy without family. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>')
-		
-			RAISERROR (N'<h4 style="color:red;">Error: Policy without family. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>', 16, 1);
-		END
-		
-		IF EXISTS(
-		
-		--Premium without policy
-		SELECT 1
-		FROM @tblPremium PR LEFT OUTER JOIN @tblPolicy P ON PR.PolicyId = P.PolicyId
-		WHERE P.PolicyId  IS NULL
-
-		)
-		BEGIN
-			INSERT INTO @tblResult VALUES
-			(N'<h4 style="color:red;">Error: Premium without policy. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>')
-		
-			RAISERROR (N'<h4 style="color:red;">Error: Premium without policy. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>', 16, 1);
-		END
-		
-		--IF EXISTS(
-		
-		-----Invalid Family type field
-		--SELECT 1 FROM @tblFamilies F 
-		--LEFT OUTER JOIN tblFamilyTypes FT ON F.FamilyType=FT.FamilyTypeCode
-		--WHERE FT.FamilyType IS NULL AND F.FamilyType IS NOT NULL
-
-		--)
-		--BEGIN
-		--	INSERT INTO @tblResult VALUES
-		--	(N'<h4 style="color:red;">Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>')
-		
-		--	RAISERROR (N'<h4 style="color:red;">Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>', 16, 1);
-		--END
-		
-		IF EXISTS(
-		
-		---Invalid IdentificationType
-		SELECT 1 FROM @tblInsuree I
-		LEFT OUTER JOIN tblIdentificationTypes IT ON I.TypeOfId = IT.IdentificationCode
-		WHERE IT.IdentificationCode IS NULL AND I.TypeOfId IS NOT NULL
-
-		)
-		BEGIN
-			INSERT INTO @tblResult VALUES
-			(N'<h4 style="color:red;">Error: Invalid IdentificationType. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>')
-		
-			RAISERROR (N'<h4 style="color:red;">Error: Invalid IdentificationType. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>', 16, 1);
-		END
-		
-		IF EXISTS(
-		SELECT 1 FROM @tblInureePolicy TIP 
-		LEFT OUTER JOIN @tblPolicy TP ON TP.PolicyId = TIP.PolicyId
-		WHERE TP.PolicyId IS NULL
-		)
-		BEGIN
-			INSERT INTO @tblResult VALUES
-			(N'<h4 style="color:red;">Error: Invalid IdentificationType. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>')
-		
-			RAISERROR (N'<h4 style="color:red;">Error: Invalid IdentificationType. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>', 16, 1);
-		END
-
-		--SELECT * INTO tempFamilies FROM @tblFamilies
-		--SELECT * INTO tempInsuree FROM @tblInsuree
-		--SELECT * INTO tempPolicy FROM @tblPolicy
-		--SELECT * INTO tempInsureePolicy FROM @tblInureePolicy
-		--SELECT * INTO tempPolicy FROM @tblPolicy
-		--RETURN
-
-		SELECT * FROM @tblInsuree
-		SELECT * FROM @tblFamilies
-		SELECT * FROM @tblPolicy
-		SELECT * FROM @tblPremium
-		SELECT * FROM @tblInureePolicy
-
-
-		BEGIN TRAN ENROLL;
-
-		/********************************************************************************************************
-										VALIDATING FAMILY				
-		********************************************************************************************************/
-			--*****************************NEW FAMILY********************************
-			INSERT INTO @tblResult (Result)
-			SELECT  N'Insuree information is missing for Family with Insurance Number ' + QUOTENAME(F.CHFID) 
-			FROM @tblFamilies F
-			LEFT OUTER JOIN @tblInsuree I ON F.CHFID = I.CHFID
-			WHERE I.InsureeId IS NULL AND F.isOffline =1 ;
-
-			INSERT INTO @tblRejectedFamily (FamilyID)
-			SELECT F.FamilyId
-			FROM @tblFamilies F
-			LEFT OUTER JOIN @tblInsuree I ON F.CHFID = I.CHFID
-			WHERE I.InsureeId IS NULL AND F.isOffline =1 ;
-
-
-
-
-
-			INSERT INTO @tblResult(Result)
-			SELECT  N'Family with Insurance Number : ' + QUOTENAME(I.CHFID) + ' already exists'  
-			FROM @tblFamilies TF 
-			INNER JOIN tblInsuree I ON TF.CHFID = I.CHFID
-			WHERE I.ValidityTo IS NULL AND TF.isOffline = 1
-
-			INSERT INTO @tblRejectedFamily(FamilyID)
-			SELECT  TF.FamilyId
-			FROM @tblFamilies TF 
-			INNER JOIN tblInsuree I ON TF.CHFID = I.CHFID
-			WHERE I.ValidityTo IS NULL AND TF.isOffline = 1
-
-			
-
-
-			--*****************************EXISTING FAMILY********************************
-			INSERT INTO @tblResult (Result)
-			SELECT  N'Insuree information is missing for Family with Insurance Number ' + QUOTENAME(F.CHFID) 
-			FROM @tblFamilies F
-			LEFT OUTER JOIN tblInsuree I ON F.CHFID = I.CHFID
-			WHERE i.ValidityTo IS NULL AND I.IsHead= 1 AND I.InsureeId IS NULL AND F.isOffline = 0 ;
-
-			INSERT INTO @tblRejectedFamily (FamilyID)
-			SELECT F.FamilyId
-			FROM @tblFamilies F
-			LEFT OUTER JOIN @tblInsuree I ON F.CHFID = I.CHFID
-			WHERE I.InsureeId IS NULL AND F.isOffline =1 ;
-
-			
-			INSERT INTO @tblResult(Result)
-			SELECT N'Family with Insurance Number : ' + QUOTENAME(TF.CHFID) + ' does not exists' 
-			FROM @tblFamilies TF 
-			LEFT OUTER JOIN tblInsuree I ON TF.CHFID = I.CHFID
-			WHERE I.ValidityTo IS NULL 
-			AND TF.isOffline = 0 
-			AND I.CHFID IS NULL
-			AND I.IsHead = 1;
-
-			INSERT INTO @tblRejectedFamily (FamilyID)
-			SELECT TF.FamilyId
-			FROM @tblFamilies TF 
-			LEFT OUTER JOIN tblInsuree I ON TF.CHFID = I.CHFID
-			WHERE I.ValidityTo IS NULL 
-			AND TF.isOffline = 0 
-			AND I.CHFID IS NULL
-			AND I.IsHead = 1;
-
-			
-
-			INSERT INTO @tblResult (Result)
-			SELECT N'Changing the Location of the Family with Insurance Number : ' + QUOTENAME(I.CHFID) + ' is not allowed' 
-			FROM @tblFamilies TF 
-			INNER JOIN tblInsuree I ON TF.CHFID = I.CHFID
-			INNER JOIN tblFamilies F ON F.FamilyID = ABS(I.FamilyID)
-			WHERE I.ValidityTo IS NULL 
-			AND F.ValidityTo IS NULL
-			AND TF.isOffline = 0 
-			AND F.LocationId <> TF.LocationId
-
-			INSERT INTO @tblRejectedFamily
-			SELECT DISTINCT TF.FamilyId
-			FROM @tblFamilies TF 
-			INNER JOIN tblInsuree I ON TF.CHFID = I.CHFID
-			INNER JOIN tblFamilies F ON F.FamilyID = ABS(I.FamilyID)
-			WHERE I.ValidityTo IS NULL 
-			AND F.ValidityTo IS NULL
-			AND TF.isOffline = 0 
-			AND F.LocationId <> TF.LocationId
-
-			INSERT INTO @tblResult (Result)
-			SELECT N'Changing the family of the Insuree with Insurance Number : ' + QUOTENAME(I.CHFID) + ' is not allowed' 
-			FROM @tblInsuree TI
-			INNER JOIN tblInsuree I ON I.CHFID = TI.CHFID
-			INNER JOIN @tblFamilies TF ON TF.FamilyId = TI.FamilyId
-			WHERE
-			I.ValidityTo IS NULL
-			AND TI.isOffline = 0
-			AND I.FamilyID <> ABS(TI.FamilyId)
-
-			INSERT INTO @tblRejectedFamily
-			SELECT DISTINCT TF.FamilyId
-			FROM @tblInsuree TI
-			INNER JOIN tblInsuree I ON I.CHFID = TI.CHFID
-			INNER JOIN @tblFamilies TF ON TF.FamilyId = TI.FamilyId
-			WHERE
-			I.ValidityTo IS NULL
-			AND TI.isOffline = 0
-			AND I.FamilyID <> ABS(TI.FamilyId)
-
-			
-			/********************************************************************************************************
-										VALIDATING INSUREE				
-			********************************************************************************************************/
-			----**************NEW INSUREE*********************-----
-
-			INSERT INTO @tblResult(Result)
-			SELECT N'Insurance Number : ' + QUOTENAME(TI.CHFID) + ' already exists' 
-			FROM @tblInsuree TI
-			INNER JOIN tblInsuree I ON TI.CHFID = I.CHFID
-			WHERE I.ValidityTo IS NULL AND TI.isOffline = 1
-			
-			INSERT INTO @tblRejectedInsuree(InsureeID)
-			SELECT TI.InsureeId
-			FROM @tblInsuree TI
-			INNER JOIN tblInsuree I ON TI.CHFID = I.CHFID
-			WHERE I.ValidityTo IS NULL AND TI.isOffline = 1
-
-			--Reject Family of the duplicate CHFID
-			INSERT INTO @tblRejectedFamily(FamilyID)
-			SELECT TI.FamilyId
-			FROM @tblInsuree TI
-			INNER JOIN tblInsuree I ON TI.CHFID = I.CHFID
-			WHERE I.ValidityTo IS NULL AND TI.isOffline = 1
-
-
-			----**************EXISTING INSUREE*********************-----
-			INSERT INTO @tblResult(Result)
-			SELECT N'Insurance Number : ' + QUOTENAME(TI.CHFID) + ' does not exists' 
-			FROM @tblInsuree TI
-			LEFT OUTER JOIN tblInsuree I ON TI.CHFID = I.CHFID
-			WHERE 
-			I.ValidityTo IS NULL 
-			AND I.CHFID IS NULL
-			AND TI.isOffline = 0
-			
-			INSERT INTO @tblRejectedInsuree(InsureeID)
-			SELECT TI.InsureeId
-			FROM @tblInsuree TI
-			LEFT OUTER JOIN tblInsuree I ON TI.CHFID = I.CHFID
-			WHERE 
-			I.ValidityTo IS NULL 
-			AND I.CHFID IS NULL
-			AND TI.isOffline = 0
-
-
-			
-
-			/********************************************************************************************************
-										VALIDATING POLICIES				
-			********************************************************************************************************/
-
-
-			/********************************************************************************************************
-										VALIDATING PREMIUMS				
-			********************************************************************************************************/
-			INSERT INTO @tblResult(Result)
-			SELECT N'Receipt number : ' + QUOTENAME(PR.Receipt) + ' is duplicateed in a file ' 
-			FROM @tblPremium PR
-			INNER JOIN @tblPolicy PL ON PL.PolicyId =PR.PolicyId
-			GROUP BY PR.Receipt HAVING COUNT(PR.PolicyId) > 1
-
-			INSERT INTO @tblRejectedPremium(PremiumId)
-			SELECT TPR.PremiumId
-			FROM tblPremium PR
-			INNER JOIN @tblPremium TPR ON PR.Amount = TPR.Amount
-			INNER JOIN @tblPolicy TP ON TP.PolicyId = TPR.PolicyId 
-			AND PR.Receipt = TPR.Receipt 
-			AND PR.PolicyID = TPR.NewPolicyId
-			WHERE PR.ValidityTo IS NULL
-			AND TP.isOffline = 0
-			
-
-            /********************************************************************************************************
-                                        CHECK IF SOME INSUREE ARE ABOUT TO DELETE FROM FAMILY	
-            ********************************************************************************************************/
-
-            -- get the family id to process from online database
-            DECLARE @familyIdToProcess TABLE (FamilyId INT)
-            INSERT INTO @familyIdToProcess(FamilyId)
-            SELECT I.FamilyId
-            FROM @tblInsuree TI
-            INNER JOIN tblInsuree I ON TI.CHFID = I.CHFID
-            WHERE I.ValidityTo IS NULL AND TI.isOffline = 1
-            GROUP BY I.FamilyID
-
-            -- get to compare the structure of families (list of insuree) from online database
-            DECLARE @insureeToProcess TABLE(CHFID NVARCHAR(12), FamilyID INT) 
-            INSERT INTO @insureeToProcess(CHFID, FamilyID)
-            SELECT I.CHFID, F.FamilyID FROM tblInsuree I 
-            LEFT JOIN tblFamilies F ON I.FamilyID = F.FamilyID
-            WHERE F.FamilyID IN (SELECT * FROM @familyIdToProcess) AND I.ValidityTo is NULL
-            GROUP BY I.CHFID, F.FamilyID
-
-            -- select the insuree to delete based on received XML payload
-            -- get the insuree which are not included in "insureeToProcess"
-            DECLARE @insureeToDelete TABLE(CHFID NVARCHAR(12))
-            INSERT INTO @insureeToDelete(CHFID)
-            SELECT IP.CHFID FROM @insureeToProcess IP
-            LEFT JOIN @tblInsuree I ON I.CHFID=IP.CHFID
-            WHERE I.CHFID is NULL
-
-            -- iterate through insuree to delete - process them to remove from existing family
-            -- use SP uspAPIDeleteMemberFamily and 'delete' InsureePolicy also like in webapp 
-            IF EXISTS(SELECT 1 FROM @insureeToDelete)
-            BEGIN 
-                DECLARE @CurInsureeCHFID NVARCHAR(12)
-                DECLARE CurInsuree CURSOR FOR SELECT CHFID FROM @insureeToDelete
-                    OPEN CurInsuree
-                        FETCH NEXT FROM CurInsuree INTO @CurInsureeCHFID;
-                        WHILE @@FETCH_STATUS = 0
-                        BEGIN
-                            DECLARE @currentInsureeId INT
-                            SET @currentInsureeId = (SELECT InsureeID FROM tblInsuree WHERE CHFID=@CurInsureeCHFID AND ValidityTo is NULL)
-                            EXEC uspAPIDeleteMemberFamily -2, @CurInsureeCHFID
-                            UPDATE tblInsureePolicy SET ValidityTo = GETDATE() WHERE InsureeId = @currentInsureeId
-                            FETCH NEXT FROM CurInsuree INTO @CurInsureeCHFID;
-                        END
-                    CLOSE CurInsuree
-                DEALLOCATE CurInsuree;	 
-            END
-
-
-			/********************************************************************************************************
-										DELETE REJECTED RECORDS		
-			********************************************************************************************************/
-
-			SELECT @FamilyRejected =ISNULL(COUNT(DISTINCT FamilyID),0) FROM
-			@tblRejectedFamily --GROUP BY FamilyID
-
-			SELECT @PolicyRejected =ISNULL(COUNT(DISTINCT PolicyId),0) FROM
-			@tblRejectedPolicy --GROUP BY PolicyId
-
-			SELECT @PolicyRejected= ISNULL(COUNT(DISTINCT TP.PolicyId),0)+ ISNULL(@PolicyRejected ,0)
-			FROM @tblPolicy TP 
-			INNER JOIN @tblFamilies TF ON TF.FamilyId = TP.FamilyId
-			INNER JOIN @tblRejectedFamily RF ON RF.FamilyID = TP.FamilyId
-			GROUP BY TP.PolicyId
-
-			SELECT @PremiumRejected =ISNULL(COUNT(DISTINCT PremiumId),0) FROM
-			@tblRejectedPremium --GROUP BY PremiumId
-
-
-			--Rejected Families
-			DELETE TF FROM @tblFamilies TF
-			INNER JOIN @tblRejectedFamily RF ON TF.FamilyId =RF.FamilyId
-			
-			DELETE TF FROM @tblFamilies TF
-			INNER JOIN @tblInsuree TI ON TI.FamilyId = TF.FamilyId
-			INNER JOIN @tblRejectedInsuree RI ON RI.InsureeID = TI.InsureeId
-
-			DELETE TI FROM @tblInsuree TI
-			INNER JOIN @tblRejectedFamily RF ON TI.FamilyId =RF.FamilyId
-
-			DELETE TP FROM @tblPolicy TP
-			INNER JOIN @tblRejectedFamily RF ON TP.FamilyId =RF.FamilyId
-
-			DELETE TP FROM @tblPolicy TP
-			LEFT OUTER JOIN @tblFamilies TF ON TP.FamilyId =TP.FamilyId WHERE TF.FamilyId IS NULL
-
-			--Rejected Insuree
-			DELETE TI FROM @tblInsuree TI
-			INNER JOIN @tblRejectedInsuree RI ON TI.InsureeId =RI.InsureeID
-
-			DELETE TIP FROM @tblInureePolicy TIP
-			INNER JOIN @tblRejectedInsuree RI ON TIP.InsureeId =RI.InsureeID
-			
-			--Rejected Premium
-			DELETE TPR FROM @tblPremium TPR
-			INNER JOIN @tblRejectedPremium RP ON RP.PremiumId = TPR.PremiumId
-
-
-			--Validatiion For Phone only
-			IF @AuditUserId > 0
-				BEGIN
-
-					--*****************New Family*********
-					--Family already  exists
-					IF EXISTS(SELECT 1 FROM @tblFamilies TF INNER JOIN tblInsuree F ON F.CHFID = TF.CHFID WHERE TF.isOffline = 1 AND F.ValidityTo IS NULL )
-					RAISERROR(N'-2',16,1)
-					
-					--Family has no HOF
-					IF EXISTS(SELECT 1 FROM @tblFamilies TF LEFT OUTER JOIN @tblInsuree TI ON TI.CHFID =TF.CHFID WHERE TF.isOffline = 1 AND TI.CHFID IS NULL)
-					RAISERROR(N'-1',16,1)
-
-					--Duplicate Insuree found
-					IF EXISTS(SELECT 1 FROM @tblInsuree TI INNER JOIN tblInsuree I ON TI.CHFID = I.CHFID WHERE I.ValidityTo IS NULL AND TI.isOffline = 1)
-					RAISERROR(N'-3',16,1)
-
-					--*****************Existing Family*********
-							--Family has no HOF
-					IF EXISTS(SELECT 1 FROM @tblFamilies TF 
-					LEFT OUTER JOIN tblInsuree I ON TF.CHFID = I.CHFID 
-					WHERE I.ValidityTo IS NULL AND I.IsHead = 1 AND I.CHFID IS NULL)
-					RAISERROR(N'-1',16,1)
-
-					--Duplicate Receipt
-					IF EXISTS(SELECT 1 FROM @tblPremium TPR
-					INNER JOIN tblPremium PR ON PR.PolicyID = TPR.PolicyID AND TPR.Amount = PR.Amount AND TPR.Receipt = PR.Receipt
-					INNER JOIN tblPolicy PL ON PL.PolicyID = PR.PolicyID)
-					RAISERROR(N'-4',16,1)
-
-
-				END
-			
-
-			
-
-			--Making the first insuree to be head for the offline families which miss head of family ONLY for the new family
-			IF NOT EXISTS(SELECT 1 FROM @tblFamilies TF INNER JOIN @tblInsuree TI ON TI.CHFID = TF.CHFID WHERE TI.IsHead = 1 AND TF.isOffline = 1)
-			BEGIN
-				UPDATE TI SET TI.IsHead =1 
-				FROM @tblInsuree TI 
-				INNER JOIN @tblFamilies TF ON TF.FamilyId = TI.FamilyId 
-				WHERE TF.isOffline = 1 
-				AND TI.InsureeId=(SELECT TOP 1 InsureeId FROM @tblInsuree WHERE isOffline = 1 ORDER BY InsureeId ASC)
-			END
-			
-			--Updating FamilyId, PolicyId and InsureeId for the existing records
-			UPDATE @tblFamilies SET NewFamilyId = ABS(FamilyId) WHERE isOffline = 0
-			UPDATE @tblInsuree SET NewFamilyId =ABS(FamilyId)  
-			UPDATE @tblPolicy SET NewPolicyId = PolicyId WHERE isOffline = 0
-
-			UPDATE TP SET TP.NewFamilyId = TF.FamilyId FROM @tblPolicy TP 
-			INNER JOIN @tblFamilies TF ON TF.FamilyId = TP.FamilyId 
-			WHERE TF.isOffline = 0
-			
-
-			--updating existing families
-			IF EXISTS(SELECT 1 FROM @tblFamilies WHERE isOffline = 0 AND FamilyId < 0)
-			BEGIN
-				INSERT INTO tblFamilies ([insureeid],[Poverty],[ConfirmationType],isOffline,[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],FamilyType, FamilyAddress,Ethnicity,ConfirmationNo, LocationId) 
-				SELECT F.[insureeid],F.[Poverty],F.[ConfirmationType],F.isOffline,F.[ValidityFrom],getdate() ValidityTo,F.FamilyID, @AuditUserID,F.FamilyType, F.FamilyAddress,F.Ethnicity,F.ConfirmationNo,F.LocationId FROM @tblFamilies TF
-				INNER JOIN tblFamilies F ON ABS(TF.FamilyId) = F.FamilyID
-				WHERE 
-				F.ValidityTo IS NULL
-				AND TF.isOffline = 0 AND TF.FamilyId < 0
-
-				
-				UPDATE dst SET dst.[Poverty] = src.Poverty,  dst.[ConfirmationType] = src.ConfirmationType, isOffline=0, dst.[ValidityFrom]=GETDATE(), dst.[AuditUserID] = @AuditUserID, dst.FamilyType = src.FamilyType,  dst.FamilyAddress = src.FamilyAddress,
-							   dst.Ethnicity = src.Ethnicity,  dst.ConfirmationNo = src.ConfirmationNo
-						 FROM tblFamilies dst
-						 INNER JOIN @tblFamilies src ON ABS(src.FamilyID)= dst.FamilyID WHERE src.isOffline = 0 AND src.FamilyId < 0
-				SELECT @FamiliesUpd = ISNULL(@@ROWCOUNT	,0)
-
-			END
-
-			--new family
-				IF EXISTS(SELECT 1 FROM @tblFamilies WHERE isOffline = 1) 
-					BEGIN
-						DECLARE @CurFamilyId INT
-						DECLARE CurFamily CURSOR FOR SELECT FamilyId FROM @tblFamilies WHERE  isOffline = 1
-							OPEN CurFamily
-								FETCH NEXT FROM CurFamily INTO @CurFamilyId;
-								WHILE @@FETCH_STATUS = 0
-								BEGIN
-								INSERT INTO tblFamilies(InsureeId, LocationId, Poverty, ValidityFrom, AuditUserId, FamilyType, FamilyAddress, Ethnicity, ConfirmationNo, ConfirmationType, isOffline) 
-								SELECT 0 , TF.LocationId, TF.Poverty, GETDATE() , @AuditUserId , TF.FamilyType, TF.FamilyAddress, TF.Ethnicity, TF.ConfirmationNo, ConfirmationType,1 isOffline FROM @tblFamilies TF
-								DECLARE @NewFamilyId  INT  =0
-								SELECT @NewFamilyId= SCOPE_IDENTITY();
-								IF @@ROWCOUNT > 0
-									BEGIN
-										SET @FamilyImported = ISNULL(@FamilyImported,0) + 1
-										UPDATE @tblFamilies SET NewFamilyId = @NewFamilyId WHERE FamilyId = @CurFamilyId
-										UPDATE @tblInsuree SET NewFamilyId = @NewFamilyId WHERE FamilyId = @CurFamilyId
-										UPDATE @tblPolicy SET NewFamilyId = @NewFamilyId WHERE FamilyId = @CurFamilyId
-									END
-								
-								FETCH NEXT FROM CurFamily INTO @CurFamilyId;
-							END
-							CLOSE CurFamily
-							DEALLOCATE CurFamily;
-						END
-
-
-			--Delete duplicate policies
-			DELETE TP
-			OUTPUT 'Policy for the family : ' + QUOTENAME(I.CHFID) + ' with Product Code:' + QUOTENAME(Prod.ProductCode) + ' already exists' INTO @tblResult
-			FROM tblPolicy PL 
-			INNER JOIN @tblPolicy TP ON PL.FamilyID = ABS(TP.NewFamilyId )
-									AND PL.EnrollDate = TP.EnrollDate 
-									AND PL.StartDate = TP.StartDate 
-									AND PL.ProdID = TP.ProdId 
-			INNER JOIN tblProduct Prod ON PL.ProdId = Prod.ProdId
-			INNER JOIN tblInsuree I ON PL.FamilyId = I.FamilyId
-			WHERE PL.ValidityTo IS NULL
-			AND I.IsHead = 1;
-
-			--Delete Premiums without polices
-			DELETE TPR FROM @tblPremium TPR
-			LEFT OUTER JOIN @tblPolicy TP ON TP.PolicyId = TPR.PolicyId
-			WHERE TPR.PolicyId IS NULL
-
-
-			--updating existing insuree
-			IF EXISTS(SELECT 1 FROM @tblInsuree WHERE isOffline = 0)
-				BEGIN
-					--Insert Insuree History
-					INSERT INTO tblInsuree ([FamilyID],[CHFID],[LastName],[OtherNames],[DOB],[Gender],[Marital],[IsHead],[passport],[Phone],[PhotoID],[PhotoDate],[CardIssued],isOffline,[AuditUserID],[ValidityFrom] ,[ValidityTo],legacyId,[Relationship],[Profession],[Education],[Email],[TypeOfId],[HFID], [CurrentAddress], [GeoLocation], [CurrentVillage]) 
-					SELECT	I.[FamilyID],I.[CHFID],I.[LastName],I.[OtherNames],I.[DOB],I.[Gender],I.[Marital],I.[IsHead],I.[passport],I.[Phone],I.[PhotoID],I.[PhotoDate],I.[CardIssued],I.isOffline,I.[AuditUserID],I.[ValidityFrom] ,GETDATE() ValidityTo,I.InsureeID,I.[Relationship],I.[Profession],I.[Education],I.[Email] ,I.[TypeOfId],I.[HFID], I.[CurrentAddress], I.[GeoLocation], [CurrentVillage] FROM @tblInsuree TI
-					INNER JOIN tblInsuree I ON TI.CHFID = I.CHFID
-					WHERE I.ValidityTo IS NULL AND
-					TI.isOffline = 0
-
-					UPDATE dst SET  dst.[LastName] = src.LastName,dst.[OtherNames] = src.OtherNames,dst.[DOB] = src.DOB,dst.[Gender] = src.Gender,dst.[Marital] = src.Marital,dst.[passport] = src.passport,dst.[Phone] = src.Phone,dst.[PhotoDate] = GETDATE(),dst.[CardIssued] = src.CardIssued,dst.isOffline=0,dst.[ValidityFrom] = GetDate(),dst.[AuditUserID] = @AuditUserID ,dst.[Relationship] = src.Relationship, dst.[Profession] = src.Profession, dst.[Education] = src.Education,dst.[Email] = src.Email ,dst.TypeOfId = src.TypeOfId,dst.HFID = src.HFID, dst.CurrentAddress = src.CurrentAddress, dst.CurrentVillage = src.CurVillage, dst.GeoLocation = src.GeoLocation 
-					FROM tblInsuree dst
-					INNER JOIN @tblInsuree src ON src.CHFID = dst.CHFID
-					WHERE dst.ValidityTo IS NULL AND src.isOffline = 0;
-
-					SELECT @InsureeUpd= ISNULL(COUNT(1),0) FROM @tblInsuree WHERE isOffline = 0
-
-
-					--Insert Photo  History
-					INSERT INTO tblPhotos(InsureeID,CHFID,PhotoFolder,PhotoFileName,PhotoDate,OfficerID,ValidityFrom,ValidityTo,AuditUserID) 
-					SELECT P.InsureeID,P.CHFID,P.PhotoFolder,P.PhotoFileName,P.PhotoDate,P.OfficerID,P.ValidityFrom,GETDATE() ValidityTo,P.AuditUserID 
-					FROM tblPhotos P
-					INNER JOIN tblInsuree I ON I.PhotoID =P.PhotoID
-					INNER JOIN @tblInsuree TI ON TI.CHFID = I.CHFID
-					WHERE 
-					P.ValidityTo IS NULL AND I.ValidityTo IS NULL
-					AND TI.isOffline = 0
-
-					--Update Photo
-					UPDATE P SET PhotoFolder = @AssociatedPhotoFolder+'/', PhotoFileName = TI.PhotoPath, OfficerID = @OfficerID, ValidityFrom = GETDATE(), AuditUserID = @AuditUserID 
-					FROM tblPhotos P
-					INNER JOIN tblInsuree I ON I.PhotoID =P.PhotoID
-					INNER JOIN @tblInsuree TI ON TI.CHFID = I.CHFID
-					WHERE 
-					P.ValidityTo IS NULL AND I.ValidityTo IS NULL
-					AND TI.isOffline = 0
-				END
-
-				--new insuree
-				IF EXISTS(SELECT 1 FROM @tblInsuree WHERE isOffline = 1) 
-					BEGIN
-						DECLARE @CurInsureeId INT
-						DECLARE CurInsuree CURSOR FOR SELECT InsureeId FROM @tblInsuree WHERE  isOffline = 1
-							OPEN CurInsuree
-								FETCH NEXT FROM CurInsuree INTO @CurInsureeId;
-								WHILE @@FETCH_STATUS = 0
-								BEGIN
-								INSERT INTO tblInsuree(FamilyId, CHFID, LastName, OtherNames, DOB, Gender, Marital, IsHead, passport, Phone, CardIssued, ValidityFrom,
-								AuditUserId, Relationship, Profession, Education, Email, TypeOfId, HFID, CurrentAddress, GeoLocation, CurrentVillage, isOffline)
-								SELECT NewFamilyId, CHFID, LastName, OtherNames, DOB, Gender, Marital, IsHead, passport, Phone, CardIssued, GETDATE() ValidityFrom,
-								@AuditUserId AuditUserId, Relationship, Profession, Education, Email, TypeOfId, HFID, CurrentAddress, GeoLocation, CurVillage, 1 isOffLine
-								FROM @tblInsuree WHERE InsureeId = @CurInsureeId;
-								DECLARE @NewInsureeId  INT  =0
-								SELECT @NewInsureeId= SCOPE_IDENTITY();
-								IF @@ROWCOUNT > 0
-									BEGIN
-										SET @InsureeImported = ISNULL(@InsureeImported,0) + 1
-										--updating insureeID
-										UPDATE @tblInsuree SET NewInsureeId = @NewInsureeId WHERE InsureeId = @CurInsureeId
-										UPDATE @tblInureePolicy SET NewInsureeId = @NewInsureeId WHERE InsureeId = @CurInsureeId
-										UPDATE F SET InsureeId = TI.NewInsureeId
-										FROM @tblInsuree TI 
-										INNER JOIN tblInsuree I ON TI.NewInsureeId = I.InsureeId
-										INNER JOIN tblFamilies F ON TI.NewFamilyId = F.FamilyID
-										WHERE TI.IsHead = 1 AND TI.InsureeId = @NewInsureeId
-									END
-
-								--Now we will insert new insuree in the table tblInsureePolicy for only existing policies
-								IF EXISTS(SELECT 1 FROM tblPolicy P 
-								INNER JOIN tblFamilies F ON F.FamilyID = P.FamilyID
-								INNER JOIN tblInsuree I ON I.FamilyID = I.FamilyID
-								WHERE I.ValidityTo IS NULL AND P.ValidityTo IS NULL AND F.ValidityTo IS NULL AND I.InsureeID = @NewInsureeId)
-									EXEC uspAddInsureePolicy @NewInsureeId	
-
-									INSERT INTO tblPhotos(InsureeID,CHFID,PhotoFolder,PhotoFileName,OfficerID,PhotoDate,ValidityFrom,AuditUserID)
-									SELECT @NewInsureeId InsureeId, CHFID, @AssociatedPhotoFolder +'/' photoFolder, PhotoPath photoFileName, @OfficerID OfficerID, getdate() photoDate, getdate() ValidityFrom,@AuditUserId AuditUserId
-									FROM @tblInsuree WHERE InsureeId = @CurInsureeId 
-
-								--Update photoId in Insuree
-								UPDATE I SET PhotoId = PH.PhotoId, I.PhotoDate = PH.PhotoDate
-								FROM tblInsuree I
-								INNER JOIN tblPhotos PH ON PH.InsureeId = I.InsureeId
-								WHERE I.CHFID IN (SELECT CHFID from @tblInsuree)
-								
-
-								FETCH NEXT FROM CurInsuree INTO @CurInsureeId;
-								END
-						CLOSE CurInsuree
-							DEALLOCATE CurInsuree;
-					END
-				
-				--updating family with the new insureeId of the head
-				UPDATE F SET InsureeID = I.InsureeID FROM tblInsuree I
-				INNER JOIN @tblInsuree TI ON I.CHFID = TI.CHFID
-				INNER JOIN @tblFamilies TF ON I.FamilyID = TF.NewFamilyId
-				INNER JOIN tblFamilies F ON F.FamilyID = I.FamilyID
-				WHERE I.ValidityTo IS NULL AND I.ValidityTo IS NULL AND I.IsHead = 1
-
-			DELETE FROM @tblIds;
-
-				
-				---**************INSERTING POLICIES-----------
-				DECLARE @FamilyId INT = 0,
-				@HOFId INT = 0,
-				@PolicyValue DECIMAL(18, 4),
-				@ProdId INT,
-				@PolicyStage CHAR(1),
-				@StartDate DATE,
-				@ExpiryDate DATE,
-				@EnrollDate DATE,
-				@EffectiveDate DATE,
-				@ErrorCode INT,
-				@PolicyStatus INT,
-				@PolicyId TINYINT,
-				@PolicyValueFromPhone DECIMAL(18, 4),
-				@ContributionAmount DECIMAL(18, 4),
-				@Active TINYINT=2,
-				@Ready TINYINT=16,
-				@Idle TINYINT=1,
-				@NewPolicyId INT,
-				@OldPolicyStatus INT,
-				@NewPolicyStatus INT
-
-
-			
-			--New policies
-		IF EXISTS(SELECT 1 FROM @tblPolicy WHERE isOffline =1)
-			BEGIN
-			DECLARE CurPolicies CURSOR FOR SELECT PolicyId, ProdId, ISNULL(PolicyStage, N'N') PolicyStage, StartDate, EnrollDate,ExpiryDate, PolicyStatus, PolicyValue, NewFamilyId FROM @tblPolicy WHERE isOffline = 1
-			OPEN CurPolicies;
-			FETCH NEXT FROM CurPolicies INTO @PolicyId, @ProdId, @PolicyStage, @StartDate, @EnrollDate, @ExpiryDate,  @PolicyStatus, @PolicyValueFromPhone, @FamilyId;
-			WHILE @@FETCH_STATUS = 0
-			BEGIN			
-							SET @EffectiveDate= NULL;
-							SET @PolicyStatus = @Idle;
-
-							EXEC @PolicyValue = uspPolicyValue @FamilyId, @ProdId, 0, @PolicyStage, @EnrollDate, 0, @ErrorCode OUTPUT;
-
-							INSERT INTO tblPolicy(FamilyID,EnrollDate,StartDate,EffectiveDate,ExpiryDate,PolicyStatus,PolicyValue,ProdID,OfficerID,PolicyStage,ValidityFrom,AuditUserID, isOffline)
-							SELECT	 ABS(NewFamilyID),EnrollDate,StartDate,@EffectiveDate,ExpiryDate,@PolicyStatus,@PolicyValue,ProdID,@OfficerID,PolicyStage,GETDATE(),@AuditUserId, 1 isOffline FROM @tblPolicy WHERE PolicyId=@PolicyId
-							SELECT @NewPolicyId = SCOPE_IDENTITY()
-							INSERT INTO @tblIds(OldId, [NewId]) VALUES(@PolicyId, @NewPolicyId)
-							
-							IF @@ROWCOUNT > 0
-								BEGIN
-									SET @PolicyImported = ISNULL(@PolicyImported,0) +1
-									UPDATE @tblInureePolicy SET NewPolicyId = @NewPolicyId WHERE PolicyId=@PolicyId
-									UPDATE @tblPremium SET NewPolicyId =@NewPolicyId  WHERE PolicyId = @PolicyId
-									INSERT INTO tblPremium(PolicyID,PayerID,Amount,Receipt,PayDate,PayType,ValidityFrom,AuditUserID,isPhotoFee,isOffline)
-									SELECT NewPolicyId,PayerID,Amount,Receipt,PayDate,PayType,GETDATE(),@AuditUserId,isPhotoFee, 1 isOffline
-									FROM @tblPremium WHERE NewPolicyId = @NewPolicyId
-									SELECT @PremiumImported = ISNULL(@PremiumImported,0) +1
-								END
-							
-				
-				SELECT @ContributionAmount = ISNULL(SUM(Amount),0) FROM tblPremium WHERE PolicyId = @NewPolicyId
-					IF ((@PolicyValueFromPhone = @PolicyValue))
-						BEGIN
-							SELECT @PolicyStatus = PolicyStatus FROM @tblPolicy WHERE PolicyId=@PolicyId
-							SELECT @EffectiveDate = EffectiveDate FROM @tblPolicy WHERE PolicyId=@PolicyId
-							
-							UPDATE tblPolicy SET PolicyStatus = @PolicyStatus, EffectiveDate = @EffectiveDate WHERE PolicyID = @NewPolicyId
-
-							INSERT INTO tblInsureePolicy
-								([InsureeId],[PolicyId],[EnrollmentDate],[StartDate],[EffectiveDate],[ExpiryDate],[ValidityFrom],[AuditUserId], isOffline) 
-							SELECT
-								 NewInsureeId,IP.NewPolicyId,@EnrollDate,@StartDate,IP.[EffectiveDate],@ExpiryDate,GETDATE(),@AuditUserId, 1 isOffline FROM @tblInureePolicy IP
-							     WHERE IP.PolicyId=@PolicyId
-						END
-					ELSE
-						BEGIN
-							IF @ContributionAmount >= @PolicyValue
-								BEGIN
-									IF (@ActivationOption = 3)
-									  SELECT @PolicyStatus = @Ready
-									ELSE
-									  SELECT @PolicyStatus = @Active
-								END
-								ELSE
-									SELECT @PolicyStatus =@Idle
-							
-									--Checking the Effectice Date
-										DECLARE @Amount DECIMAL(10,0), @TotalAmount DECIMAL(10,0), @PaymentDate DATE 
-										DECLARE CurPremiumPayment CURSOR FOR SELECT PayDate, Amount FROM @tblPremium WHERE PolicyId = @PolicyId;
-										OPEN CurPremiumPayment;
-										FETCH NEXT FROM CurPremiumPayment INTO @PaymentDate,@Amount;
-										WHILE @@FETCH_STATUS = 0
-										BEGIN
-											SELECT @TotalAmount = ISNULL(@TotalAmount,0) + @Amount;
-												IF(@TotalAmount >= @PolicyValue)
-													BEGIN
-														SELECT @EffectiveDate = @PaymentDate
-														BREAK;
-													END
-												ELSE
-														SELECT @EffectiveDate = NULL
-											FETCH NEXT FROM CurPremiumPayment INTO @PaymentDate,@Amount;
-										END
-										CLOSE CurPremiumPayment;
-										DEALLOCATE CurPremiumPayment; 
-							
-								UPDATE tblPolicy SET PolicyStatus = @PolicyStatus, EffectiveDate = @EffectiveDate WHERE PolicyID = @NewPolicyId
-							
-
-							DECLARE @InsureeId INT
-							DECLARE CurNewPolicy CURSOR FOR SELECT I.InsureeID FROM tblInsuree I 
-													INNER JOIN tblFamilies F ON I.FamilyID = F.FamilyID 
-													INNER JOIN tblPolicy P ON P.FamilyID = F.FamilyID 
-													WHERE P.PolicyId = @NewPolicyId 
-													AND I.ValidityTo IS NULL 
-													AND F.ValidityTo IS NULL
-													AND P.ValidityTo IS NULL
-							OPEN CurNewPolicy;
-							FETCH NEXT FROM CurNewPolicy INTO @InsureeId;
-							WHILE @@FETCH_STATUS = 0
-							BEGIN
-								EXEC uspAddInsureePolicy @InsureeId;
-								FETCH NEXT FROM CurNewPolicy INTO @InsureeId;
-							END
-							CLOSE CurNewPolicy;
-							DEALLOCATE CurNewPolicy; 
-
-						END
-
-				
-
-				FETCH NEXT FROM CurPolicies INTO @PolicyId, @ProdId, @PolicyStage, @StartDate, @EnrollDate, @ExpiryDate,  @PolicyStatus, @PolicyValueFromPhone, @FamilyId;
-			END
-			CLOSE CurPolicies;
-			DEALLOCATE CurPolicies; 
-		END
-
-		SELECT @PolicyImported = ISNULL(COUNT(1),0) FROM @tblPolicy WHERE isOffline = 1
-			
-			
-
-		
-
-	
-	IF EXISTS(SELECT COUNT(1) 
-			FROM tblInsuree 
-			WHERE ValidityTo IS NULL
-			AND IsHead = 1
-			GROUP BY FamilyID
-			HAVING COUNT(1) > 1)
-			
-			--Added by Amani
-			BEGIN
-					DELETE FROM @tblResult;
-					SET @FamilyImported = 0;
-					SET @FamilyRejected =0;
-					SET @FamiliesUpd =0;
-					SET @InsureeImported  = 0;
-					SET @InsureeUpd =0;
-					SET @PolicyImported  = 0;
-					SET @PolicyImported  = 0;
-					SET @PolicyRejected  = 0;
-					SET @PremiumImported  = 0 
-					INSERT INTO @tblResult VALUES
-						(N'<h3 style="color:red;">Double HOF Found. <br />Please contact your IT manager for further assistant.</h3>')
-						--GOTO EndOfTheProcess;
-
-						RAISERROR(N'-5',16,1)
-					END
-
-
-		COMMIT TRAN ENROLL;
-
-	END TRY
-	BEGIN CATCH
-		SELECT ERROR_MESSAGE();
-		IF @@TRANCOUNT > 0 ROLLBACK TRAN ENROLL;
-		
-		SELECT * FROM @tblResult;
-		IF  ERROR_MESSAGE()=N'-1'
-			BEGIN
-				RETURN -1
-			END
-		ELSE IF ERROR_MESSAGE()=N'-2'
-			BEGIN
-				RETURN -2
-			END
-		ELSE IF ERROR_MESSAGE()=N'-3'
-			BEGIN
-				RETURN -3
-			END
-		ELSE IF ERROR_MESSAGE()=N'-4'
-			BEGIN
-				RETURN -4
-			END
-		ELSE IF ERROR_MESSAGE()=N'-5'
-			BEGIN
-				RETURN -5
-			END
-		ELSE
-			RETURN -400
-	END CATCH
-
-	
-	SELECT Result FROM @tblResult;
-	
-	RETURN 0 --ALL OK
-	END
-
-GO
-
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-
 CREATE PROCEDURE [dbo].[uspCreateCHFID]
 (
 	@HowMany INT
@@ -10657,12 +9560,12 @@ SELECT F.FamilyId,F.InsureeId, I.CHFID , F.LocationId, F.Poverty
 	FOR XML PATH('Family'),ROOT('Families'),TYPE),
 	
 	(SELECT * FROM (
-	SELECT I.InsureeID,I.FamilyID,I.CHFID,I.LastName,I.OtherNames,I.DOB,I.Gender,I.Marital,I.IsHead,I.passport,I.Phone,I.CardIssued,NULL EffectiveDate
+	SELECT I.InsureeID,I.FamilyID,I.CHFID,I.LastName,I.OtherNames,I.DOB,I.Gender,I.Marital,I.IsHead,I.passport,I.Phone,I.CardIssued,NULL EffectiveDate, I.Vulnerability
 	FROM tblInsuree I
 	LEFT OUTER JOIN tblInsureePolicy IP ON IP.InsureeId=I.InsureeID
 	WHERE I.ValidityTo IS NULL AND I.isOffline = 1
 	AND IP.ValidityTo IS NULL 
-	GROUP BY I.InsureeID,I.FamilyID,I.CHFID,I.LastName,I.OtherNames,I.DOB,I.Gender,I.Marital,I.IsHead,I.passport,I.Phone,I.CardIssued
+	GROUP BY I.InsureeID,I.FamilyID,I.CHFID,I.LastName,I.OtherNames,I.DOB,I.Gender,I.Marital,I.IsHead,I.passport,I.Phone,I.CardIssued, I.Vulnerability
 	)xx
 	FOR XML PATH('Insuree'),ROOT('Insurees'),TYPE),
 
@@ -10691,9 +9594,8 @@ SELECT F.FamilyId,F.InsureeId, I.CHFID , F.LocationId, F.Poverty
 	SELECT @PolicyExported = ISNULL(COUNT(*),0)	FROM tblPolicy P WHERE ValidityTo IS NULL AND isOffline = 1
 	SELECT @PremiumExported = ISNULL(COUNT(*),0)	FROM tblPremium Pr WHERE ValidityTo IS NULL AND isOffline = 1
 END
-
-
 GO
+
 
 SET ANSI_NULLS ON
 GO
@@ -11077,7 +9979,7 @@ BEGIN
 	--**Families**
 	--SELECT [FamilyID],[InsureeID],[DistrictID],[VillageID],[WardID],[Poverty],[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],[FamilyType],[FamilyAddress],Ethnicity,ConfirmationNo FROM [dbo].[tblFamilies] WHERE RowID > @RowID AND (CASE @LocationId  WHEN 0 THEN 0 ELSE [DistrictID]  END) = @LocationId
 	;WITH Family AS (
-	SELECT F.[FamilyID],F.[InsureeID],F.[LocationId],[Poverty],F.[ValidityFrom],F.[ValidityTo],F.[LegacyID],F.[AuditUserID],[FamilyType],[FamilyAddress],Ethnicity,isOffline ,ConfirmationNo,F.ConfirmationType 
+	SELECT F.[FamilyID],F.[InsureeID],F.[LocationId],[Poverty],F.[ValidityFrom],F.[ValidityTo],F.[LegacyID],F.[AuditUserID],[FamilyType],[FamilyAddress],Ethnicity,isOffline ,ConfirmationNo,F.ConfirmationType  
 	FROM [dbo].[tblFamilies] F 
 	INNER JOIN tblVillages V ON V.VillageID = F.LocationId
 	INNER JOIN tblWards W ON W.WardId = V.WardId
@@ -11111,11 +10013,9 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE PROCEDURE [dbo].[uspExportOffLineExtract5]
-@RegionId INT = 0,
-	 @DistrictId INT = 0,
-	 @RowID as bigint = 0,
-	 
-	--updated by Amani 22/09/2017
+	@RegionId INT = 0,
+	@DistrictId INT = 0,
+	@RowID as bigint = 0,
 	@WithInsuree as bit = 0
 AS
 BEGIN
@@ -11125,7 +10025,7 @@ BEGIN
 	--**Insurees**
 	--SELECT [dbo].[tblInsuree].[InsureeID],[dbo].[tblInsuree].[FamilyID] ,[CHFID],[LastName],[OtherNames],[DOB],[Gender],[Marital],[IsHead],[passport],[Phone],[PhotoID],[PhotoDate],[CardIssued],[dbo].[tblInsuree].[ValidityFrom],[dbo].[tblInsuree].[ValidityTo],[dbo].[tblInsuree].[LegacyID],[dbo].[tblInsuree].[AuditUserID],[Relationship],[Profession],[Education],[Email],TypeOfId,HFId FROM [dbo].[tblInsuree] INNER JOIN tblFamilies ON tblFamilies.FamilyID = tblInsuree.FamilyID WHERE tblInsuree.RowID > @RowID AND (CASE @LocationId  WHEN 0 THEN 0 ELSE [DistrictID]  END) = @LocationId
 	;WITH Insurees AS (
-	SELECT [dbo].[tblInsuree].[InsureeID],[dbo].[tblInsuree].[FamilyID] ,[CHFID],[LastName],[OtherNames],[DOB],[Gender],[Marital],[IsHead],[passport],[Phone],[PhotoID],[PhotoDate],[CardIssued],[dbo].[tblInsuree].[ValidityFrom],[dbo].[tblInsuree].[ValidityTo],[dbo].[tblInsuree].[LegacyID],[dbo].[tblInsuree].[AuditUserID],[Relationship],[Profession],[Education],[Email],[dbo].[tblInsuree].isOffline,TypeOfId,HFId, CurrentAddress, tblInsuree.CurrentVillage, GeoLocation
+	SELECT [dbo].[tblInsuree].[InsureeID],[dbo].[tblInsuree].[FamilyID] ,[CHFID],[LastName],[OtherNames],[DOB],[Gender],[Marital],[IsHead],[passport],[Phone],[PhotoID],[PhotoDate],[CardIssued],[dbo].[tblInsuree].[ValidityFrom],[dbo].[tblInsuree].[ValidityTo],[dbo].[tblInsuree].[LegacyID],[dbo].[tblInsuree].[AuditUserID],[Relationship],[Profession],[Education],[Email],[dbo].[tblInsuree].isOffline,TypeOfId,HFId, CurrentAddress, tblInsuree.CurrentVillage, GeoLocation, Vulnerability
 	FROM [dbo].[tblInsuree] INNER JOIN tblFamilies ON tblFamilies.FamilyID = tblInsuree.FamilyID 
 	INNER JOIN tblVillages V ON V.VillageID = tblFamilies.LocationId
 	INNER JOIN tblWards W ON W.WardId = V.WardId
@@ -11137,7 +10037,7 @@ BEGIN
 	AND[tblInsuree].[InsureeID] =  CASE WHEN	@WithInsuree=0 THEN NULL ELSE [tblInsuree].[InsureeID] END
 	--Amani 22/09/2017 change to this------>AND[tblInsuree].[InsureeID] =  CASE WHEN	@WithInsuree=0 THEN NULL END
 	UNION ALL
- 	SELECT I.[InsureeID],I.[FamilyID] ,[CHFID],[LastName],[OtherNames],[DOB],[Gender],[Marital],[IsHead],[passport],I.[Phone],[PhotoID],[PhotoDate],[CardIssued],I.[ValidityFrom],I.[ValidityTo],I.[LegacyID],I.[AuditUserID],[Relationship],[Profession],[Education],I.[Email],I.isOffline,TypeOfId,I.HFId, CurrentAddress, I.CurrentVillage, GeoLocation
+ 	SELECT I.[InsureeID],I.[FamilyID] ,[CHFID],[LastName],[OtherNames],[DOB],[Gender],[Marital],[IsHead],[passport],I.[Phone],[PhotoID],[PhotoDate],[CardIssued],I.[ValidityFrom],I.[ValidityTo],I.[LegacyID],I.[AuditUserID],[Relationship],[Profession],[Education],I.[Email],I.isOffline,TypeOfId,I.HFId, CurrentAddress, I.CurrentVillage, GeoLocation, Vulnerability
 	FROM tblFamilies F INNER JOIN tblInsuree I ON F.FamilyId = I.FamilyID
 	INNER JOIN tblHF HF ON I.HFId = HF.HfID
 	WHERE I.RowID > @RowID 
@@ -11145,7 +10045,7 @@ BEGIN
 	AND I.[InsureeID] =  CASE WHEN	@WithInsuree=0 THEN NULL ELSE I.[InsureeID] END
 	)
 	SELECT * FROM Insurees I
-	GROUP BY I.[InsureeID],I.[FamilyID] ,[CHFID],[LastName],[OtherNames],[DOB],[Gender],[Marital],[IsHead],[passport],[Phone],[PhotoID],[PhotoDate],[CardIssued],I.[ValidityFrom],I.[ValidityTo],I.[LegacyID],I.[AuditUserID],[Relationship],[Profession],[Education],[Email],I.isOffline,TypeOfId,HFId, CurrentAddress, I.CurrentVillage, GeoLocation	 
+	GROUP BY I.[InsureeID],I.[FamilyID] ,[CHFID],[LastName],[OtherNames],[DOB],[Gender],[Marital],[IsHead],[passport],[Phone],[PhotoID],[PhotoDate],[CardIssued],I.[ValidityFrom],I.[ValidityTo],I.[LegacyID],I.[AuditUserID],[Relationship],[Profession],[Education],[Email],I.isOffline,TypeOfId,HFId, CurrentAddress, I.CurrentVillage, GeoLocation, Vulnerability
 
 END
 GO
@@ -11472,31 +10372,45 @@ BEGIN
 	DECLARE @tblOfficerSub TABLE(OldOfficer INT, NewOfficer INT)
 
 	SELECT @OfficerId = OfficerID FROM tblOfficer WHERE Code= @OfficerCode AND ValidityTo IS NULL
+	INSERT INTO @tblOfficerSub(OldOfficer, NewOfficer) 
+	SELECT DISTINCT @OfficerID, @OfficerID 
+
+	SET @LegacyOfficer = (SELECT OfficerID FROM tblOfficer WHERE ValidityTo IS NULL AND OfficerIDSubst = @OfficerID)
+	WHILE @LegacyOfficer IS NOT NULL
+		BEGIN
 			INSERT INTO @tblOfficerSub(OldOfficer, NewOfficer) 
-			SELECT DISTINCT @OfficerID, @OfficerID 
-
-			SET @LegacyOfficer = (SELECT OfficerID FROM tblOfficer WHERE ValidityTo IS NULL AND OfficerIDSubst = @OfficerID)
-			WHILE @LegacyOfficer IS NOT NULL
-				BEGIN
-					INSERT INTO @tblOfficerSub(OldOfficer, NewOfficer) 
-					SELECT DISTINCT @OfficerID, @LegacyOfficer 
-					IF EXISTS(SELECT 1 FROM @tblOfficerSub  GROUP BY NewOfficer HAVING COUNT(1) > 1)
-						BREAK;
-					SET @LegacyOfficer = (SELECT OfficerID FROM tblOfficer WHERE ValidityTo IS NULL AND OfficerIDSubst = @LegacyOfficer)
-				END;
+			SELECT DISTINCT @OfficerID, @LegacyOfficer 
+			IF EXISTS(SELECT 1 FROM @tblOfficerSub  GROUP BY NewOfficer HAVING COUNT(1) > 1)
+				BREAK;
+			SET @LegacyOfficer = (SELECT OfficerID FROM tblOfficer WHERE ValidityTo IS NULL AND OfficerIDSubst = @LegacyOfficer)
+		END;
 
 
-	 ;WITH FollowingPolicies AS ( SELECT P.PolicyId, P.FamilyId, ISNULL(Prod.ConversionProdId, Prod.ProdId)ProdID, P.StartDate FROM tblPolicy P INNER JOIN tblProduct Prod ON P.ProdId = ISNULL(Prod.ConversionProdId, Prod.ProdId) WHERE P.ValidityTo IS NULL AND Prod.ValidityTo IS NULL ) 
-	 SELECT R.RenewalId,R.PolicyId, O.OfficerId, O.Code OfficerCode, I.CHFID, I.LastName, I.OtherNames, Prod.ProductCode, Prod.ProductName,F.LocationId, V.VillageName, CONVERT(NVARCHAR(10),R.RenewalpromptDate,103)RenewalpromptDate, O.Phone, CONVERT(NVARCHAR(10),RenewalDate,103) EnrollDate, 'R' PolicyStage, F.FamilyID, Prod.ProdID, R.ResponseDate, R.ResponseStatus FROM tblPolicyRenewals R  
-	 INNER JOIN tblOfficer O ON R.NewOfficerId = O.OfficerId 
-	 INNER JOIN tblInsuree I ON R.InsureeId = I.InsureeId 
-	 LEFT OUTER JOIN tblProduct Prod ON R.NewProdId = Prod.ProdId 
-	 INNER JOIN tblFamilies F ON I.FamilyId = F.Familyid 
-	 INNER JOIN tblVillages V ON F.LocationId = V.VillageId 
-	 INNER JOIN tblPolicy Po ON Po.PolicyID = R.PolicyID
-	 INNER JOIN @tblOfficerSub OS ON OS.NewOfficer = R.NewOfficerID
-	 LEFT OUTER JOIN FollowingPolicies FP ON FP.FamilyID = F.FamilyId AND FP.ProdId = Po.ProdID AND FP.PolicyId <> R.PolicyID 
-	 WHERE R.ValidityTo Is NULL AND ISNULL(R.ResponseStatus, 0) = 0 AND FP.PolicyId IS NULL
+	;WITH FollowingPolicies AS 
+	( 
+		SELECT P.PolicyId, P.FamilyId, ISNULL(Prod.ConversionProdId, Prod.ProdId)ProdID, P.StartDate 
+		FROM tblPolicy P 
+		INNER JOIN tblProduct Prod ON P.ProdId = ISNULL(Prod.ConversionProdId, Prod.ProdId) 
+		WHERE P.ValidityTo IS NULL 
+		AND Prod.ValidityTo IS NULL 
+	) 
+
+	SELECT R.RenewalId,R.PolicyId, O.OfficerId, O.Code OfficerCode, I.CHFID, I.LastName, I.OtherNames, Prod.ProductCode, Prod.ProductName,F.LocationId, V.VillageName, R.RenewalpromptDate RenewalpromptDate, O.Phone,  RenewalDate EnrollDate, 'R' PolicyStage, F.FamilyID, Prod.ProdID, R.ResponseDate, R.ResponseStatus 
+	FROM tblPolicyRenewals R  
+	INNER JOIN tblOfficer O ON R.NewOfficerId = O.OfficerId 
+	INNER JOIN tblInsuree I ON R.InsureeId = I.InsureeId 
+	LEFT OUTER JOIN tblProduct Prod ON R.NewProdId = Prod.ProdId 
+	INNER JOIN tblFamilies F ON I.FamilyId = F.Familyid 
+	INNER JOIN tblVillages V ON F.LocationId = V.VillageId 
+	INNER JOIN tblPolicy Po ON Po.PolicyID = R.PolicyID
+	INNER JOIN @tblOfficerSub OS ON OS.NewOfficer = R.NewOfficerID
+	LEFT OUTER JOIN FollowingPolicies FP ON FP.FamilyID = F.FamilyId 
+										AND FP.ProdId = Po.ProdID 
+										AND FP.PolicyId <> R.PolicyID
+										AND FP.PolicyId IS NULL
+							
+	WHERE R.ValidityTo Is NULL 
+	AND ISNULL(R.ResponseStatus, 0) = 0
  END
 
 
@@ -12651,7 +11565,7 @@ BEGIN TRY
 	--**S insurees**
 	SET NOCOUNT OFF
 	UPDATE Src SET Src.FamilyID = Etr.FamilyID  ,Src.CHFID = Etr.CHFID ,Src.LastName = Etr.LastName ,Src.OtherNames = Etr.OtherNames ,Src.DOB = Etr.DOB ,Src.Gender = Etr.Gender ,Src.Marital = Etr.Marital ,Src.IsHead = Etr.IsHead ,Src.passport = Etr.passport ,src.Phone = Etr.Phone ,Src.PhotoID = Etr.PhotoID  ,Src.PhotoDate = Etr.PhotoDate ,Src.CardIssued = Etr.CardIssued ,Src.ValidityFrom = Etr.ValidityFrom , Src.ValidityTo = Etr.ValidityTo , Src.LegacyID = Etr.LegacyID, Src.AuditUserID = @AuditUser,Src.Relationship = Etr.Relationship, Src.Profession = Etr.Profession,Src.Education = Etr.Education,Src.Email = Etr.Email , 
-	Src.TypeOfId = Etr.TypeOfId, Src.HFID = Etr.HFID, Src.CurrentAddress = Etr.CurrentAddress, Src.GeoLocation = Etr.GeoLocation
+	Src.TypeOfId = Etr.TypeOfId, Src.HFID = Etr.HFID, Src.CurrentAddress = Etr.CurrentAddress, Src.GeoLocation = Etr.GeoLocation, Src.Vulnerability = Etr.Vulnerability
 	FROM tblInsuree Src , @xtInsuree Etr WHERE Src.InsureeID = Etr.InsureeID 
 	SET @InsureeUpd = @@ROWCOUNT
 	SET NOCOUNT ON
@@ -12659,8 +11573,8 @@ BEGIN TRY
 	SET NOCOUNT OFF;
 	SET IDENTITY_INSERT [tblInsuree] ON
 	
-	INSERT INTO tblInsuree ([InsureeID],[FamilyID] ,[CHFID],[LastName],[OtherNames],[DOB],[Gender],[Marital],[IsHead],[passport],[Phone],[PhotoID],[PhotoDate],[CardIssued],[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],Relationship,Profession,Education,Email,TypeOfId,HFID, CurrentAddress, GeoLocation, CurrentVillage)
-	SELECT [InsureeID],[FamilyID] ,[CHFID],[LastName],[OtherNames],[DOB],[Gender],[Marital],[IsHead],[passport],[Phone],[PhotoID] ,[PhotoDate],[CardIssued],[ValidityFrom],[ValidityTo],[LegacyID],@AuditUser,Relationship,Profession,Education,Email,TypeOfId,HFID, CurrentAddress, GeoLocation,CurrentVillage
+	INSERT INTO tblInsuree ([InsureeID],[FamilyID] ,[CHFID],[LastName],[OtherNames],[DOB],[Gender],[Marital],[IsHead],[passport],[Phone],[PhotoID],[PhotoDate],[CardIssued],[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],Relationship,Profession,Education,Email,TypeOfId,HFID, CurrentAddress, GeoLocation, CurrentVillage, Vulnerability)
+	SELECT [InsureeID],[FamilyID] ,[CHFID],[LastName],[OtherNames],[DOB],[Gender],[Marital],[IsHead],[passport],[Phone],[PhotoID] ,[PhotoDate],[CardIssued],[ValidityFrom],[ValidityTo],[LegacyID],@AuditUser,Relationship,Profession,Education,Email,TypeOfId,HFID, CurrentAddress, GeoLocation,CurrentVillage, Vulnerability
 	FROM @xtInsuree WHERE [InsureeID] NOT IN 
 	(SELECT InsureeID FROM tblInsuree)
 	AND FamilyID IN (SELECT FamilyID FROM tblFamilies)
@@ -12730,8 +11644,6 @@ BEGIN CATCH
 	SELECT ERROR_MESSAGE();
 END CATCH			
 END
-
-
 GO
 
 SET ANSI_NULLS ON
@@ -12739,11 +11651,9 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-
 CREATE PROCEDURE [dbo].[uspInsertFeedback]
 (
 	@XML XML
-	--@FileName VARCHAR(100)
 )
 /*
 	-1: Fatal Error
@@ -12758,8 +11668,6 @@ AS
 BEGIN
 	
 	BEGIN TRY
-		--DECLARE @FilePath NVARCHAR(250)
-		--DECLARE @XML XML
 		DECLARE @Query NVARCHAR(3000)
 		
 		DECLARE @OfficerCode NVARCHAR(8)
@@ -12768,19 +11676,13 @@ BEGIN
 		DECLARE @CHFID VARCHAR(12)
 		DECLARE @Answers VARCHAR(5)
 		DECLARE @FeedbackDate DATE
-		
-		--SELECT @FilePath = 'C:/inetpub/wwwroot' + FTPFeedbackFolder + '/' + @FileName FROM tblIMISDefaults
-				
-		--SET @Query = (N'SELECT  @XML = (SELECT CAST(X AS XML) FROM OPENROWSET(BULK ''' + @FileName +''',SINGLE_BLOB) AS T(X))')
-		
-		--EXECUTE sp_executesql  @Query,N'@XML XML OUTPUT',@XML OUTPUT
-		
+
 		SELECT
 		@OfficerCode = feedback.value('(Officer)[1]','NVARCHAR(8)'),
 		@ClaimID = feedback.value('(ClaimID)[1]','NVARCHAR(8)'),
 		@CHFID  = feedback.value('(CHFID)[1]','VARCHAR(12)'),
 		@Answers = feedback.value('(Answers)[1]','VARCHAR(5)'),
-		@FeedbackDate = CONVERT(DATE,feedback.value('(Date)[1]','VARCHAR(10)'),103)
+		@FeedbackDate = feedback.value('(Date)[1]','VARCHAR(10)')
 		FROM @XML.nodes('feedback') AS T(feedback)
 
 		DECLARE @ClaimCode NVARCHAR(8)
@@ -12820,8 +11722,6 @@ BEGIN
 	
 	RETURN 0
 END
-
-
 GO
 
 SET ANSI_NULLS ON
@@ -12986,6 +11886,96 @@ BEGIN
 END
 GO
 
+CREATE PROCEDURE uspPrepareBulkControlNumberRequests
+(
+	@Count INT,
+	@ProductCode NVARCHAR(50),
+	@ErrorCode INT OUTPUT
+)		
+AS
+BEGIN
+	BEGIN TRY
+		/*
+			0	:	Success
+			1	:	Amount not valid
+			2	:	AccCodePremiums not found
+			3	:	Couldn't create exact numbers of count requests
+		*/
+
+		DECLARE @ExpectedAmount DECIMAL(18, 2),
+				@AccCodePremiums NVARCHAR(50),
+				@Status INT = 0,
+				@PolicyStage NCHAR(1) = N'N'
+
+		SELECT @ExpectedAmount = Lumpsum, @AccCodePremiums = AccCodePremiums FROM tblProduct WHERE ProductCode = @ProductCode AND ValidityTo IS NULL;
+		IF ISNULL(@ExpectedAmount, 0) = 0
+		BEGIN
+			SET @ErrorCode = 1;
+			RAISERROR (N'Invalid amount', 16, 1);
+		END
+
+		IF ISNULL(@AccCodePremiums, '') = ''
+		BEGIN
+			SET @ErrorCode = 2;
+			RAISERROR (N'Invalid AccCodePremium', 16, 1);
+		END
+
+		DECLARE @dt TABLE
+		(
+			BillId INT,
+			ProductCode NVARCHAR(50),
+			Amount DECIMAL(18, 2),
+			AccCodePremiums NVARCHAR(50)
+		)
+
+		DECLARE @PaymentId INT = 0;
+
+		BEGIN TRAN TRAN_CN
+			WHILE(@Count > 0)
+			BEGIN
+		
+				-- INSERT INTO Payment
+				INSERT INTO tblPayment (ExpectedAmount, RequestDate, PaymentStatus, ValidityFrom, AuditedUSerID)
+				SELECT @ExpectedAmount ExprectedAmount, GETDATE() RequestDate, 1 PaymentStatus, GETDATE() ValidityFrom, -1 AuditUserId
+
+				SELECT @PaymentId = IDENT_CURRENT(N'tblPayment');
+
+
+				--INSERT INTO Payment details
+				INSERT INTO tblPaymentDetails(PaymentID, ProductCode, PolicyStage, ValidityFrom, AuditedUserId, ExpectedAmount)
+				SELECT @PaymentId PaymentId, @ProductCode ProductCode, @PolicyStage PolicyStage, GETDATE() ValidityFrom, -1 AuditUserId, @ExpectedAmount ExpectedAmount;
+
+				--INSERT INTO Control Number
+				INSERT INTO tblControlNumber(PaymentID, RequestedDate, [Status], ValidityFrom, AuditedUserID)
+				SELECT @PaymentId PaymentId, GETDATE() RequestedDate, @Status [Status], GETDATE() ValidityFrom, -1 AuditUserId;
+
+				--Prepare return table
+				INSERT INTO @dt(BillId, ProductCode, Amount, AccCodePremiums)
+				SELECT @PaymentId, @ProductCode ProductCode, @ExpectedAmount Amount, @AccCodePremiums AccCodePremium;
+
+				SET @Count = @Count - 1;
+			END
+
+			SELECT BillId, ProductCode, Amount FROM @dt;
+			IF (SELECT COUNT(1) FROM @dt) <> @Count
+			BEGIN
+				SET @ErrorCode = 0;
+				COMMIT TRAN TRAN_CN;
+			END
+			ELSE
+			BEGIN 
+				SET @ErrorCode = 3;
+				RAISERROR (N'Could not create all the requests', 16, 1);
+			END
+	END TRY
+	BEGIN CATCH
+		SET @ErrorCode = 99;
+		ROLLBACK TRAN TRAN_CN;
+		THROW;
+	END CATCH
+END
+GO
+
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -13025,10 +12015,11 @@ BEGIN
 		NULLIF(T.H.value('(AuditUserId)[1]','INT'),'')
 		FROM @XML.nodes('PaymentIntent/Header') AS T(H)
 
-		INSERT INTO @tblDetail(InsuranceNumber, productCode, isRenewal)
+		INSERT INTO @tblDetail(InsuranceNumber, productCode, PolicyValue, isRenewal)
 		SELECT 
 		LEFT(NULLIF(T.D.value('(InsuranceNumber)[1]','NVARCHAR(12)'),''),12),
 		LEFT(NULLIF(T.D.value('(ProductCode)[1]','NVARCHAR(8)'),''),8),
+		T.D.value('(PolicyValue)[1]','DECIMAL(18,2)'),
 		T.D.value('(IsRenewal)[1]','BIT')
 		FROM @XML.nodes('PaymentIntent/Details/Detail') AS T(D)
 		
@@ -13056,7 +12047,7 @@ BEGIN
 	/*Error Codes
 	2- Not valid insurance or missing product code
 	3- Not valid enrolment officer code
-	4 –Enrolment officer code and insurance product code are not compatible
+	4- Enrolment officer code and insurance product code are not compatible
 	5- Beneficiary has no policy of specified insurance product for renewal
 	6- Can not issue a control number as default indicated prior enrollment and Insuree has not been enrolled yet 
 
@@ -13222,10 +12213,10 @@ BEGIN
 						EXEC @PolicyValue = uspPolicyValue @FamilyId, @ProductId, 0, @PolicyStage, NULL, 0;
 					END
 												
-				ELSE IF @PolicyStage ='N'
-				BEGIN
-					EXEC @PolicyValue = uspPolicyValue @FamilyId, @ProductId, 0, 'N', NULL, 0;
-				END
+					ELSE IF @PolicyStage ='N'
+					BEGIN
+						EXEC @PolicyValue = uspPolicyValue @FamilyId, @ProductId, 0, 'N', NULL, 0;
+					END
 				ELSE
 				BEGIN
 					SELECT TOP 1 @PrevPolicyID = PolicyID, @PolicyStatus = PolicyStatus FROM tblPolicy  WHERE ProdID = @ProductId AND FamilyID = @FamilyId AND ValidityTo IS NULL AND PolicyStatus != 4 ORDER BY EnrollDate DESC
@@ -13249,7 +12240,7 @@ BEGIN
 			BEGIN
 				EXEC @PolicyValue = uspPolicyValueProxyFamily @productCode, @AdultMembers, @ChildMembers,@oAdultMembers,@oChildMembers
 			END
-			UPDATE @tblDetail SET PolicyValue = ISNULL(@PolicyValue,0), PolicyStage = @PolicyStage  WHERE InsuranceNumber = @InsuranceNumber AND productCode = @productCode AND isRenewal = @isRenewal
+			UPDATE @tblDetail SET PolicyValue = CASE WHEN PolicyValue<>0 THEN PolicyValue ELSE ISNULL(@PolicyValue,0) END, PolicyStage = @PolicyStage  WHERE InsuranceNumber = @InsuranceNumber AND productCode = @productCode AND isRenewal = @isRenewal
 			FETCH NEXT FROM CurFamily INTO @InsuranceNumber, @productCode, @isRenewal, @isExisting;
 		END
 		CLOSE CurFamily
@@ -13316,7 +12307,6 @@ BEGIN
 	 *********************************************************************************************************************/
 
 END
-
 GO
 
 SET ANSI_NULLS ON
@@ -13327,7 +12317,7 @@ GO
 
 CREATE PROCEDURE [dbo].[uspIsValidRenewal]
 (
-	@FileName NVARCHAR(200),
+	@FileName NVARCHAR(200) = '',
 	@XML XML
 )
 /*
@@ -13358,12 +12348,8 @@ BEGIN
 	
 	DECLARE @FromPhoneId INT = 0;
 	DECLARE @RecordCount INT = 0
-	
-	--SELECT @FilePath = 'C:/inetpub/wwwroot/IMIS' + FTPPolicyRenewalFolder + '/' + @FileName FROM tblIMISDefaults
-	
-	--SET @Query =  (N'SELECT  @XML = (SELECT CAST(X AS XML) FROM OPENROWSET(BULK ''' + @FileName +''',SINGLE_BLOB) AS T(X))')
-
-	--EXECUTE sp_executesql  @Query,N'@XML XML OUTPUT',@XML OUTPUT
+	DECLARE @RenewalOrder INT = 0
+	DECLARE @ResponseStatus INT = 0
 	
 	SELECT 
 	@RenewalId = T.Policy.query('RenewalId').value('.','INT'),
@@ -13391,11 +12377,7 @@ BEGIN
 			AND OfficerCode = @Officer AND CHFID = @CHFID AND PR.RenewalID = @RenewalId
 	
 	
-	IF @DocStatus ='R'
-		RETURN -3
-	ELSE IF @DocStatus ='A'
-		RETURN -4
-
+	
 	--Insert the file details in the tblFromPhone
 	--Initially we keep to DocStatus REJECTED and once the renewal is accepted we will update the Status
 	INSERT INTO tblFromPhone(DocType, DocName, DocStatus, OfficerCode, CHFID)
@@ -13405,24 +12387,39 @@ BEGIN
 
 	DECLARE @PreviousPolicyId INT = 0
 
-	SELECT @PreviousPolicyId = PolicyId FROM tblPolicyRenewals WHERE ValidityTo IS NULL AND RenewalID = @RenewalId;
+	SELECT @PreviousPolicyId = PolicyId,@ResponseStatus=ResponseStatus FROM tblPolicyRenewals WHERE ValidityTo IS NULL AND RenewalID = @RenewalId;
+	IF @ResponseStatus = 1 
+		BEGIN
+			RETURN - 4
+		END
 
 
 	DECLARE @Tbl TABLE(Id INT)
 
+	
+	;WITH PrevProducts
+	AS
+	(
+		SELECT Prod.ProductCode, Prod.ProdId, OldProd.ProdID PrevProd
+		FROM tblProduct Prod
+		LEFT OUTER JOIN tblProduct OldProd ON Prod.ProdId = OldProd.ConversionProdId
+		WHERE Prod.ValidityTo IS NULL
+		AND OldProd.ValidityTo IS NULL
+		AND Prod.ProductCode = @ProductCode
+	)
 	INSERT INTO @Tbl(Id)
 	SELECT TOP 1 I.InsureeID Result
 	FROM tblInsuree I INNER JOIN tblPolicy PL ON I.FamilyID = PL.FamilyID
-	INNER JOIN tblProduct PR ON PL.ProdID = PR.ProdID
+	INNER JOIN PrevProducts PR ON PL.ProdId = PR.ProdId OR PL.ProdId = PR.PrevProd --PL.ProdID = PR.ProdID
 	WHERE CHFID = @CHFID
 	AND PR.ProductCode = @ProductCode
 	AND I.ValidityTo IS NULL
 	AND PL.ValidityTo IS NULL
 	UNION ALL
-	SELECT OfficerID
-	FROM tblOfficer
-	WHERE Code =@Officer
-	AND ValidityTo IS NULL
+		SELECT OfficerID
+		FROM tblOfficer
+		WHERE Code =@Officer
+		AND ValidityTo IS NULL
 	
 	
 	DECLARE @FamilyID INT = (SELECT FamilyId from tblInsuree WHERE CHFID = @CHFID AND ValidityTo IS NULL)
@@ -13430,13 +12427,31 @@ BEGIN
 	DECLARE @StartDate DATE
 	DECLARE @ExpiryDate DATE
 	DECLARE @HasCycle BIT
+	--PAUL -24/04/2019 INSERTED  @@AND tblPolicy.ValidityTo@@ to ensure that query does not include deleted policies
+	;WITH PrevProducts
+	AS
+	(
+		SELECT Prod.ProductCode, Prod.ProdId, OldProd.ProdID PrevProd
+		FROM tblProduct Prod
+		LEFT OUTER JOIN tblProduct OldProd ON Prod.ProdId = OldProd.ConversionProdId
+		WHERE Prod.ValidityTo IS NULL
+		AND OldProd.ValidityTo IS NULL
+		AND Prod.ProductCode = @ProductCode
+	)
+	SELECT TOP 1 @ProdId = PR.ProdId, @ExpiryDate = PL.ExpiryDate
+	FROM tblInsuree I INNER JOIN tblPolicy PL ON I.FamilyID = PL.FamilyID
+	INNER JOIN PrevProducts PR ON PL.ProdId = PR.ProdId OR PL.ProdId = PR.PrevProd 
+	WHERE CHFID = @CHFID
+	AND PR.ProductCode = @ProductCode
+	AND I.ValidityTo IS NULL
+	AND PL.ValidityTo IS NULL
+	ORDER BY PL.ExpiryDate DESC;
 
-	SELECT TOP 1 @ProdId = tblPolicy.ProdID, @ExpiryDate = tblPolicy.ExpiryDate from tblPolicy INNER JOIN tblProduct ON tblPolicy.ProdID = tblProduct.ProdID WHERE FamilyID = @FamilyID AND tblProduct.ProductCode = @ProductCode AND tblProduct.ValidityTo IS NULL ORDER BY ExpiryDate DESC
-	
 	IF EXISTS(SELECT 1 FROM tblPremium PR INNER JOIN tblPolicy PL ON PR.PolicyID = PL.PolicyID 
 				WHERE PR.Receipt = @Receipt 
 				AND PL.ProdID = @ProdId
-				AND PR.ValidityTo IS NULL)
+				AND PR.ValidityTo IS NULL
+				AND LEN(PR.Receipt) > 0)
 
 				RETURN -1;
 	
@@ -13447,88 +12462,112 @@ BEGIN
 	WHERE ValidityTo IS NULL
 	AND ProdId = @ProdId;
 	
-	IF @LastRenewalDate < @Date
-		RETURN -2
 	
-	SELECT @RecordCount = COUNT(1) FROM @Tbl;
+		--IF EXISTS(SELECT 1 FROM tblProduct WHERE ProdId = @ProdId AND LEN(StartCycle1) > 0)
+		--	--CHECK IF IT IS A FREE PRODUCT AND IGNORE GRACE PERIOD RENEWAL, IF IS NOT A FREE PRODUCT RETURN -2	
+		--	IF @LastRenewalDate < @Date 
+		--		BEGIN					  
+		--			RETURN -2
+		--		END
+		SELECT @RecordCount = COUNT(1) FROM @Tbl;
+		
 	
 	IF @RecordCount = 2
-	BEGIN
-		IF @Discontinue = 'false' OR @Discontinue = N''
-			BEGIN
+		BEGIN
+			IF @Discontinue = 'false' OR @Discontinue = N''
+				BEGIN
+					
+					DECLARE @tblPeriod TABLE(StartDate DATE, ExpiryDate DATE, HasCycle BIT)
+					DECLARE @EnrolmentDate DATE =DATEADD(D,1,@ExpiryDate)
+					INSERT INTO @tblPeriod
+					EXEC uspGetPolicyPeriod @ProdId, @Date, @HasCycle OUTPUT,'R';
 
-				--Get policy period
-				DECLARE @tblPeriod TABLE(StartDate DATE, ExpiryDate DATE, HasCycle BIT)
-
-				INSERT INTO @tblPeriod
-				EXEC uspGetPolicyPeriod @ProdId, @ExpiryDate, @HasCycle OUTPUT;
-
-				DECLARE @ExpiryDatePreviousPolicy DATE
-				SELECT @ExpiryDatePreviousPolicy = ExpiryDate FROM tblPolicy WHERE PolicyID=@PreviousPolicyId AND ValidityTo IS NULL
-				SELECT @StartDate = StartDate, @ExpiryDate = ExpiryDate FROM @tblPeriod;
-				IF @StartDate < @ExpiryDatePreviousPolicy
-					UPDATE @tblPeriod SET StartDate=DATEADD(DAY, 1, @ExpiryDatePreviousPolicy)
+					DECLARE @ExpiryDatePreviousPolicy DATE
 				
-
-				IF @HasCycle = 1
-					SELECT @StartDate = StartDate, @ExpiryDate = ExpiryDate FROM @tblPeriod;
-				ELSE
-					SELECT @StartDate = @Date, @ExpiryDate = DATEADD(DAY,-1,DATEADD(MONTH,InsurancePeriod,@Date)) FROM tblProduct WHERE ProdID = @ProdId;
-
-
-				DECLARE @OfficerID INT = (SELECT OfficerID FROM tblOfficer WHERE Code = @Officer AND ValidityTo IS NULL)
-				DECLARE @PolicyValue DECIMAL(18,2) 
-				--EXEC @PolicyValue = uspPolicyValue 0, 0,@FamilyID, @ProdId,@Date, 
-				EXEC @PolicyValue = uspPolicyValue
-										@FamilyId = @FamilyID,
-										@ProdId = @ProdId,
-										@EnrollDate = @Date,
-										@PreviousPolicyId = @PreviousPolicyId,
-										@PolicyStage = 'R';
-		
-				DECLARE @PolicyStatus TINYINT = 2
-		
-				IF @Amount < @PolicyValue SET @PolicyStatus = 1
-		
-				INSERT INTO tblPolicy(FamilyID, EnrollDate, StartDate, EffectiveDate, ExpiryDate, PolicyStatus, PolicyValue, ProdID, OfficerID, AuditUserID, PolicyStage)
-								VALUES(@FamilyID, @Date, @StartDate, @StartDate,@ExpiryDate, @PolicyStatus, @PolicyValue, @ProdId, @OfficerID, 0, 'R')
-		
-				DECLARE @PolicyID INT = (SELECT SCOPE_IDENTITY())
-		
-				INSERT INTO tblPremium(PolicyID, Amount, Receipt, PayDate, PayType, AuditUserID, PayerID)
-								Values(@PolicyID, @Amount, @Receipt, @Date, 'C',0, @PayerId)
+					SELECT @ExpiryDatePreviousPolicy = ExpiryDate FROM tblPolicy WHERE PolicyID=@PreviousPolicyId AND ValidityTo IS NULL
+					
 				
+					IF @HasCycle = 1
+						BEGIN
+							SELECT @StartDate = StartDate, @ExpiryDate = ExpiryDate FROM @tblPeriod;
+							IF @StartDate < @ExpiryDatePreviousPolicy
+								BEGIN
+									UPDATE @tblPeriod SET StartDate=DATEADD(DAY, 1, @ExpiryDatePreviousPolicy)
+									SELECT @StartDate = StartDate, @ExpiryDate = ExpiryDate FROM @tblPeriod;
+								END	
+						END
+					ELSE
+						BEGIN
+					
+						IF @Date < @ExpiryDate						 
+							SELECT @StartDate =DATEADD(D,1,@ExpiryDate), @ExpiryDate = DATEADD(DAY,-1,DATEADD(MONTH,InsurancePeriod,DATEADD(D,1,@ExpiryDate))) FROM tblProduct WHERE ProdID = @ProdId;
+						ELSE
+							SELECT @StartDate = @Date, @ExpiryDate = DATEADD(DAY,-1,DATEADD(MONTH,InsurancePeriod,@Date)) FROM tblProduct WHERE ProdID = @ProdId;
+						END
+					
+
+
+					DECLARE @OfficerID INT = (SELECT OfficerID FROM tblOfficer WHERE Code = @Officer AND ValidityTo IS NULL)
+					DECLARE @PolicyValue DECIMAL(18,2) 
+				
+						SET @EnrolmentDate = @Date
+					EXEC @PolicyValue = uspPolicyValue
+											@FamilyId = @FamilyID,
+											@ProdId = @ProdId,
+											@EnrollDate = @EnrolmentDate,
+											@PreviousPolicyId = @PreviousPolicyId,
+											@PolicyStage = 'R';
+		
+					DECLARE @PolicyStatus TINYINT = 2
+		
+					IF @Amount < @PolicyValue SET @PolicyStatus = 1
+		
+					INSERT INTO tblPolicy(FamilyID, EnrollDate, StartDate, EffectiveDate, ExpiryDate, PolicyStatus, PolicyValue, ProdID, OfficerID, AuditUserID, PolicyStage)
+									VALUES(@FamilyID, @Date, @StartDate, @StartDate,@ExpiryDate, @PolicyStatus, @PolicyValue, @ProdId, @OfficerID, 0, 'R')
+		
+					DECLARE @PolicyID INT = (SELECT SCOPE_IDENTITY())
+					
+					-- No need to create if the payment is not made yet
+					IF @Amount > 0
+					BEGIN
+						INSERT INTO tblPremium(PolicyID, Amount, Receipt, PayDate, PayType, AuditUserID, PayerID)
+										Values(@PolicyID, @Amount, @Receipt, @Date, 'C',0, @PayerId)
+					END
 
 				
-				DECLARE @InsureeId INT
-							DECLARE CurNewPolicy CURSOR FOR SELECT I.InsureeID FROM tblInsuree I 
-							INNER JOIN tblFamilies F ON I.FamilyID = F.FamilyID 
-							INNER JOIN tblPolicy P ON P.FamilyID = F.FamilyID 
-							WHERE P.PolicyId = @PolicyId 
-							AND I.ValidityTo IS NULL 
-							AND F.ValidityTo IS NULL
-							AND P.ValidityTo IS NULL
-							OPEN CurNewPolicy;
-							FETCH NEXT FROM CurNewPolicy INTO @InsureeId;
-							WHILE @@FETCH_STATUS = 0
-							BEGIN
-								EXEC uspAddInsureePolicy @InsureeId;
+					DECLARE @InsureeId INT
+								DECLARE CurNewPolicy CURSOR FOR SELECT I.InsureeID FROM tblInsuree I 
+								INNER JOIN tblFamilies F ON I.FamilyID = F.FamilyID 
+								INNER JOIN tblPolicy P ON P.FamilyID = F.FamilyID 
+								WHERE P.PolicyId = @PolicyId 
+								AND I.ValidityTo IS NULL 
+								AND F.ValidityTo IS NULL
+								AND P.ValidityTo IS NULL
+								OPEN CurNewPolicy;
 								FETCH NEXT FROM CurNewPolicy INTO @InsureeId;
-							END
-							CLOSE CurNewPolicy;
-							DEALLOCATE CurNewPolicy; 
+								WHILE @@FETCH_STATUS = 0
+								BEGIN
+									EXEC uspAddInsureePolicy @InsureeId;
+									FETCH NEXT FROM CurNewPolicy INTO @InsureeId;
+								END
+								CLOSE CurNewPolicy;
+								DEALLOCATE CurNewPolicy; 
 
-				UPDATE tblPolicyRenewals SET ResponseStatus = 1, ResponseDate = GETDATE() WHERE RenewalId = @RenewalId;
-			END
-		ELSE
-			BEGIN
-				UPDATE tblPolicyRenewals SET ResponseStatus = 2, ResponseDate = GETDATE() WHERE RenewalId = @RenewalId
-			END
+					UPDATE tblPolicyRenewals SET ResponseStatus = 1, ResponseDate = GETDATE() WHERE RenewalId = @RenewalId;
+				END
+			ELSE
+				BEGIN
+					UPDATE tblPolicyRenewals SET ResponseStatus = 2, ResponseDate = GETDATE() WHERE RenewalId = @RenewalId
+				END
 
-		UPDATE tblFromPhone SET DocStatus = N'A' WHERE FromPhoneId = @FromPhoneId;
+				UPDATE tblFromPhone SET DocStatus = N'A' WHERE FromPhoneId = @FromPhoneId;
 		
-		SELECT * FROM @Tbl;
-	END
+				SELECT * FROM @Tbl;
+		END
+	ELSE
+		BEGIN
+			RETURN -5
+		END
 END TRY
 	BEGIN CATCH
 		SELECT ERROR_MESSAGE()
@@ -13804,7 +12843,7 @@ BEGIN TRY
 		DECLARE @PhoneNumber NVARCHAR(12)
 		DECLARE @PaymentDetailsID INT
 		DECLARE @Ready INT = 16
-		DECLARe @PolicyStage INT
+		DECLARe @PolicyStage NVARCHAR(1)
 		DECLARE @PreviousPolicyID INT
 		DECLARE @PolicyProcessed TABLE(id int, matchedPayment int)
 		DECLARE @AlreadyPaidDValue DECIMAL(18, 2)
@@ -13968,7 +13007,7 @@ BEGIN TRY
 					INSERT INTO @tblFeedback(InsuranceNumber, productCode, PhoneNumber, isActivated ,Balance, fdType)
 					SELECT @InsuranceNumber, @productCode, @PhoneNumber, @isActivated,@Balance, 'A'
 
-			FETCH NEXT FROM CurPolicies INTO @PaymentDetailsID,  @InsuranceNumber, @productCode, @PhoneNumber, @DistributedValue, @PreviousPolicyID, @AlreadyPaidDValue, @PremiumID;
+			FETCH NEXT FROM CurPolicies INTO @PaymentDetailsID,  @InsuranceNumber, @productCode, @PhoneNumber, @DistributedValue, @PreviousPolicyID, @PolicyStage, @AlreadyPaidDValue, @PremiumID
 			END
 			CLOSE CurPolicies;
 			DEALLOCATE CurPolicies; 
@@ -14092,7 +13131,7 @@ BEGIN
 		CONVERT(VARCHAR,DOB,103) DOB, CASE WHEN I.Gender = 'M' THEN 'Male' ELSE 'Female' END Gender,PR.ProductCode,PR.ProductName,
 		CONVERT(VARCHAR(12),IP.ExpiryDate,103) ExpiryDate, 
 		CASE WHEN IP.EffectiveDate IS NULL THEN 'I' WHEN CAST(GETDATE() AS DATE) NOT BETWEEN IP.EffectiveDate AND IP.ExpiryDate THEN 'E' ELSE 
-		CASE PL.PolicyStatus WHEN 1 THEN 'I' WHEN 2 THEN 'A' WHEN 4 THEN 'S' ELSE 'E' END
+		CASE PL.PolicyStatus WHEN 1 THEN 'I' WHEN 2 THEN 'A' WHEN 4 THEN 'S' WHEN 16 THEN 'R' ELSE 'E' END
 		END  AS [Status], ISNULL(MemCount.Members ,0) as FamCount
 		INTO #tempBase
 		FROM tblInsuree I LEFT OUTER JOIN tblPhotos P ON I.PhotoID = P.PhotoID
@@ -14999,16 +14038,21 @@ BEGIN
 		SELECT PL.PolicyID, PL.FamilyID, DATEADD(DAY, 1, PL.ExpiryDate) AS RenewalDate, F.InsureeID, Prod.ProdID, Prod.ProductCode, Prod.ProductName,
 		Prod.DateFrom, Prod.DateTo, D.DistrictName, V.VillageName, W.WardName, I.CHFID, I.LastName, I.OtherNames, I.DOB, Prod.ConversionProdID, 
 		O.OfficerID, O.Code, O.LastName OffLastName, O.OtherNames OffOtherNames, O.Phone, O.OfficerIDSubst, O.WorksTo
-		FROM tblPolicy PL INNER JOIN tblFamilies F ON PL.FamilyId = F.FamilyID
+		FROM tblPolicy PL 
+		INNER JOIN tblFamilies F ON PL.FamilyId = F.FamilyID
 		INNER JOIN tblInsuree I ON F.InsureeId = I.InsureeID
 		INNER JOIN tblProduct Prod ON PL.ProdId = Prod.ProdID
 		INNER JOIN tblVillages V ON V.VillageId = F.LocationId
 		INNER JOIN tblWards W ON W.WardId = V.WardId
 		INNER JOIN tblDistricts D ON D.DistrictId = W.DistrictId
 		INNER JOIN tblOfficer O ON PL.OfficerId = O.OfficerID
+		LEFT OUTER JOIN tblPolicyRenewals PR ON PL.PolicyID = PR.PolicyID
+											AND I.InsureeID = PR.InsureeID
 		WHERE PL.ValidityTo IS NULL
+		AND PR.ValidityTo IS NULL
+		AND PR.PolicyID IS NULL
 		AND PL.PolicyStatus IN  (2, 8)
-		AND (DATEDIFF(DAY, GETDATE(), PL.ExpiryDate) = @RemindingInterval OR ISNULL(@RemindingInterval, 0) = 0)
+		AND (DATEDIFF(DAY, GETDATE(), PL.ExpiryDate) <= @RemindingInterval OR ISNULL(@RemindingInterval, 0) = 0)
 		AND (V.VillageId = @VillageId OR @VillageId IS NULL)
 		AND (W.WardId = @WardId OR @WardId IS NULL)
 		AND (D.DistrictId = @DistrictId OR @DistrictId IS NULL)
@@ -15095,7 +14139,8 @@ BEGIN
 
 		--Code added by Hiren to check if the policy has another following policy
 		IF EXISTS(SELECT 1 FROM tblPolicy 
-							WHERE FamilyId = @FamilyId 
+							WHERE ValidityTo IS NULL 
+							AND FamilyId = @FamilyId 
 							AND (ProdId = @ProductID OR ProdId = @ConvProdID) 
 							AND StartDate >= @RenewalDate)
 
@@ -18054,8 +17099,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE PROCEDURE [dbo].[uspReceivePayment]
-(
-	
+(	
 	@XML XML,
 	@Payment_ID BIGINT =NULL OUTPUT
 )
@@ -18071,7 +17115,7 @@ BEGIN
     @TransactionNo NVARCHAR(50),
     @ReceiptNo NVARCHAR(100),
     @PaymentOrigin NVARCHAR(50),
-    @PhoneNumber NVARCHAR(50),
+    @PayerPhoneNumber NVARCHAR(50),
     @OfficerCode NVARCHAR(50),
     @InsuranceNumber NVARCHAR(12),
     @productCode NVARCHAR(8),
@@ -18080,11 +17124,6 @@ BEGIN
 	@ExpectedAmount DECIMAL(18,2),
 	@ErrorMsg NVARCHAR(50)
 	
-
-		
-
-	
-				
 	BEGIN TRY
 
 		DECLARE @tblDetail TABLE(InsuranceNumber nvarchar(12),productCode nvarchar(8), isRenewal BIT)
@@ -18096,7 +17135,7 @@ BEGIN
 			   @ReceiptNo = NULLIF(T.H.value('(ReceiptNo)[1]','NVARCHAR(100)'),''),
 			   @TransactionNo = NULLIF(T.H.value('(TransactionNo)[1]','NVARCHAR(50)'),''),
 			   @PaymentOrigin = NULLIF(T.H.value('(PaymentOrigin)[1]','NVARCHAR(50)'),''),
-			   @PhoneNumber = NULLIF(T.H.value('(PhoneNumber)[1]','NVARCHAR(25)'),''),
+			   @PayerPhoneNumber = NULLIF(T.H.value('(PhoneNumber)[1]','NVARCHAR(25)'),''),
 			   @OfficerCode = NULLIF(T.H.value('(OfficerCode)[1]','NVARCHAR(50)'),''),
 			   @Amount = T.H.value('(Amount)[1]','DECIMAL(18,2)')
 		FROM @XML.nodes('PaymentData') AS T(H)
@@ -18155,8 +17194,8 @@ BEGIN
 			--ERROR OCCURRED
 	
 			INSERT INTO [dbo].[tblPayment]
-			(PaymentDate, ReceivedDate, ReceivedAmount, ReceiptNo, TransactionNo, PaymentOrigin, PhoneNumber, PaymentStatus, OfficerCode, ValidityFrom, AuditedUSerID, RejectedReason) 
-			VALUES (@PaymentDate, @ReceiveDate,  @Amount, @ReceiptNo, @TransactionNo, @PaymentOrigin, @PhoneNumber, -3, @OfficerCode,  GETDATE(), -1,@ErrorMsg)
+			(PaymentDate, ReceivedDate, ReceivedAmount, ReceiptNo, TransactionNo, PaymentOrigin, PayerPhoneNumber, PaymentStatus, OfficerCode, ValidityFrom, AuditedUSerID, RejectedReason) 
+			VALUES (@PaymentDate, @ReceiveDate,  @Amount, @ReceiptNo, @TransactionNo, @PaymentOrigin, @PayerPhoneNumber, -3, @OfficerCode,  GETDATE(), -1,@ErrorMsg)
 			SET @PaymentID= SCOPE_IDENTITY();
 
 			INSERT INTO [dbo].[tblPaymentDetails]
@@ -18177,7 +17216,10 @@ BEGIN
 			IF ISNULL(@PaymentID ,0) <> 0 
 			BEGIN
 				--REQUEST/INTEND WAS FOUND
-				UPDATE tblPayment SET ReceivedAmount = @Amount, PaymentDate = @PaymentDate, ReceivedDate = GETDATE(), PaymentStatus = 4, TransactionNo = @TransactionNo, ReceiptNo= @ReceiptNo, PaymentOrigin = @PaymentOrigin, ValidityFrom = GETDATE(),AuditedUserID =-1 WHERE PaymentID = @PaymentID  AND ValidityTo IS NULL AND PaymentStatus = 3
+				UPDATE tblPayment SET ReceivedAmount = @Amount, PaymentDate = @PaymentDate, ReceivedDate = GETDATE(), 
+				PaymentStatus = 4, TransactionNo = @TransactionNo, ReceiptNo= @ReceiptNo, PaymentOrigin = @PaymentOrigin,
+				PayerPhoneNumber=@PayerPhoneNumber, ValidityFrom = GETDATE(), AuditedUserID =-1 
+				WHERE PaymentID = @PaymentID  AND ValidityTo IS NULL AND PaymentStatus = 3
 				SET @Payment_ID = @PaymentID
 				RETURN 0 
 			END
@@ -18185,8 +17227,8 @@ BEGIN
 			BEGIN
 				--PAYMENT WITHOUT INTEND TP PAY
 				INSERT INTO [dbo].[tblPayment]
-					(PaymentDate, ReceivedDate, ReceivedAmount, ReceiptNo, TransactionNo, PaymentOrigin, PhoneNumber, PaymentStatus, OfficerCode, ValidityFrom, AuditedUSerID) 
-					VALUES (@PaymentDate, @ReceiveDate,  @Amount, @ReceiptNo, @TransactionNo, @PaymentOrigin, @PhoneNumber, 4, @OfficerCode,  GETDATE(), -1)
+					(PaymentDate, ReceivedDate, ReceivedAmount, ReceiptNo, TransactionNo, PaymentOrigin, PayerPhoneNumber, PaymentStatus, OfficerCode, ValidityFrom, AuditedUSerID) 
+					VALUES (@PaymentDate, @ReceiveDate,  @Amount, @ReceiptNo, @TransactionNo, @PaymentOrigin, @PayerPhoneNumber, 4, @OfficerCode,  GETDATE(), -1)
 				SET @PaymentID= SCOPE_IDENTITY();
 							
 				INSERT INTO [dbo].[tblPaymentDetails]
@@ -18197,8 +17239,6 @@ BEGIN
 				RETURN 0 
 
 			END
-		 
-		
 			
 		END
 
@@ -18210,10 +17250,7 @@ BEGIN
 		RETURN -1
 	END CATCH
 	
-
-	
 END
-
 GO
 
 SET ANSI_NULLS ON
@@ -18970,17 +18007,19 @@ BEGIN
 
 		    WHERE HF.ValidityTo IS NULL
 		    AND (((L.RegionId = @RegionId OR @RegionId IS NULL) AND (L.DistrictId = @DistrictId OR @DistrictId IS NULL)) OR CV.ProdID IS NOT NULL OR II.ProdId IS NOT NULL)
-		    AND (HF.HFLevel IN (@Level1, @Level2, @Level3, @Level4) OR (@Level1 IS NULL AND @Level2 IS NULL AND @Level3 IS NULL AND @Level4 IS NULL))
-		    AND(
-			    ((HF.HFLevel = @Level1 OR @Level1 IS NULL) AND (HF.HFSublevel = @Sublevel1 OR @Sublevel1 IS NULL))
-			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @Sublevel2 OR @Sublevel2 IS NULL))
-			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @Sublevel3 OR @Sublevel3 IS NULL))
-			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @Sublevel4 OR @Sublevel4 IS NULL))
-		      );
-
-
-
-
+		    
+	AND  CONCAT(HF.HFLevel,'.',HF.HFSublevel)  IN (
+		SELECT CONCAT(HFlevel,'.',HFSublevel) 
+		FROM  (values ('H'), ('C'), ('D')) v(HFLevel)
+		JOIN tblHFSublevel  on 1=1
+		INNER JOIN tblProduct Prod on prodid = @ProdID
+		AND
+		( (Prod.Level1 = HFLevel and Prod.Sublevel1 is NULL or Prod.Level1 = HFLevel and Prod.Sublevel1=HFSublevel)
+		OR (Prod.Level2 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel2=HFSublevel)
+		OR (Prod.Level3 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel3=HFSublevel)
+		OR (Prod.Level4 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel4=HFSublevel)
+		)
+	);
 
 	    SELECT  MAX (RegionCode)RegionCode, 
 			MAX(RegionName)RegionName,
@@ -20398,49 +19437,64 @@ CREATE PROCEDURE [dbo].[uspSSRSProcessBatch]
 	        SET @DateTo = N'3000-12-31'
         END
 
-        ;WITH CDetails AS
-	        (
-		        SELECT CI.ClaimId, CI.ProdId,
-		        SUM(ISNULL(CI.PriceApproved, CI.PriceAsked) * ISNULL(CI.QtyApproved, CI.QtyProvided)) PriceApproved,
-		        SUM(CI.PriceValuated) PriceAdjusted, SUM(CI.RemuneratedAmount)RemuneratedAmount
-		        FROM tblClaimItems CI
-		        WHERE CI.ValidityTo IS NULL
-		        AND CI.ClaimItemStatus = 1
-		        GROUP BY CI.ClaimId, CI.ProdId
-		        UNION ALL
 
-		        SELECT CS.ClaimId, CS.ProdId,
-		        SUM(ISNULL(CS.PriceApproved, CS.PriceAsked) * ISNULL(CS.QtyApproved, CS.QtyProvided)) PriceApproved,
-		        SUM(CS.PriceValuated) PriceValuated, SUM(CS.RemuneratedAmount) RemuneratedAmount
+    ;WITH CDetails AS
+	    (
+		    SELECT CI.ClaimId, CI.ProdId,
+		    SUM(ISNULL(CI.PriceApproved, CI.PriceAsked) * ISNULL(CI.QtyApproved, CI.QtyProvided)) PriceApproved,
+		    SUM(CI.PriceValuated) PriceAdjusted, SUM(CI.RemuneratedAmount)RemuneratedAmount
+		    FROM tblClaimItems CI
+		    WHERE CI.ValidityTo IS NULL
+		    AND CI.ClaimItemStatus = 1
+		    GROUP BY CI.ClaimId, CI.ProdId
+		    UNION ALL
 
-		        FROM tblClaimServices CS
-		        WHERE CS.ValidityTo IS NULL
-		        AND CS.ClaimServiceStatus = 1
-		        GROUP BY CS.CLaimId, CS.ProdId
-	        )
-		SELECT R.RegionName, D.DistrictName, HF.HFCode, HF.HFName, Prod.ProductCode, Prod.ProductName, SUM(CDetails.RemuneratedAmount)Remunerated, Prod.AccCodeRemuneration, HF.AccCode
+		    SELECT CS.ClaimId, CS.ProdId,
+		    SUM(ISNULL(CS.PriceApproved, CS.PriceAsked) * ISNULL(CS.QtyApproved, CS.QtyProvided)) PriceApproved,
+		    SUM(CS.PriceValuated) PriceValuated, SUM(CS.RemuneratedAmount) RemuneratedAmount
 
-		FROM tblClaim C
-		INNER JOIN tblInsuree I ON I.InsureeId = C.InsureeID
-		INNER JOIN tblHF HF ON HF.HFID = C.HFID
-		INNER JOIN CDetails ON CDetails.ClaimId = C.ClaimID
-		INNER JOIN tblProduct Prod ON Prod.ProdId = CDetails.ProdID
-		INNER JOIN tblFamilies F ON F.FamilyId = I.FamilyID
-		INNER JOIN tblVillages V ON V.VillageID = F.LocationId
-		INNER JOIN tblWards W ON W.WardId = V.WardId
-		INNER JOIN tblDistricts D ON D.DistrictID = W.DistrictId
-		INNER JOIN tblRegions R ON R.RegionId = D.Region
+		    FROM tblClaimServices CS
+		    WHERE CS.ValidityTo IS NULL
+		    AND CS.ClaimServiceStatus = 1
+		    GROUP BY CS.CLaimId, CS.ProdId
+	    )
+	SELECT R.RegionName, D.DistrictName, HF.HFCode, HF.HFName, Prod.ProductCode, Prod.ProductName, SUM(CDetails.RemuneratedAmount)Remunerated, Prod.AccCodeRemuneration, HF.AccCode
 
-		WHERE C.ValidityTo IS NULL
-		AND (Prod.LocationId = @LocationId OR @LocationId = 0 OR Prod.LocationId IS NULL)
-		AND(Prod.ProdId = @ProdId OR @ProdId = 0)
-		AND (C.RunId IS NULL)
-		AND (HF.HFId = @HFID OR @HFId = 0)
-		AND (HF.HFLevel = @HFLevel OR @HFLevel = N'')
-		AND (C.DateTo BETWEEN @DateFrom AND @DateTo)
-		GROUP BY  R.RegionName,D.DistrictName, HF.HFCode, HF.HFName, Prod.ProductCode, Prod.ProductName, Prod.AccCodeRemuneration, HF.AccCode
-		HAVING SUM(CDetails.RemuneratedAmount) > @MinRemunerated
-	END
+	FROM tblClaim C
+	INNER JOIN tblInsuree I ON I.InsureeId = C.InsureeID
+	INNER JOIN tblHF HF ON HF.HFID = C.HFID
+	INNER JOIN CDetails ON CDetails.ClaimId = C.ClaimID
+	INNER JOIN tblProduct Prod ON Prod.ProdId = CDetails.ProdID
+	INNER JOIN tblFamilies F ON F.FamilyId = I.FamilyID
+	INNER JOIN tblVillages V ON V.VillageID = F.LocationId
+	INNER JOIN tblWards W ON W.WardId = V.WardId
+	INNER JOIN tblDistricts D ON D.DistrictID = W.DistrictId
+	INNER JOIN tblRegions R ON R.RegionId = D.Region
+
+	WHERE C.ValidityTo IS NULL
+	AND (Prod.LocationId = @LocationId OR @LocationId = 0 OR Prod.LocationId IS NULL)
+	AND(Prod.ProdId = @ProdId OR @ProdId = 0)
+	AND (C.RunId = @RunId OR @RunId = 0)
+	AND (HF.HFId = @HFID OR @HFId = 0)
+	AND (HF.HFLevel = @HFLevel OR @HFLevel = N'')
+	AND (C.DateTo BETWEEN @DateFrom AND @DateTo)
+	-- TO AVOID DOUBLE COUNT WITH CAPITATION
+	AND  CONCAT(HF.HFLevel,'.',HF.HFSublevel) NOT IN (
+		SELECT CONCAT(HFlevel,'.',HFSublevel) 
+		FROM  (values ('H'), ('C'), ('D')) v(HFLevel)
+		JOIN tblHFSublevel  on 1=1
+		INNER JOIN tblProduct Prod on prodid = @ProdID
+		AND
+		( (Prod.Level1 = HFLevel and Prod.Sublevel1 is NULL or Prod.Level1 = HFLevel and Prod.Sublevel1=HFSublevel)
+		OR (Prod.Level2 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel2=HFSublevel)
+		OR (Prod.Level3 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel3=HFSublevel)
+		OR (Prod.Level4 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel4=HFSublevel)
+		)
+	)
+		   
+	GROUP BY  R.RegionName,D.DistrictName, HF.HFCode, HF.HFName, Prod.ProductCode, Prod.ProductName, Prod.AccCodeRemuneration, HF.AccCode
+	HAVING SUM(CDetails.RemuneratedAmount) > @MinRemunerated
+END
 GO
 
 SET ANSI_NULLS ON
@@ -20468,64 +19522,66 @@ CREATE PROCEDURE [dbo].[uspSSRSProcessBatchWithClaim]
 	    END
 
 	    ;WITH CDetails AS
-	    (
-		    SELECT CI.ClaimId, CI.ProdId,
-		    SUM(ISNULL(CI.PriceApproved, CI.PriceAsked) * ISNULL(CI.QtyApproved, CI.QtyProvided)) PriceApproved,
-		    SUM(CI.PriceValuated) PriceAdjusted, SUM(CI.RemuneratedAmount)RemuneratedAmount
-		    FROM tblClaimItems CI
-		    WHERE CI.ValidityTo IS NULL
-		    AND CI.ClaimItemStatus = 1
-		    GROUP BY CI.ClaimId, CI.ProdId
-		    UNION ALL
+	(
+		SELECT CI.ClaimId, CI.ProdId,
+		SUM(ISNULL(CI.PriceApproved, CI.PriceAsked) * ISNULL(CI.QtyApproved, CI.QtyProvided)) PriceApproved,
+		SUM(CI.PriceValuated) PriceAdjusted, SUM(CI.RemuneratedAmount)RemuneratedAmount
+		FROM tblClaimItems CI
+		WHERE CI.ValidityTo IS NULL
+		AND CI.ClaimItemStatus = 1
+		GROUP BY CI.ClaimId, CI.ProdId
+		UNION ALL
 
-		    SELECT CS.ClaimId, CS.ProdId,
-		    SUM(ISNULL(CS.PriceApproved, CS.PriceAsked) * ISNULL(CS.QtyApproved, CS.QtyProvided)) PriceApproved,
-		    SUM(CS.PriceValuated) PriceValuated, SUM(CS.RemuneratedAmount) RemuneratedAmount
+		SELECT CS.ClaimId, CS.ProdId,
+		SUM(ISNULL(CS.PriceApproved, CS.PriceAsked) * ISNULL(CS.QtyApproved, CS.QtyProvided)) PriceApproved,
+		SUM(CS.PriceValuated) PriceValuated, SUM(CS.RemuneratedAmount) RemuneratedAmount
 
-		    FROM tblClaimServices CS
-		    WHERE CS.ValidityTo IS NULL
-		    AND CS.ClaimServiceStatus = 1
-		    GROUP BY CS.CLaimId, CS.ProdId
-	    )
-	    SELECT C.ClaimCode, C.DateClaimed, CA.OtherNames OtherNamesAdmin, CA.LastName LastNameAdmin, C.DateFrom, C.DateTo, I.CHFID, I.OtherNames,
-	I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
-	    I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
-	I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
-	    I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
-	I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
-	    I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
-	I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
-	    I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
-	I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
-	    I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
+		FROM tblClaimServices CS
+		WHERE CS.ValidityTo IS NULL
+		AND CS.ClaimServiceStatus = 1
+		GROUP BY CS.CLaimId, CS.ProdId
+	)
+	SELECT C.ClaimCode, C.DateClaimed, CA.OtherNames OtherNamesAdmin, CA.LastName LastNameAdmin, C.DateFrom, C.DateTo, I.CHFID, I.OtherNames,
 	I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, 
 	C.Claimed PriceAsked, SUM(CDetails.PriceApproved)PriceApproved, SUM(CDetails.PriceAdjusted)PriceAdjusted, SUM(CDetails.RemuneratedAmount)RemuneratedAmount,
 	D.DistrictID, D.DistrictName, R.RegionId, R.RegionName
 
-	    FROM tblClaim C
-	    LEFT OUTER JOIN tblClaimAdmin CA ON CA.ClaimAdminId = C.ClaimAdminId
-	    INNER JOIN tblInsuree I ON I.InsureeId = C.InsureeID
-	    INNER JOIN tblHF HF ON HF.HFID = C.HFID
-	    INNER JOIN CDetails ON CDetails.ClaimId = C.ClaimID
-	    INNER JOIN tblProduct Prod ON Prod.ProdId = CDetails.ProdID
-	    INNER JOIN tblFamilies F ON F.FamilyId = I.FamilyID
-	    INNER JOIN tblVillages V ON V.VillageID = F.LocationId
-	    INNER JOIN tblWards W ON W.WardId = V.WardId
-	    INNER JOIN tblDistricts D ON D.DistrictID = W.DistrictId
-	    INNER JOIN tblRegions R ON R.RegionId = D.Region
+	FROM tblClaim C
+	LEFT OUTER JOIN tblClaimAdmin CA ON CA.ClaimAdminId = C.ClaimAdminId
+	INNER JOIN tblInsuree I ON I.InsureeId = C.InsureeID
+	INNER JOIN tblHF HF ON HF.HFID = C.HFID
+	INNER JOIN CDetails ON CDetails.ClaimId = C.ClaimID
+	INNER JOIN tblProduct Prod ON Prod.ProdId = CDetails.ProdID
+	INNER JOIN tblFamilies F ON F.FamilyId = I.FamilyID
+	INNER JOIN tblVillages V ON V.VillageID = F.LocationId
+	INNER JOIN tblWards W ON W.WardId = V.WardId
+	INNER JOIN tblDistricts D ON D.DistrictID = W.DistrictId
+	INNER JOIN tblRegions R ON R.RegionId = D.Region
 
-	    WHERE C.ValidityTo IS NULL
-	    AND (Prod.LocationId = @LocationId OR @LocationId = 0 OR Prod.LocationId IS NULL)
-	    AND(Prod.ProdId = @ProdId OR @ProdId = 0)
-	    AND (C.RunId IS NULL)
-	    AND (HF.HFId = @HFID OR @HFId = 0)
-	    AND (HF.HFLevel = @HFLevel OR @HFLevel = N'')
-	    AND (C.DateTo BETWEEN @DateFrom AND @DateTo)
-
-	    GROUP BY C.ClaimCode, C.DateClaimed, CA.OtherNames, CA.LastName , C.DateFrom, C.DateTo, I.CHFID, I.OtherNames,
-	    I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, C.Claimed,
-	    D.DistrictId, D.DistrictName, R.RegionId, R.RegionName
-	END
+	WHERE C.ValidityTo IS NULL
+	AND (Prod.LocationId = @LocationId OR @LocationId = 0 OR Prod.LocationId IS NULL)
+	AND(Prod.ProdId = @ProdId OR @ProdId = 0)
+	AND (C.RunId IS NULL)
+	AND (HF.HFId = @HFID OR @HFId = 0)
+	AND (HF.HFLevel = @HFLevel OR @HFLevel = N'')
+	AND (C.DateTo BETWEEN @DateFrom AND @DateTo)
+		-- TO AVOID DOUBLE COUNT WITH CAPITATION
+	AND  CONCAT(HF.HFLevel,'.',HF.HFSublevel) NOT IN (
+		SELECT CONCAT(HFlevel,'.',HFSublevel) 
+		FROM  (values ('H'), ('C'), ('D')) v(HFLevel)
+		JOIN tblHFSublevel  on 1=1
+		INNER JOIN tblProduct Prod on prodid = @ProdID
+		AND
+		( (Prod.Level1 = HFLevel and Prod.Sublevel1 is NULL or Prod.Level1 = HFLevel and Prod.Sublevel1=HFSublevel)
+		OR (Prod.Level2 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel2=HFSublevel)
+		OR (Prod.Level3 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel3=HFSublevel)
+		OR (Prod.Level4 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel4=HFSublevel)
+		)
+	)
+	GROUP BY C.ClaimCode, C.DateClaimed, CA.OtherNames, CA.LastName , C.DateFrom, C.DateTo, I.CHFID, I.OtherNames,
+	I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, C.Claimed,
+	D.DistrictId, D.DistrictName, R.RegionId, R.RegionName
+END
 GO
 
 SET ANSI_NULLS ON
@@ -22308,10 +21364,13 @@ END
 
 GO
 
+/****** Object:  StoredProcedure [dbo].[uspUpdateClaimFromPhone]    Script Date: 10/29/2021 4:09:12 PM ******/
 SET ANSI_NULLS ON
 GO
+
 SET QUOTED_IDENTIFIER ON
 GO
+
 
 CREATE PROCEDURE [dbo].[uspUpdateClaimFromPhone]
 (
@@ -23369,7 +22428,7 @@ TRY --THE MAIN TRY
 						UPDATE @Family SET FamilyId = @FamilyId
 						UPDATE @Policy SET FamilyId =  @FamilyId
 						 UPDATE  dst  SET dst.[Poverty] = src.Poverty,  dst.[ConfirmationType] = src.ConfirmationType, isOffline=0, dst.[ValidityFrom]=GETDATE(), dst.[AuditUserID] = @AuditUserID, dst.FamilyType = src.FamilyType,  dst.FamilyAddress = src.FamilyAddress,
-										   dst.Ethnicity = src.Ethnicity,  dst.ConfirmationNo = src.ConfirmationNo,  dst.LocationId = src.LocationId 
+										   dst.Ethnicity = src.Ethnicity,  dst.ConfirmationNo = src.ConfirmationNo,  dst.LocationId = src.LocationId
 						 FROM tblFamilies dst
 						 INNER JOIN @Family src ON src.FamilyID = dst.FamilyID
 					--	 WHERE  dst.FamilyID = @FamilyID;
@@ -26461,13 +25520,13 @@ FOR
 VALUES (
 	N'1970-01-01T00:00:00.001'
 	)
-
+GO
 -- Create partition Scheme that will define the partition to be used, both use the PRIMARY file group (not IDEAL but done to limit changes in a crisis mode)
 CREATE PARTITION SCHEME [liveArchive] AS PARTITION [StillValid] TO (
 	[PRIMARY]
 	,[PRIMARY]
 )
-
+GO
 BEGIN TRY
 	BEGIN TRANSACTION; 
 	ALTER TABLE tblClaimItems DROP CONSTRAINT [FK_tblClaimItems_tblClaim-ClaimID] 
@@ -26491,7 +25550,7 @@ END TRY
 BEGIN CATCH  
      ROLLBACK  TRANSACTION;  
 END CATCH  
-
+GO
 BEGIN TRY
 	BEGIN TRANSACTION; 
 	ALTER TABLE [tblClaimItems] DROP CONSTRAINT [PK_tblClaimItems]
@@ -26506,7 +25565,7 @@ END TRY
 BEGIN CATCH  
      ROLLBACK  TRANSACTION;  
 END CATCH  
-
+GO
 BEGIN TRY
 	BEGIN TRANSACTION; 
 	ALTER TABLE [tblClaimServices] DROP CONSTRAINT [PK_tblClaimServices]
@@ -26523,7 +25582,7 @@ END TRY
 BEGIN CATCH  
      ROLLBACK  TRANSACTION;  
 END CATCH  
-
+GO
 BEGIN TRY
 	BEGIN TRANSACTION; 
 	ALTER TABLE tblInsuree DROP CONSTRAINT [FK_tblInsuree_tblFamilies1-FamilyID]
@@ -26544,7 +25603,7 @@ END TRY
 BEGIN CATCH  
      ROLLBACK  TRANSACTION;  
 END CATCH  
-	
+GO	
 BEGIN TRY
 	BEGIN TRANSACTION; 
 	ALTER TABLE tblClaim DROP CONSTRAINT [FK_tblClaim_tblInsuree-InsureeID]
@@ -26578,7 +25637,7 @@ END TRY
 BEGIN CATCH  
      ROLLBACK  TRANSACTION;  
 END CATCH  
-
+GO
 BEGIN TRY
 	BEGIN TRANSACTION; 
 	ALTER TABLE tblHFCatchment DROP CONSTRAINT [FK_tblHFCatchment_tblLocations] 
@@ -26596,10 +25655,8 @@ BEGIN TRY
 
 	CREATE UNIQUE CLUSTERED INDEX CI_tblLocations ON tblLocations (
 		[ValidityTo] ASC,
-		[LocationId] ASC,
-		[LocationCode] ASC,
-		[LocationName] ASC,
-		[LocationType] ASC
+		[LocationType] ASC,
+		[LocationId] ASC		
 		)
 	WITH
 		( PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
@@ -26623,7 +25680,7 @@ END TRY
 BEGIN CATCH  
      ROLLBACK  TRANSACTION;  
 END CATCH  
-
+GO
 BEGIN TRY
 	BEGIN TRANSACTION; 
 	CREATE NONCLUSTERED INDEX NCI_tblUserDistrict_UserID ON tblUsersDistricts (ValidityTo,UserID)
@@ -26634,14 +25691,9 @@ END TRY
 BEGIN CATCH  
      ROLLBACK  TRANSACTION;  
 END CATCH  	
-
+Go
 -- OP-154: add indexed to Location views
 
-SET ANSI_NULLS ON
-GO
-
-SET QUOTED_IDENTIFIER ON
-GO
 
 ALTER VIEW [dbo].[tblWards]  WITH SCHEMABINDING AS
 SELECT LocationId WardId, ParentLocationId DistrictId, LocationCode WardCode, LocationName WardName, ValidityFrom, ValidityTo, LegacyId, AuditUserId, RowId 
@@ -26681,12 +25733,9 @@ WHERE ValidityTo IS NULL
 AND LocationType = N'D'
 GO
 
-CREATE UNIQUE CLUSTERED INDEX CI_tblDistricts ON tblDistricts(DistrictId)   
+CREATE UNIQUE CLUSTERED INDEX CI_tblDistricts ON tblDistricts(DistrictId)  
+GO 
 CREATE NONCLUSTERED INDEX NCI_HF_ValidityTo ON tblHF(ValidityTo)
-
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
 GO
 -- =============================================
 -- Description:	Rebuilds all indexes on the openIMIS database
@@ -26723,105 +25772,108 @@ BEGIN
 END
 GO
 
-	CREATE PROCEDURE [dbo].[uspSSRSGetClaimHistory]
+CREATE PROCEDURE [dbo].[uspSSRSGetClaimHistory]
+(
+	@HFID INT,
+	@LocationId INT,
+	@ProdId INT, 
+	@StartDate DATE, 
+	@EndDate DATE,
+	@ClaimStatus INT = NULL,
+	@InsuranceNumber NVARCHAR(12),
+	@ClaimRejReason xClaimRejReasons READONLY,
+	@Scope INT= NULL
+	
+)
+AS
+BEGIN
+	;WITH TotalForItems AS
 	(
-		@HFID INT,
-		@LocationId INT,
-		@ProdId INT, 
-		@StartDate DATE, 
-		@EndDate DATE,
-		@ClaimStatus INT = NULL,
-		@InsuranceNumber NVARCHAR(12),
-		@ClaimRejReason xClaimRejReasons READONLY,
-		@Scope INT= NULL
-		
+		SELECT C.ClaimId, SUM(CI.PriceAsked * CI.QtyProvided)Claimed,
+		SUM(ISNULL(CI.PriceApproved, CI.PriceAsked) * ISNULL(CI.QtyApproved, CI.QtyProvided)) Approved,
+		SUM(CI.PriceValuated)Adjusted,
+		SUM(CI.RemuneratedAmount)Remunerated
+		FROM tblClaim C LEFT OUTER JOIN tblClaimItems CI ON C.ClaimId = CI.ClaimID
+		WHERE C.ValidityTo IS NULL
+		AND CI.ValidityTo IS NULL
+		GROUP BY C.ClaimID
+	), TotalForServices AS
+	(
+		SELECT C.ClaimId, SUM(CS.PriceAsked * CS.QtyProvided)Claimed,
+		SUM(ISNULL(CS.PriceApproved, CS.PriceAsked) * ISNULL(CS.QtyApproved, CS.QtyProvided)) Approved,
+		SUM(CS.PriceValuated)Adjusted,
+		SUM(CS.RemuneratedAmount)Remunerated
+		FROM tblClaim C 
+		LEFT OUTER JOIN tblClaimServices CS ON C.ClaimId = CS.ClaimID
+		WHERE C.ValidityTo IS NULL
+		AND CS.ValidityTo IS NULL
+		GROUP BY C.ClaimID
 	)
-	AS
-	BEGIN
-  	    ;WITH TotalForItems AS
-	    (
-		    SELECT C.ClaimId, SUM(CI.PriceAsked * CI.QtyProvided)Claimed,
-		    SUM(ISNULL(CI.PriceApproved, CI.PriceAsked) * ISNULL(CI.QtyApproved, CI.QtyProvided)) Approved,
-		    SUM(CI.PriceValuated)Adjusted,
-		    SUM(CI.RemuneratedAmount)Remunerated
-		    FROM tblClaim C LEFT OUTER JOIN tblClaimItems CI ON C.ClaimId = CI.ClaimID
-		    WHERE C.ValidityTo IS NULL
-		    AND CI.ValidityTo IS NULL
-		    GROUP BY C.ClaimID
-	    ), TotalForServices AS
-	    (
-		    SELECT C.ClaimId, SUM(CS.PriceAsked * CS.QtyProvided)Claimed,
-		    SUM(ISNULL(CS.PriceApproved, CS.PriceAsked) * ISNULL(CS.QtyApproved, CS.QtyProvided)) Approved,
-		    SUM(CS.PriceValuated)Adjusted,
-		    SUM(CS.RemuneratedAmount)Remunerated
-		    FROM tblClaim C 
-		    LEFT OUTER JOIN tblClaimServices CS ON C.ClaimId = CS.ClaimID
-		    WHERE C.ValidityTo IS NULL
-		    AND CS.ValidityTo IS NULL
-		    GROUP BY C.ClaimID
-	    )
 
-	    SELECT  HF.HFCode+' ' + HF.HFName HFCodeName, L.ParentLocationId AS RegionId,l.LocationId as DistrictID, R.RegionName,D.DistrictName,  C.DateClaimed,PROD.ProductCode +' ' + PROD.ProductName Product, C.ClaimID, I.ItemId, S.ServiceID, HF.HFCode, HF.HFName, C.ClaimCode, C.DateClaimed, CA.LastName + ' ' + CA.OtherNames ClaimAdminName,
-			    C.DateFrom, C.DateTo, Ins.CHFID, Ins.LastName + ' ' + Ins.OtherNames InsureeName,Ins.DOB DateOfBirth,
-	    CASE C.ClaimStatus WHEN 1 THEN N'Rejected' WHEN 2 THEN N'Entered' WHEN 4 THEN N'Checked' WHEN 8 THEN N'Processed' WHEN 16 THEN N'Valuated' END ClaimStatus,
-	    C.RejectionReason, COALESCE(TFI.Claimed + TFS.Claimed, TFI.Claimed, TFS.Claimed) Claimed, 
-	    COALESCE(TFI.Approved + TFS.Approved, TFI.Approved, TFS.Approved) Approved,
-	    COALESCE(TFI.Adjusted + TFS.Adjusted, TFI.Adjusted, TFS.Adjusted) Adjusted,
-	    COALESCE(TFI.Remunerated + TFS.Remunerated, TFI.Remunerated, TFS.Remunerated)Paid,
-		CASE WHEN @Scope =2 OR CI.RejectionReason <> 0 THEN I.ItemCode ELSE NULL END RejectedItem, CI.RejectionReason ItemRejectionCode,
-		CASE WHEN @Scope =2 OR CS.RejectionReason <> 0 THEN S.ServCode ELSE NULL END RejectedService, CS.RejectionReason ServiceRejectionCode,
-		CASE WHEN @Scope =2 OR CI.QtyProvided <> COALESCE(CI.QtyApproved,CI.QtyProvided) THEN I.ItemCode ELSE NULL END AdjustedItem,
-		CASE WHEN @Scope =2 OR CI.QtyProvided <> COALESCE(CI.QtyApproved,CI.QtyProvided) THEN ISNULL(CI.QtyProvided,0) ELSE NULL END OrgQtyItem,
-		CASE WHEN @Scope =2 OR CI.QtyProvided <> COALESCE(CI.QtyApproved ,CI.QtyProvided)  THEN ISNULL(CI.QtyApproved,0) ELSE NULL END AdjQtyItem,
-		CASE WHEN @Scope =2 OR CS.QtyProvided <> COALESCE(CS.QtyApproved,CS.QtyProvided)  THEN S.ServCode ELSE NULL END AdjustedService,
-		CASE WHEN @Scope =2 OR CS.QtyProvided <> COALESCE(CS.QtyApproved,CS.QtyProvided)   THEN ISNULL(CS.QtyProvided,0) ELSE NULL END OrgQtyService,
-		CASE WHEN @Scope =2 OR CS.QtyProvided <> COALESCE(CS.QtyApproved ,CS.QtyProvided)   THEN ISNULL(CS.QtyApproved,0) ELSE NULL END AdjQtyService,
-		C.Explanation,
-		-- ALL claims
-		 CASE WHEN @Scope = 2 THEN CS.QtyApproved ELSE NULL END ServiceQtyApproved, 
-		 CASE WHEN @Scope = 2 THEN CI.QtyApproved ELSE NULL END ItemQtyApproved,
-		 CASE WHEN @Scope = 2 THEN cs.PriceAsked ELSE NULL END ServicePrice, 
-		 CASE WHEN @Scope = 2 THEN CI.PriceAsked ELSE NULL END ItemPrice,
-		 CASE WHEN @Scope = 2 THEN ISNULL(cs.PriceApproved,0) ELSE NULL END ServicePriceApproved,
-		 CASE WHEN @Scope = 2 THEN ISNULL(ci.PriceApproved,0) ELSE NULL END ItemPriceApproved, 
-		 CASE WHEN @Scope = 2 THEN ISNULL(cs.Justification,NULL) ELSE NULL END ServiceJustification,
-		 CASE WHEN @Scope = 2 THEN ISNULL(CI.Justification,NULL) ELSE NULL END ItemJustification,
-		 CASE WHEN @Scope = 2 THEN cs.ClaimServiceID ELSE NULL END ClaimServiceID,
-		 CASE WHEN @Scope = 2 THEN  CI.ClaimItemID ELSE NULL END ClaimItemID,
-		--,cs.PriceApproved ServicePriceApproved,ci.PriceApproved ItemPriceApproved--,
-		CASE WHEN @Scope > 0 THEN  CONCAT(CS.RejectionReason,' - ', XCS.Name) ELSE NULL END ServiceRejectionReason,
-		CASE WHEN @Scope > 0 THEN CONCAT(CI.RejectionReason, ' - ', XCI.Name) ELSE NULL END ItemRejectionReason,
-		CS.RejectionReason [Services] ,
-		ci.RejectionReason Items
+	SELECT  HF.HFCode+' ' + HF.HFName HFCodeName, L.ParentLocationId AS RegionId,l.LocationId as DistrictID, R.RegionName,D.DistrictName,  C.DateClaimed,PROD.ProductCode +' ' + PROD.ProductName Product, C.ClaimID, I.ItemId, S.ServiceID, HF.HFCode, HF.HFName, C.ClaimCode, C.DateClaimed, CA.LastName + ' ' + CA.OtherNames ClaimAdminName,
+			C.DateFrom, C.DateTo, Ins.CHFID, Ins.LastName + ' ' + Ins.OtherNames InsureeName,Ins.DOB DateOfBirth,
+	CASE C.ClaimStatus WHEN 1 THEN N'Rejected' WHEN 2 THEN N'Entered' WHEN 4 THEN N'Checked' WHEN 8 THEN N'Processed' WHEN 16 THEN N'Valuated' END ClaimStatus,
+	C.RejectionReason, COALESCE(TFI.Claimed + TFS.Claimed, TFI.Claimed, TFS.Claimed) Claimed, 
+	COALESCE(TFI.Approved + TFS.Approved, TFI.Approved, TFS.Approved) Approved,
+	COALESCE(TFI.Adjusted + TFS.Adjusted, TFI.Adjusted, TFS.Adjusted) Adjusted,
+	COALESCE(TFI.Remunerated + TFS.Remunerated, TFI.Remunerated, TFS.Remunerated)Paid,
+	CASE WHEN @Scope =2 OR CI.RejectionReason <> 0 THEN I.ItemCode ELSE NULL END RejectedItem, CI.RejectionReason ItemRejectionCode,
+	CASE WHEN @Scope =2 OR CS.RejectionReason <> 0 THEN S.ServCode ELSE NULL END RejectedService, CS.RejectionReason ServiceRejectionCode,
+	CASE WHEN @Scope =2 OR CI.QtyProvided <> COALESCE(CI.QtyApproved,CI.QtyProvided) THEN I.ItemCode ELSE NULL END AdjustedItem,
+	CASE WHEN @Scope =2 OR CI.QtyProvided <> COALESCE(CI.QtyApproved,CI.QtyProvided) THEN ISNULL(CI.QtyProvided,0) ELSE NULL END OrgQtyItem,
+	CASE WHEN @Scope =2 OR CI.QtyProvided <> COALESCE(CI.QtyApproved ,CI.QtyProvided)  THEN ISNULL(CI.QtyApproved,0) ELSE NULL END AdjQtyItem,
+	CASE WHEN @Scope =2 OR CS.QtyProvided <> COALESCE(CS.QtyApproved,CS.QtyProvided)  THEN S.ServCode ELSE NULL END AdjustedService,
+	CASE WHEN @Scope =2 OR CS.QtyProvided <> COALESCE(CS.QtyApproved,CS.QtyProvided)   THEN ISNULL(CS.QtyProvided,0) ELSE NULL END OrgQtyService,
+	CASE WHEN @Scope =2 OR CS.QtyProvided <> COALESCE(CS.QtyApproved ,CS.QtyProvided)   THEN ISNULL(CS.QtyApproved,0) ELSE NULL END AdjQtyService,
+	C.Explanation,
+	-- ALL claims
+		CASE WHEN @Scope = 2 THEN CS.QtyApproved ELSE NULL END ServiceQtyApproved, 
+		CASE WHEN @Scope = 2 THEN CI.QtyApproved ELSE NULL END ItemQtyApproved,
+		CASE WHEN @Scope = 2 THEN cs.PriceAsked ELSE NULL END ServicePrice, 
+		CASE WHEN @Scope = 2 THEN CI.PriceAsked ELSE NULL END ItemPrice,
+		CASE WHEN @Scope = 2 THEN ISNULL(cs.PriceApproved,0) ELSE NULL END ServicePriceApproved,
+		CASE WHEN @Scope = 2 THEN ISNULL(ci.PriceApproved,0) ELSE NULL END ItemPriceApproved, 
+		CASE WHEN @Scope = 2 THEN ISNULL(cs.Justification,NULL) ELSE NULL END ServiceJustification,
+		CASE WHEN @Scope = 2 THEN ISNULL(CI.Justification,NULL) ELSE NULL END ItemJustification,
+		CASE WHEN @Scope = 2 THEN cs.ClaimServiceID ELSE NULL END ClaimServiceID,
+		CASE WHEN @Scope = 2 THEN  CI.ClaimItemID ELSE NULL END ClaimItemID,
+	--,cs.PriceApproved ServicePriceApproved,ci.PriceApproved ItemPriceApproved--,
+	CASE WHEN @Scope > 0 THEN  CONCAT(CS.RejectionReason,' - ', XCS.Name) ELSE NULL END ServiceRejectionReason,
+	CASE WHEN @Scope > 0 THEN CONCAT(CI.RejectionReason, ' - ', XCI.Name) ELSE NULL END ItemRejectionReason,
+	CS.RejectionReason [Services] ,
+	ci.RejectionReason Items,
+	TFS.Adjusted ServicePriceValuated,
+	TFI.Adjusted ItemPriceValuated
 
-	    FROM tblClaim C LEFT OUTER JOIN tblClaimItems CI ON C.ClaimId = CI.ClaimID
-	    LEFT OUTER JOIN tblClaimServices CS ON C.ClaimId = CS.ClaimID
-	    LEFT OUTER JOIN tblProduct PROD ON PROD.ProdID =@ProdId
-	    LEFT OUTER JOIN tblItems I ON CI.ItemId = I.ItemID
-	    LEFT OUTER JOIN tblServices S ON CS.ServiceID = S.ServiceID
-	    INNER JOIN tblHF HF ON C.HFID = HF.HfID
-	    INNER JOIN tblLocations L ON L.LocationId = HF.LocationId
-	    INNER JOIN tblRegions R ON R.RegionId = L.ParentLocationId
-	    INNER JOIN tblDistricts D ON D.DistrictId = L.LocationId
-	    LEFT OUTER JOIN tblClaimAdmin CA ON C.ClaimAdminId = CA.ClaimAdminId
-	    INNER JOIN tblInsuree Ins ON C.InsureeId = Ins.InsureeId
-	    LEFT OUTER JOIN TotalForItems TFI ON C.ClaimId = TFI.ClaimID
-	    LEFT OUTER JOIN TotalForServices TFS ON C.ClaimId = TFS.ClaimId
-	    LEFT OUTER JOIN @ClaimRejReason XCI ON XCI.ID = CI.RejectionReason
-	    LEFT OUTER JOIN @ClaimRejReason XCS ON XCS.ID = CS.RejectionReason
-	    WHERE C.ValidityTo IS NULL
-	    AND ISNULL(C.DateTo,C.DateFrom) BETWEEN @StartDate AND @EndDate
-	    AND (C.ClaimStatus = @ClaimStatus OR @ClaimStatus IS NULL)
-	    AND (HF.LocationId = @LocationId OR @LocationId = 0)
-	    AND (Ins.CHFID = @InsuranceNumber)
-	    AND (HF.HFID = @HFID OR @HFID = 0)
-	    AND (CI.ProdID = @ProdId OR CS.ProdID = @ProdId  
-		OR COALESCE(CS.ProdID, CI.ProdId) IS NULL OR @ProdId = 0) 
-	END
+	FROM tblClaim C LEFT OUTER JOIN tblClaimItems CI ON C.ClaimId = CI.ClaimID
+	LEFT OUTER JOIN tblClaimServices CS ON C.ClaimId = CS.ClaimID
+	LEFT OUTER JOIN tblProduct PROD ON PROD.ProdID =@ProdId
+	LEFT OUTER JOIN tblItems I ON CI.ItemId = I.ItemID
+	LEFT OUTER JOIN tblServices S ON CS.ServiceID = S.ServiceID
+	INNER JOIN tblHF HF ON C.HFID = HF.HfID
+	INNER JOIN tblLocations L ON L.LocationId = HF.LocationId
+	INNER JOIN tblRegions R ON R.RegionId = L.ParentLocationId
+	INNER JOIN tblDistricts D ON D.DistrictId = L.LocationId
+	LEFT OUTER JOIN tblClaimAdmin CA ON C.ClaimAdminId = CA.ClaimAdminId
+	INNER JOIN tblInsuree Ins ON C.InsureeId = Ins.InsureeId
+	LEFT OUTER JOIN TotalForItems TFI ON C.ClaimId = TFI.ClaimID
+	LEFT OUTER JOIN TotalForServices TFS ON C.ClaimId = TFS.ClaimId
+	LEFT OUTER JOIN @ClaimRejReason XCI ON XCI.ID = CI.RejectionReason
+	LEFT OUTER JOIN @ClaimRejReason XCS ON XCS.ID = CS.RejectionReason
+	WHERE C.ValidityTo IS NULL
+	AND ISNULL(C.DateTo,C.DateFrom) BETWEEN @StartDate AND @EndDate
+	AND (C.ClaimStatus = @ClaimStatus OR @ClaimStatus IS NULL)
+	AND (HF.LocationId = @LocationId OR @LocationId = 0)
+	AND (Ins.CHFID = @InsuranceNumber)
+	AND (HF.HFID = @HFID OR @HFID = 0)
+	AND (CI.ProdID = @ProdId OR CS.ProdID = @ProdId  
+	OR COALESCE(CS.ProdID, CI.ProdId) IS NULL OR @ProdId = 0) 
+END
 
 
 Go
-
+-- OTC 70 
+--UPDATE tblPremium set ReportingCommissionID = NULL WHERE 1 =1
 CREATE PROCEDURE [dbo].[uspSSRSOverviewOfCommissions]
 (
 	@Month INT,
@@ -26867,93 +25919,117 @@ BEGIN
 		SET @Rate = @CommissionRate / 100
 	  	DECLARE @FirstDay DATE = CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Month AS VARCHAR(2)) + '-01'; 
 		DECLARE @LastDay DATE = EOMONTH(CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Month AS VARCHAR(2)) + '-01', 0)
-		BEGIN TRY
-			BEGIN TRAN
-				if @Mode = 0 -- prescribed
-					SELECT TOP(1) @ReportingId = ReportingId FROM tblReporting WHERE LocationId = @LocationId AND ISNULL(ProdId,0) = ISNULL(@ProdId,0) 
+			-- check that end date is before today
+		if   @LastDay >  GETDATE()
+		BEGIN
+			SELECT @ErrorMessage = 'End report date must be before today'
+			RETURN
+		END
+		SELECT TOP(1) @ReportingId = ReportingId FROM tblReporting WHERE LocationId = @LocationId AND ISNULL(ProdId,0) = ISNULL(@ProdId,0) 
 						AND StartDate = @FirstDay AND EndDate = @LastDay AND ISNULL(OfficerID,0) = ISNULL(@OfficerID,0) AND ReportMode = 0 AND ISNULL(PayerId,0) = ISNULL(@PayerId,0)
-				IF @ReportingId is NULL
-				BEGIN
-					INSERT INTO tblReporting(ReportingDate,LocationId, ProdId, PayerId, StartDate, EndDate, RecordFound,OfficerID,ReportType,CommissionRate,ReportMode,Scope)
-					SELECT GETDATE(),@LocationId,ISNULL(@ProdId,0), @PayerId, @FirstDay, @LastDay, 0,@OfficerId,2,@Rate,@Mode,@Scope; 
-					--Get the last inserted reporting Id
-					SELECT @ReportingId =  SCOPE_IDENTITY();
-				END
-				ELSE UPDATE  tblReporting
-					SET ReportingDate = GETDATE(), CommissionRate = @Rate; 
-
-				UPDATE tblPremium SET ReportingCommissionID = CASE  @Mode WHEN 1 THEN @ReportingId ELSE -@ReportingId END
-					WHERE PremiumId IN (
-					SELECT  Pr.PremiumId
-					FROM tblPremium Pr INNER JOIN tblPolicy PL ON Pr.PolicyID = PL.PolicyID AND (PL.PolicyStatus=1 OR PL.PolicyStatus=2)
-					LEFT JOIN tblPaymentDetails PD ON PD.PremiumID = Pr.PremiumId
-					LEFT JOIN tblPayment PY ON PY.PaymentID = PD.PaymentID 
-					INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID
-					INNER JOIN tblFamilies F ON PL.FamilyID = F.FamilyID
-					INNER JOIN tblLocations V ON V.LocationId = F.LocationId
-					INNER JOIN tblLocations W ON W.LocationId = V.ParentLocationId
-					INNER JOIN tblLocations D ON D.LocationId = W.ParentLocationId
-					INNER JOIN tblOfficer O ON O.LocationId = D.LocationId AND O.ValidityTo IS NULL AND O.Officerid = PL.OfficerID
-					INNER JOIN tblInsuree Ins ON F.FamilyID = Ins.FamilyID  AND Ins.ValidityTo IS NULL
-					LEFT OUTER JOIN tblPayer Payer ON Pr.PayerId = Payer.PayerID 
-					WHERE( (@Mode = 1 and PY.MatchedDate IS NOT NULL ) OR  (PY.MatchedDate IS NULL AND @Mode = 0))
-					AND Year(Pr.PayDate) = @Year AND Month(Pr.paydate) = @Month
-					AND D.LocationId = @LocationId	-- or D.ParentLocationId = @LocationId
-					AND (ISNULL(Prod.ProdID,0) = ISNULL(@ProdId,0) OR @ProdId is null)
-					AND (ISNULL(O.OfficerID,0) = ISNULL(@OfficerId,0) OR @OfficerId IS NULL)
-					AND (ISNULL(Payer.PayerID,0) = ISNULL(@PayerId,0) OR @PayerId IS NULL)
-					-- AND (Pr.ReportingId IS NULL OR Pr.ReportingId < 0 ) -- not matched will be with negative ID
-					AND PR.PayType <> N'F'
-					AND (Pr.ReportingCommissionID IS NULL OR Pr.ReportingCommissionID < 0)
-					GROUP BY Pr.PremiumId
-					HAVING SUM(ISNULL(PD.Amount,0)) = MAX(ISNULL(PY.ExpectedAmount,0))
-					)	
+		IF @ReportingId is NULL
+		BEGIN
+			BEGIN TRY
+				BEGIN TRAN
+					-- if @Mode = 0 -- prescribed
+						INSERT INTO tblReporting(ReportingDate,LocationId, ProdId, PayerId, StartDate, EndDate, RecordFound,OfficerID,ReportType,CommissionRate,ReportMode,Scope)
+						SELECT GETDATE(),@LocationId,ISNULL(@ProdId,0), @PayerId, @FirstDay, @LastDay, 0,@OfficerId,2,@Rate,@Mode,@Scope; 
+						--Get the last inserted reporting Id
+						SELECT @ReportingId =  SCOPE_IDENTITY();
+			
+					UPDATE tblPremium SET ReportingCommissionID =  @ReportingId
+						WHERE PremiumId IN (
+						SELECT  Pr.PremiumId
+						FROM tblPremium Pr INNER JOIN tblPolicy PL ON Pr.PolicyID = PL.PolicyID -- AND (PL.PolicyStatus=1 OR PL.PolicyStatus=2)
+						LEFT JOIN tblPaymentDetails PD ON PD.PremiumID = Pr.PremiumId
+						LEFT JOIN tblPayment PY ON PY.PaymentID = PD.PaymentID 
+						INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID
+						INNER JOIN tblFamilies F ON PL.FamilyID = F.FamilyID
+						INNER JOIN tblLocations V ON V.LocationId = F.LocationId
+						INNER JOIN tblLocations W ON W.LocationId = V.ParentLocationId
+						INNER JOIN tblLocations D ON D.LocationId = W.ParentLocationId
+						INNER JOIN tblOfficer O ON O.LocationId = D.LocationId AND O.ValidityTo IS NULL AND O.Officerid = PL.OfficerID
+						INNER JOIN tblInsuree Ins ON F.InsureeID = Ins.InsureeID  
+						LEFT OUTER JOIN tblPayer Payer ON Pr.PayerId = Payer.PayerID 
+						WHERE( (@Mode = 1 and PY.MatchedDate IS NOT NULL ) OR  (PY.MatchedDate IS NULL AND @Mode = 0))
+						-- AND Year(Pr.PayDate) = @Year AND Month(Pr.paydate) = @Month -- To be change
+						and ((Year(Py.[PaymentDate]) = @Year AND Month(Py.[PaymentDate]) = @Month and @Mode = 1 ) OR (Year(Pr.ValidityFrom) = @Year AND Month(Pr.ValidityFrom) = @Month and @Mode = 0 ) )
+						AND D.LocationId = @LocationId	or D.ParentLocationId = @LocationId
+						AND (ISNULL(Prod.ProdID,0) = ISNULL(@ProdId,0) OR @ProdId is null)
+						AND (ISNULL(O.OfficerID,0) = ISNULL(@OfficerId,0) OR @OfficerId IS NULL)
+						AND (ISNULL(Payer.PayerID,0) = ISNULL(@PayerId,0) OR @PayerId IS NULL)
+						-- AND (Pr.ReportingId IS NULL OR Pr.ReportingId < 0 ) -- not matched will be with negative ID
+						AND PR.PayType <> N'F'
+						AND (Pr.ReportingCommissionID IS NULL)
+						GROUP BY Pr.PremiumId
+						HAVING SUM(ISNULL(PD.Amount,0)) = MAX(ISNULL(PY.ExpectedAmount,0))
+						)	
 				
-				SELECT @RecordFound = @@ROWCOUNT;
-				IF @RecordFound = 0 
-				BEGIN
-					SELECT @ErrorMessage = 'No Data'
-					DELETE tblReporting WHERE ReportingId = @ReportingId;
-					ROLLBACK TRAN; 
-					RETURN -- To avoid a second rollback
-				END
-				ELSE
-				BEGIN
-					UPDATE tblReporting SET RecordFound = @RecordFound WHERE ReportingId = @ReportingId;
-					--UPDATE tblPremium SET OverviewCommissionReport = GETDATE() WHERE ReportingCommissionID = @ReportingId AND @Scope = 0 AND OverviewCommissionReport IS NULL;
-					--UPDATE tblPremium SET AllDetailsCommissionReport = GETDATE() WHERE ReportingCommissionID = @ReportingId AND @Scope = 1 AND AllDetailsCommissionReport IS NULL;
-				END
-			COMMIT TRAN;
-		END TRY
-		BEGIN CATCH
-			--SELECT @ErrorMessage = ERROR_MESSAGE(); ERROR MESSAGE WAS COMMENTED BY SALUMU ON 12-11-2019
-			ROLLBACK TRAN;
-			--RETURN -2 RETURN WAS COMMENTED BY SALUMU ON 12-11-2019
-		END CATCH
-
+					SELECT @RecordFound = @@ROWCOUNT;
+					IF @RecordFound = 0 
+					BEGIN
+						SELECT @ErrorMessage = 'No Data'
+						DELETE tblReporting WHERE ReportingId = @ReportingId;
+						ROLLBACK TRAN; 
+						RETURN -- To avoid a second rollback
+					END
+					ELSE
+					BEGIN
+						UPDATE tblReporting SET RecordFound = @RecordFound WHERE ReportingId = @ReportingId;
+						--UPDATE tblPremium SET OverviewCommissionReport = GETDATE() WHERE ReportingCommissionID = @ReportingId AND @Scope = 0 AND OverviewCommissionReport IS NULL;
+						--UPDATE tblPremium SET AllDetailsCommissionReport = GETDATE() WHERE ReportingCommissionID = @ReportingId AND @Scope = 1 AND AllDetailsCommissionReport IS NULL;
+					END
+				COMMIT TRAN;
+			END TRY
+			BEGIN CATCH
+				--SELECT @ErrorMessage = ERROR_MESSAGE(); ERROR MESSAGE WAS COMMENTED BY SALUMU ON 12-11-2019
+				ROLLBACK TRAN;
+				--RETURN -2 RETURN WAS COMMENTED BY SALUMU ON 12-11-2019
+			END CATCH
+		END
 	END
 	      
 					    
-	-- FETCHT THE DATA FOR THE REPORT		 
-	SELECT  Pr.PremiumId,Prod.ProductCode,Prod.ProdID,Prod.ProductName,prod.ProductCode +' ' + prod.ProductName Product,PL.PolicyID,F.FamilyID,D.LocationName DistrictName,o.OfficerID , Ins.CHFID, Ins.LastName + ' ' + Ins.OtherNames InsName,O.Code + ' ' + O.LastName Officer,
-	Ins.DOB, Ins.IsHead, PL.EnrollDate,REP.ReportMode,Month(REP.StartDate)  [Month], Pr.Paydate, Pr.Receipt,CASE WHEN Ins.IsHead = 1 THEN ISNULL(Pr.Amount,0) ELSE NULL END Amount,CASE WHEN Ins.IsHead = 1 THEN Pr.Amount ELSE NULL END  PrescribedContribution, CASE WHEN Ins.IsHead = 1 THEN ISNULL(PD.Amount,0) ELSE NULL END ActualPayment, Payer.PayerName,PY.PaymentDate,CASE WHEN IsHead = 1 THEN SUM(ISNULL(Pr.Amount,0.00)) * ISNULL(rep.CommissionRate,0.00) ELSE NULL END  CommissionRate,PY.ExpectedAmount PaymentAmount,OfficerCode,V.LocationName VillageName,W.LocationName  WardName,PL.PolicyStage,TransactionNo,O.Phone PhoneNumber
-	FROM tblPremium Pr INNER JOIN tblPolicy PL ON Pr.PolicyID = PL.PolicyID AND (PL.PolicyStatus=1 OR PL.PolicyStatus=2) AND PL.ValidityTo IS NULL
-	LEFT JOIN tblPaymentDetails PD ON PD.PremiumID = Pr.PremiumId AND PD.ValidityTo IS NULl AND PR.ValidityTo IS NULL
-	LEFT JOIN tblPayment PY ON PY.PaymentID = PD.PaymentID AND PY.ValidityTo IS NULL
-	INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID AND Prod.ValidityTo IS NULL
-	INNER JOIN tblFamilies F ON PL.FamilyID = F.FamilyID AND F.ValidityTo IS NULL
-	INNER JOIN tblLocations V ON V.LocationId = F.LocationId
-	INNER JOIN tblLocations W ON W.LocationId = V.ParentLocationId
-	INNER JOIN tblLocations D ON D.LocationId = W.ParentLocationId
-	INNER JOIN tblOfficer O ON O.Officerid = PL.OfficerID AND  O.LocationId = D.LocationId AND O.ValidityTo IS NULL
-	INNER JOIN tblInsuree Ins ON F.FamilyID = Ins.FamilyID  AND Ins.ValidityTo IS NULL
-	INNER JOIN tblReporting REP ON REP.ReportingId = @ReportingId
-	LEFT OUTER JOIN tblPayer Payer ON Pr.PayerId = Payer.PayerID
-	WHERE ABS(Pr.ReportingCommissionID) = @ReportingId
-    AND (Pr.OverviewCommissionReport IS NULL OR Pr.AllDetailsCommissionReport IS NULL)
-	GROUP BY Pr.PremiumId,Prod.ProductCode,Prod.ProdID,Prod.ProductName,prod.ProductCode +' ' + prod.ProductName , PL.PolicyID ,  F.FamilyID, D.LocationName,o.OfficerID , Ins.CHFID, Ins.LastName + ' ' + Ins.OtherNames ,O.Code + ' ' + O.LastName ,
-	Ins.DOB, Ins.IsHead, PL.EnrollDate,REP.ReportMode,Month(REP.StartDate), Pr.Paydate, Pr.Receipt,Pr.Amount,Pr.Amount, PD.Amount , Payer.PayerName,PY.PaymentDate, PY.ExpectedAmount,OfficerCode,V.LocationName,W.LocationName,PL.PolicyStage,TransactionNo,CommissionRate,O.Phone
-	ORDER BY PremiumId, O.OfficerID,F.FamilyID,IsHead DESC;
+	-- FETCHT THE DATA FOR THE REPORT		
+	-- OTC 70 - don-t put the familly details, insuree head, dob, pazer village and ward
+
+		SELECT  
+		Pr.PremiumId,Pr.Paydate, Pr.Receipt, ISNULL(Pr.Amount,0) PrescribedContribution, 
+		CASE WHEN @Mode=1 THEN  ISNULL(PD.Amount,0) ELSE ISNULL(Pr.Amount,0) END * @CommissionRate as Commission,
+		Prod.ProductCode,Prod.ProdID,Prod.ProductName,prod.ProductCode +' ' + prod.ProductName Product,
+		PL.PolicyID, PL.EnrollDate,PL.PolicyStage,
+		F.FamilyID,
+		D.LocationName DistrictName,
+		--V.LocationName VillageName,W.LocationName  WardName,
+		o.OfficerID, O.Code + ' ' + O.LastName Officer, OfficerCode,O.Phone PhoneNumber,
+		-- Ins.DOB, Ins.IsHead, 
+		Ins.CHFID, Ins.LastName + ' ' + Ins.OtherNames InsName,	
+		REP.ReportMode,Month(REP.StartDate)  [Month], 
+		--CASE WHEN Ins.IsHead = 1 THEN ISNULL(Pr.Amount,0) ELSE NULL END Amount, CASE WHEN Ins.IsHead = 1 THEN Pr.Amount ELSE NULL END  PrescribedContribution,
+		-- CASE WHEN IsHead = 1 THEN SUM(ISNULL(Pr.Amount,0.00)) * ISNULL(rep.CommissionRate,0.00) ELSE NULL END  CommissionRate,CASE WHEN Ins.IsHead = 1 THEN ISNULL(PD.Amount,0) ELSE NULL END ActualPayment
+		PY.PaymentDate, ISNULL(PD.Amount,0) ActualPayment , PY.ExpectedAmount PaymentAmount, TransactionNo
+		-- Payer.PayerName
+		FROM tblPremium Pr INNER JOIN tblPolicy PL ON Pr.PolicyID = PL.PolicyID  AND PL.ValidityTo IS NULL
+		LEFT JOIN tblPaymentDetails PD ON PD.PremiumID = Pr.PremiumId AND PD.ValidityTo IS NULl AND PR.ValidityTo IS NULL
+		LEFT JOIN tblPayment PY ON PY.PaymentID = PD.PaymentID AND PY.ValidityTo IS NULL
+		INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID AND Prod.ValidityTo IS NULL
+		INNER JOIN tblFamilies F ON PL.FamilyID = F.FamilyID AND F.ValidityTo IS NULL
+		INNER JOIN tblLocations V ON V.LocationId = F.LocationId
+		INNER JOIN tblLocations W ON W.LocationId = V.ParentLocationId
+		INNER JOIN tblLocations D ON D.LocationId = W.ParentLocationId
+		INNER JOIN tblOfficer O ON O.Officerid = PL.OfficerID AND  O.LocationId = D.LocationId AND O.ValidityTo IS NULL
+		--  JUST the HEAD INNER JOIN tblInsuree Ins ON F.FamilyID = Ins.FamilyID  AND Ins.ValidityTo IS NULL
+		LEFT JOIN tblInsuree Ins ON F.InsureeID = Ins.InsureeID  
+		INNER JOIN tblReporting REP ON REP.ReportingId = @ReportingId
+		-- LEFT OUTER JOIN tblPayer Payer ON Pr.PayerId = Payer.PayerID
+		WHERE Pr.ReportingCommissionID = @ReportingId and Pr.ValidityTo is null
+		GROUP BY Pr.PremiumId,Prod.ProductCode,Prod.ProdID,Prod.ProductName,prod.ProductCode +' ' + prod.ProductName , PL.PolicyID ,  F.FamilyID, D.LocationName,D.LocationID,o.OfficerID , Ins.CHFID, Ins.LastName + ' ' + Ins.OtherNames ,O.Code + ' ' + O.LastName ,
+		  PL.EnrollDate,REP.ReportMode,Month(REP.StartDate), Pr.Paydate, Pr.Receipt,Pr.Amount,Pr.Amount, PD.Amount , PY.PaymentDate, PY.ExpectedAmount,OfficerCode,PL.PolicyStage,TransactionNo,CommissionRate,O.Phone
+		--  Ins.IsHead,Payer.PayerName,Ins.DOB,V.LocationName,W.LocationName,
+		ORDER BY PremiumId, O.OfficerID,F.FamilyID DESC;
+
+
+
 END
 GO
 
@@ -27351,3 +26427,2402 @@ BEGIN
 				TotalAdjusted
 	   FROM tblCapitationPayment WHERE [year] = @Year AND [month] = @Month AND HfID in (SELECT id from  @listOfHF) AND @ProdId = ProductID;
 END
+GO
+
+CREATE PROCEDURE [dbo].[uspAPIGetClaims]
+(
+	@ClaimAdminCode NVARCHAR(MAX),
+	@StartDate DATE = NULL, 
+	@EndDate DATE = NULL,
+	@DateProcessedFrom DATE = NULL,
+	@DateProcessedTo DATE = NULL,
+	@ClaimStatus INT= NULL
+)
+AS
+BEGIN
+	SELECT 
+		C.ClaimUUID claim_uuid,
+		C.ClaimCode claim_number,
+		I.ItemName item,
+		I.ItemCode item_code,
+		CI.QtyProvided item_qty,
+		CI.PriceAsked item_price,
+		CI.QtyApproved item_adjusted_qty,
+		CI.PriceAdjusted item_adjusted_price,
+		CI.Explanation item_explination,
+		CI.Justification item_justificaion,
+		CI.PriceValuated item_valuated, 
+		CI.RejectionReason item_result
+	FROM tblClaimItems CI
+		join tblClaim C ON C.ClaimID=CI.ClaimID
+		join tblItems I ON I.ItemID=CI.ItemID
+		join tblClaimAdmin CA ON CA.ClaimAdminId=C.ClaimAdminId
+	WHERE C.ValidityTo IS NULL AND CI.ValidityTo IS NULL AND I.ValidityTo IS NULL
+		AND CA.ValidityTo IS NULL AND CA.ClaimAdminCode = @ClaimAdminCode
+		AND(C.ClaimStatus = @ClaimStatus OR @ClaimStatus IS NULL)
+		AND ISNULL(C.DateTo, C.DateFrom) BETWEEN ISNULL(@StartDate, (SELECT CAST(-53690 AS DATETIME))) AND ISNULL(@EndDate, GETDATE())
+		AND(C.DateProcessed BETWEEN ISNULL(@DateProcessedFrom, CAST('1753-01-01' AS DATE)) AND ISNULL(@DateProcessedTo, GETDATE()) OR C.DateProcessed IS NULL);
+
+	SELECT 
+		C.ClaimUUID claim_uuid,
+		C.ClaimCode claim_number,
+		S.ServName "service",
+		S.ServCode service_code,
+		CS.QtyProvided service_qty,
+		CS.PriceAsked service_price,
+		CS.QtyApproved service_adjusted_qty,
+		CS.PriceAdjusted service_adjusted_price,
+		CS.Explanation service_explination,
+		CS.Justification service_justificaion,
+		CS.PriceValuated service_valuated, 
+		CS.RejectionReason service_result
+	FROM tblClaimServices CS
+		join tblClaim C ON C.ClaimID=CS.ClaimID
+		join tblServices S ON S.ServiceID=CS.ServiceID
+		join tblClaimAdmin CA ON CA.ClaimAdminId=C.ClaimAdminId
+	WHERE C.ValidityTo IS NULL AND CS.ValidityTo IS NULL AND S.ValidityTo IS NULL
+		AND CA.ValidityTo IS NULL AND CA.ClaimAdminCode = @ClaimAdminCode
+		AND(C.ClaimStatus = @ClaimStatus OR @ClaimStatus IS NULL)
+		AND ISNULL(C.DateTo, C.DateFrom) BETWEEN ISNULL(@StartDate, (SELECT CAST(-53690 AS DATETIME))) AND ISNULL(@EndDate, GETDATE())
+		AND(C.DateProcessed BETWEEN ISNULL(@DateProcessedFrom, CAST('1753-01-01' AS DATE)) AND ISNULL(@DateProcessedTo, GETDATE()) OR C.DateProcessed IS NULL);
+
+	WITH TotalForItems AS
+	(
+		SELECT C.ClaimId, SUM(CI.PriceAsked * CI.QtyProvided)Claimed,
+			SUM(ISNULL(CI.PriceApproved, ISNULL(CI.PriceAsked, 0)) * ISNULL(CI.QtyApproved, ISNULL(CI.QtyProvided, 0))) Approved,
+			SUM(ISNULL(CI.PriceValuated, 0))Adjusted,
+			SUM(ISNULL(CI.RemuneratedAmount, 0))Remunerated
+		FROM tblClaim C LEFT OUTER JOIN tblClaimItems CI ON C.ClaimId = CI.ClaimID
+		WHERE C.ValidityTo IS NULL
+			AND CI.ValidityTo IS NULL
+		GROUP BY C.ClaimID
+	), TotalForServices AS
+	(
+		SELECT C.ClaimId, SUM(CS.PriceAsked * CS.QtyProvided)Claimed,
+			SUM(ISNULL(CS.PriceApproved, ISNULL(CS.PriceAsked, 0)) * ISNULL(CS.QtyApproved, ISNULL(CS.QtyProvided, 0))) Approved,
+			SUM(ISNULL(CS.PriceValuated, 0))Adjusted,
+			SUM(ISNULL(CS.RemuneratedAmount, 0))Remunerated
+		FROM tblClaim C
+			LEFT OUTER JOIN tblClaimServices CS ON C.ClaimId = CS.ClaimID
+		WHERE C.ValidityTo IS NULL
+			AND CS.ValidityTo IS NULL
+		GROUP BY C.ClaimID
+	)
+	SELECT
+		C.ClaimUUID claim_uuid,
+		HF.HFCode health_facility_code, 
+		HF.HFName health_facility_name,
+		INS.CHFID insurance_number, 
+		Ins.LastName + ' ' + Ins.OtherNames patient_name,
+		ICD.ICDName main_dg,
+		C.ClaimCode claim_number, 
+		CONVERT(NVARCHAR, C.DateClaimed, 111) date_claimed,
+		CONVERT(NVARCHAR, C.DateFrom, 111) visit_date_from,
+		CONVERT(NVARCHAR, C.DateTo, 111) visit_date_to,
+		CASE C.VisitType WHEN 'E' THEN 'Emergency' WHEN 'R' THEN 'Referral' WHEN 'O' THEN 'Others' END visit_type,
+		CASE C.ClaimStatus WHEN 1 THEN N'Rejected' WHEN 2 THEN N'Entered' WHEN 4 THEN N'Checked' WHEN 8 THEN N'Processed' WHEN 16 THEN N'Valuated' END claim_status,
+		ICD1.ICDName sec_dg_1,
+		ICD2.ICDName sec_dg_2,
+		ICD3.ICDName sec_dg_3,
+		ICD4.ICDName sec_dg_4,
+		COALESCE(TFI.Claimed + TFS.Claimed, TFI.Claimed, TFS.Claimed) claimed, 
+		COALESCE(TFI.Approved + TFS.Approved, TFI.Approved, TFS.Approved) approved,
+		COALESCE(TFI.Adjusted + TFS.Adjusted, TFI.Adjusted, TFS.Adjusted) adjusted,
+		C.Explanation explanation,
+		C.Adjustment adjustment,
+		C.GuaranteeId guarantee_number
+	FROM
+		TBLClaim C
+		join tblClaimAdmin CA ON CA.ClaimAdminId=C.ClaimAdminId
+		LEFT JOIN tblHF HF ON C.HFID = HF.HfID
+		LEFT JOIN tblInsuree INS ON C.InsureeId = INS.InsureeId
+		LEFT JOIN TotalForItems TFI ON C.ClaimID = TFI.ClaimID
+		LEFT JOIN TotalForServices TFS ON C.ClaimID = TFS.ClaimID
+		LEFT JOIN tblICDCodes ICD ON C.ICDID = ICD.ICDID
+		LEFT JOIN tblICDCodes ICD1 ON C.ICDID1 = ICD1.ICDID
+		LEFT JOIN tblICDCodes ICD2 ON C.ICDID2 = ICD2.ICDID
+		LEFT JOIN tblICDCodes ICD3 ON C.ICDID3 = ICD3.ICDID
+		LEFT JOIN tblICDCodes ICD4 ON C.ICDID4 = ICD4.ICDID
+	WHERE
+		C.ValidityTo IS NULL AND HF.ValidityTo IS NULL AND INS.ValidityTo IS NULL AND ICD.ValidityTo IS NULL
+		AND ICD1.ValidityTo IS NULL AND ICD2.ValidityTo IS NULL AND ICD3.ValidityTo IS NULL AND ICD4.ValidityTo IS NULL
+		AND CA.ValidityTo IS NULL AND CA.ClaimAdminCode = @ClaimAdminCode
+		AND(C.ClaimStatus = @ClaimStatus OR @ClaimStatus IS NULL)
+		AND ISNULL(C.DateTo, C.DateFrom) BETWEEN ISNULL(@StartDate, (SELECT CAST(-53690 AS DATETIME))) AND ISNULL(@EndDate, GETDATE())
+		AND(C.DateProcessed BETWEEN ISNULL(@DateProcessedFrom, CAST('1753-01-01' AS DATE)) AND ISNULL(@DateProcessedTo, GETDATE()) OR C.DateProcessed IS NULL)	
+END
+GO
+
+
+/****** Object:  StoredProcedure [dbo].[uspConsumeEnrollments]    Script Date: 10/29/2021 3:23:56 PM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
+	@XML XML,
+	@FamilySent INT = 0 OUTPUT ,
+	@FamilyImported INT = 0 OUTPUT,
+	@FamiliesUpd INT =  0 OUTPUT,  
+	@FamilyRejected INT = 0 OUTPUT,
+	@InsureeSent INT = 0 OUTPUT,
+	@InsureeUpd INT =0 OUTPUT,
+	@InsureeImported INT = 0 OUTPUT ,
+	@PolicySent INT = 0 OUTPUT,
+	@PolicyImported INT = 0 OUTPUT,
+	@PolicyRejected INT = 0 OUTPUT,
+	@PolicyChanged INT = 0 OUTPUT,
+	@PremiumSent INT = 0 OUTPUT,
+	@PremiumImported INT = 0 OUTPUT,
+	@PremiumRejected INT =0 OUTPUT
+	)
+	AS
+	BEGIN
+
+	/*=========ERROR CODES==========
+	-400	:Uncaught exception
+	0	:	All okay
+	-1	:	Given family has no HOF
+	-2	:	Insurance number of the HOF already exists
+	-3	:	Duplicate Insurance number found
+	-4	:	Duplicate receipt found
+	-5		Double Head of Family Found
+	
+	*/
+
+
+	DECLARE @Query NVARCHAR(500)
+	--DECLARE @XML XML
+	DECLARE @tblFamilies TABLE(FamilyId INT,InsureeId INT, CHFID nvarchar(12),  LocationId INT,Poverty NVARCHAR(1),FamilyType NVARCHAR(2),FamilyAddress NVARCHAR(200), Ethnicity NVARCHAR(1), ConfirmationNo NVARCHAR(12), ConfirmationType NVARCHAR(3), isOffline BIT, NewFamilyId INT)
+	DECLARE @tblInsuree TABLE(InsureeId INT,FamilyId INT,CHFID NVARCHAR(12),LastName NVARCHAR(100),OtherNames NVARCHAR(100),DOB DATE,Gender CHAR(1),Marital CHAR(1),IsHead BIT,Passport NVARCHAR(25),Phone NVARCHAR(50),CardIssued BIT,Relationship SMALLINT,Profession SMALLINT,Education SMALLINT,Email NVARCHAR(100), TypeOfId NVARCHAR(1), HFID INT,CurrentAddress NVARCHAR(200),GeoLocation NVARCHAR(200),CurVillage INT,isOffline BIT,PhotoPath NVARCHAR(100), NewFamilyId INT, NewInsureeId INT, Vulnerability BIT)
+	DECLARE @tblPolicy TABLE(PolicyId INT,FamilyId INT,EnrollDate DATE,StartDate DATE,EffectiveDate DATE,ExpiryDate DATE,PolicyStatus TINYINT,PolicyValue DECIMAL(18,2),ProdId INT,OfficerId INT,PolicyStage CHAR(1), isOffline BIT, NewFamilyId INT, NewPolicyId INT)
+	DECLARE @tblInureePolicy TABLE(PolicyId INT,InsureeId INT,EffectiveDate DATE, NewInsureeId INT, NewPolicyId INT)
+	DECLARE @tblFamilySMS TABLE(FamilyId INT, ApprovalOfSMS BIT, LanguageOfSMS NVARCHAR(5), NewFamilyId INT)
+	DECLARE @tblPremium TABLE(PremiumId INT,PolicyId INT,PayerId INT,Amount DECIMAL(18,2),Receipt NVARCHAR(50),PayDate DATE,PayType CHAR(1),isPhotoFee BIT, NewPolicyId INT)
+	DECLARE @tblRejectedFamily TABLE(FamilyID INT)
+	DECLARE @tblRejectedInsuree TABLE(InsureeID INT)
+	DECLARE @tblRejectedPolicy TABLE(PolicyId INT)
+	DECLARE @tblRejectedPremium TABLE(PremiumId INT)
+
+
+	DECLARE @tblResult TABLE(Result NVARCHAR(Max))
+	DECLARE @tblIds TABLE(OldId INT, [NewId] INT)
+
+	BEGIN TRY
+
+		--SET @Query = (N'SELECT @XML = CAST(X as XML) FROM OPENROWSET(BULK  '''+ @File +''' ,SINGLE_BLOB) AS T(X)')
+
+		--EXECUTE SP_EXECUTESQL @Query,N'@XML XML OUTPUT',@XML OUTPUT
+
+
+		--GET ALL THE FAMILY FROM THE XML
+		INSERT INTO @tblFamilies(FamilyId,InsureeId,CHFID, LocationId,Poverty,FamilyType,FamilyAddress,Ethnicity, ConfirmationNo,ConfirmationType, isOffline)
+		SELECT 
+		T.F.value('(FamilyId)[1]','INT'),
+		T.F.value('(InsureeId)[1]','INT'),
+		T.F.value('(HOFCHFID)[1]','NVARCHAR(12)'),
+		T.F.value('(LocationId)[1]','INT'),
+		T.F.value('(Poverty)[1]','BIT'),
+		NULLIF(T.F.value('(FamilyType)[1]','NVARCHAR(2)'),''),
+		T.F.value('(FamilyAddress)[1]','NVARCHAR(200)'),
+		T.F.value('(Ethnicity)[1]','NVARCHAR(1)'),
+		T.F.value('(ConfirmationNo)[1]','NVARCHAR(12)'),
+		NULLIF(T.F.value('(ConfirmationType)[1]','NVARCHAR(3)'),''),
+		T.F.value('(isOffline)[1]','BIT')
+		FROM @XML.nodes('Enrolment/Families/Family') AS T(F)
+
+
+		--Get total number of families sent via XML
+		SELECT @FamilySent = COUNT(*) FROM @tblFamilies
+
+		--GET ALL THE INSUREES FROM XML
+		INSERT INTO @tblInsuree(InsureeId,FamilyId,CHFID,LastName,OtherNames,DOB,Gender,Marital,IsHead,Passport,Phone,CardIssued,Relationship,Profession,Education,Email, TypeOfId, HFID, CurrentAddress, GeoLocation, CurVillage, isOffline,PhotoPath, Vulnerability)
+		SELECT
+		T.I.value('(InsureeId)[1]','INT'),
+		T.I.value('(FamilyId)[1]','INT'),
+		T.I.value('(CHFID)[1]','NVARCHAR(12)'),
+		T.I.value('(LastName)[1]','NVARCHAR(100)'),
+		T.I.value('(OtherNames)[1]','NVARCHAR(100)'),
+		T.I.value('(DOB)[1]','DATE'),
+		T.I.value('(Gender)[1]','CHAR(1)'),
+		NULLIF(T.I.value('(Marital)[1]','CHAR(1)'),''),
+		T.I.value('(isHead)[1]','BIT'),
+		T.I.value('(IdentificationNumber)[1]','NVARCHAR(25)'),
+		T.I.value('(Phone)[1]','NVARCHAR(50)'),
+		T.I.value('(CardIssued)[1]','BIT'),
+		NULLIF(T.I.value('(Relationship)[1]','SMALLINT'),''),
+		NULLIF(T.I.value('(Profession)[1]','SMALLINT'),''),
+		NULLIF(T.I.value('(Education)[1]','SMALLINT'),''),
+		T.I.value('(Email)[1]','NVARCHAR(100)'),
+		NULLIF(T.I.value('(TypeOfId)[1]','NVARCHAR(1)'),''),
+		NULLIF(T.I.value('(HFID)[1]','INT'),''),
+		T.I.value('(CurrentAddress)[1]','NVARCHAR(200)'),
+		T.I.value('(GeoLocation)[1]','NVARCHAR(200)'),
+		NULLIF(NULLIF(T.I.value('(CurVillage)[1]','INT'),''),0),
+		T.I.value('(isOffline)[1]','BIT'),
+		T.I.value('(PhotoPath)[1]','NVARCHAR(100)'),
+		T.I.value('(Vulnerability)[1]','BIT')
+		FROM @XML.nodes('Enrolment/Insurees/Insuree') AS T(I)
+
+		--Get total number of Insurees sent via XML
+		SELECT @InsureeSent = COUNT(*) FROM @tblInsuree
+
+		--GET ALL THE POLICIES FROM XML
+		DECLARE @ActivationOption INT
+		SELECT @ActivationOption = ActivationOption FROM tblIMISDefaults
+
+		DECLARE @ActiveStatus TINYINT = 2
+		DECLARE @ReadyStatus TINYINT = 16
+
+		INSERT INTO @tblPolicy(PolicyId,FamilyId,EnrollDate,StartDate,EffectiveDate,ExpiryDate,PolicyStatus,PolicyValue,ProdId,OfficerId,PolicyStage,isOffline)
+		SELECT 
+		T.P.value('(PolicyId)[1]','INT'),
+		T.P.value('(FamilyId)[1]','INT'),
+		T.P.value('(EnrollDate)[1]','DATE'),
+		T.P.value('(StartDate)[1]','DATE'),
+		T.P.value('(EffectiveDate)[1]','DATE'),
+		T.P.value('(ExpiryDate)[1]','DATE'),
+		IIF(T.P.value('(PolicyStatus)[1]','TINYINT') = @ActiveStatus AND @ActivationOption = 3, @ReadyStatus, T.P.value('(PolicyStatus)[1]','TINYINT')),
+		T.P.value('(PolicyValue)[1]','DECIMAL(18,2)'),
+		T.P.value('(ProdId)[1]','INT'),
+		T.P.value('(OfficerId)[1]','INT'),
+		T.P.value('(PolicyStage)[1]','CHAR(1)'),
+		T.P.value('(isOffline)[1]','BIT')
+		FROM @XML.nodes('Enrolment/Policies/Policy') AS T(P)
+
+		--Get total number of Policies sent via XML
+		SELECT @PolicySent = COUNT(*) FROM @tblPolicy
+			
+		--GET INSUREEPOLICY
+		INSERT INTO @tblInureePolicy(PolicyId,InsureeId,EffectiveDate)
+		SELECT 
+		T.P.value('(PolicyId)[1]','INT'),
+		T.P.value('(InsureeId)[1]','INT'),
+		NULLIF(T.P.value('(EffectiveDate)[1]','DATE'),'')
+		FROM @XML.nodes('Enrolment/InsureePolicies/InsureePolicy') AS T(P)
+
+		-- Get Family SMS
+		INSERT INTO @tblFamilySMS(FamilyId, ApprovalOfSMS, LanguageOfSMS)
+		SELECT 
+		T.P.value('(FamilyId)[1]', 'INT'),
+		IIF(
+           (T.P.value('(ApprovalOfSMS)[1]','BIT') IS NOT NULL), 
+            T.P.value('(ApprovalOfSMS)[1]','BIT'), 
+	        0
+        ),
+		IIF(
+		   (T.P.value('(LanguageOfSMS)[1]','NVARCHAR(5)') IS NOT NULL) AND (T.P.value('(LanguageOfSMS)[1]','NVARCHAR(5)') != ''), 
+		    T.P.value('(LanguageOfSMS)[1]','NVARCHAR(5)'), 
+			[dbo].udfDefaultLanguageCode()
+		) FROM @XML.nodes('Enrolment/Families/Family/FamilySMS') AS T(P)
+		
+
+		--GET ALL THE PREMIUMS FROM XML
+		INSERT INTO @tblPremium(PremiumId,PolicyId,PayerId,Amount,Receipt,PayDate,PayType,isPhotoFee)
+		SELECT
+		T.PR.value('(PremiumId)[1]','INT'),
+		T.PR.value('(PolicyId)[1]','INT'),
+		NULLIF(T.PR.value('(PayerId)[1]','INT'),0),
+		T.PR.value('(Amount)[1]','DECIMAL(18,2)'),
+		T.PR.value('(Receipt)[1]','NVARCHAR(50)'),
+		T.PR.value('(PayDate)[1]','DATE'),
+		T.PR.value('(PayType)[1]','CHAR(1)'),
+		T.PR.value('(isPhotoFee)[1]','BIT')
+		FROM @XML.nodes('Enrolment/Premiums/Premium') AS T(PR)
+
+		--Get total number of premium sent via XML
+		SELECT @PremiumSent = COUNT(*) FROM @tblPremium;
+
+		IF ( @XML.exist('(Enrolment/FileInfo)') = 0)
+			BEGIN
+				INSERT INTO @tblResult VALUES
+				(N'<h4 style="color:red;">Error: FileInfo doesn''t exists. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>')
+				RAISERROR (N'<h4 style="color:red;">Error: FileInfo doesn''t exists. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>', 16, 1);
+			END
+
+			DECLARE @AuditUserId INT =-2,@AssociatedPhotoFolder NVARCHAR(255), @OfficerID INT
+			IF ( @XML.exist('(Enrolment/FileInfo)')=1 )
+				SET	@AuditUserId= (SELECT T.PR.value('(UserId)[1]','INT') FROM @XML.nodes('Enrolment/FileInfo') AS T(PR))
+			
+			IF ( @XML.exist('(Enrolment/FileInfo)')=1 )
+				SET	@OfficerID= (SELECT T.PR.value('(OfficerId)[1]','INT') FROM @XML.nodes('Enrolment/FileInfo') AS T(PR))
+				SET @AssociatedPhotoFolder=(SELECT AssociatedPhotoFolder FROM tblIMISDefaults)
+
+		/********************************************************************************************************
+										VALIDATING FILE				
+		********************************************************************************************************/
+
+		
+
+		IF EXISTS(
+		--Online Insuree in Offline family
+		SELECT 1 FROM @tblInsuree TI
+		INNER JOIN @tblFamilies TF ON TI.FamilyId = TF.FamilyId
+		WHERE TF.isOffline = 1 AND TI.isOffline= 0
+		)
+		BEGIN
+			INSERT INTO @tblResult VALUES
+			(N'<h4 style="color:red;">Error: Online Insuree in Offline family. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>')
+		
+			RAISERROR (N'<h4 style="color:red;">Error: Online Insuree in Offline family. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>', 16, 1);
+		END
+		
+		IF EXISTS(
+		--online Policy in offline family
+		SELECT 1 FROM @tblPolicy TP 
+		INNER JOIN @tblFamilies TF ON TP.FamilyId = TF.FamilyId
+		WHERE TF.isOffline = 1 AND TP.isOffline =0
+		)
+		BEGIN
+			INSERT INTO @tblResult VALUES
+			(N'<h4 style="color:red;">Error: online Policy in offline family. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>')
+		
+			RAISERROR (N'<h4 style="color:red;">Error: online Policy in offline family. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>', 16, 1);
+		END
+		
+
+		IF EXISTS(
+		--Insuree without family
+		SELECT 1 
+		FROM @tblInsuree I LEFT OUTER JOIN @tblFamilies F ON I.FamilyId = F.FamilyID
+		WHERE F.FamilyID IS NULL
+
+		)
+		BEGIN
+			INSERT INTO @tblResult VALUES
+			(N'<h4 style="color:red;">Error: Insuree without family. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>')
+		
+			RAISERROR (N'<h4 style="color:red;">Error: Insuree without family. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>', 16, 1);
+		END
+		
+		IF EXISTS(
+		
+		--Policy without family
+		SELECT 1 FROM
+		@tblPolicy PL LEFT OUTER JOIN @tblFamilies F ON PL.FamilyId = F.FamilyId
+		WHERE F.FamilyId IS NULL
+
+		)
+		BEGIN
+			INSERT INTO @tblResult VALUES
+			(N'<h4 style="color:red;">Error: Policy without family. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>')
+		
+			RAISERROR (N'<h4 style="color:red;">Error: Policy without family. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>', 16, 1);
+		END
+		
+		IF EXISTS(
+		
+		--Premium without policy
+		SELECT 1
+		FROM @tblPremium PR LEFT OUTER JOIN @tblPolicy P ON PR.PolicyId = P.PolicyId
+		WHERE P.PolicyId  IS NULL
+
+		)
+		BEGIN
+			INSERT INTO @tblResult VALUES
+			(N'<h4 style="color:red;">Error: Premium without policy. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>')
+		
+			RAISERROR (N'<h4 style="color:red;">Error: Premium without policy. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>', 16, 1);
+		END
+		
+		--IF EXISTS(
+		
+		-----Invalid Family type field
+		--SELECT 1 FROM @tblFamilies F 
+		--LEFT OUTER JOIN tblFamilyTypes FT ON F.FamilyType=FT.FamilyTypeCode
+		--WHERE FT.FamilyType IS NULL AND F.FamilyType IS NOT NULL
+
+		--)
+		--BEGIN
+		--	INSERT INTO @tblResult VALUES
+		--	(N'<h4 style="color:red;">Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>')
+		
+		--	RAISERROR (N'<h4 style="color:red;">Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>', 16, 1);
+		--END
+		
+		IF EXISTS(
+		
+		---Invalid IdentificationType
+		SELECT 1 FROM @tblInsuree I
+		LEFT OUTER JOIN tblIdentificationTypes IT ON I.TypeOfId = IT.IdentificationCode
+		WHERE IT.IdentificationCode IS NULL AND I.TypeOfId IS NOT NULL
+
+		)
+		BEGIN
+			INSERT INTO @tblResult VALUES
+			(N'<h4 style="color:red;">Error: Invalid IdentificationType. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>')
+		
+			RAISERROR (N'<h4 style="color:red;">Error: Invalid IdentificationType. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>', 16, 1);
+		END
+		
+		IF EXISTS(
+		SELECT 1 FROM @tblInureePolicy TIP 
+		LEFT OUTER JOIN @tblPolicy TP ON TP.PolicyId = TIP.PolicyId
+		WHERE TP.PolicyId IS NULL
+		)
+		BEGIN
+			INSERT INTO @tblResult VALUES
+			(N'<h4 style="color:red;">Error: Invalid IdentificationType. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>')
+		
+			RAISERROR (N'<h4 style="color:red;">Error: Invalid IdentificationType. Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h4>', 16, 1);
+		END
+
+		--SELECT * INTO tempFamilies FROM @tblFamilies
+		--SELECT * INTO tempInsuree FROM @tblInsuree
+		--SELECT * INTO tempPolicy FROM @tblPolicy
+		--SELECT * INTO tempInsureePolicy FROM @tblInureePolicy
+		--SELECT * INTO tempPolicy FROM @tblPolicy
+		--RETURN
+
+		SELECT * FROM @tblInsuree
+		SELECT * FROM @tblFamilies
+		SELECT * FROM @tblPolicy
+		SELECT * FROM @tblPremium
+		SELECT * FROM @tblInureePolicy
+
+
+		BEGIN TRAN ENROLL;
+
+		/********************************************************************************************************
+										VALIDATING FAMILY				
+		********************************************************************************************************/
+			--*****************************NEW FAMILY********************************
+			INSERT INTO @tblResult (Result)
+			SELECT  N'Insuree information is missing for Family with Insurance Number ' + QUOTENAME(F.CHFID) 
+			FROM @tblFamilies F
+			LEFT OUTER JOIN @tblInsuree I ON F.CHFID = I.CHFID
+			WHERE I.InsureeId IS NULL AND F.isOffline =1 ;
+
+			INSERT INTO @tblRejectedFamily (FamilyID)
+			SELECT F.FamilyId
+			FROM @tblFamilies F
+			LEFT OUTER JOIN @tblInsuree I ON F.CHFID = I.CHFID
+			WHERE I.InsureeId IS NULL AND F.isOffline =1 ;
+
+
+
+
+
+			INSERT INTO @tblResult(Result)
+			SELECT  N'Family with Insurance Number : ' + QUOTENAME(I.CHFID) + ' already exists'  
+			FROM @tblFamilies TF 
+			INNER JOIN tblInsuree I ON TF.CHFID = I.CHFID
+			WHERE I.ValidityTo IS NULL AND TF.isOffline = 1
+
+			INSERT INTO @tblRejectedFamily(FamilyID)
+			SELECT  TF.FamilyId
+			FROM @tblFamilies TF 
+			INNER JOIN tblInsuree I ON TF.CHFID = I.CHFID
+			WHERE I.ValidityTo IS NULL AND TF.isOffline = 1
+
+			
+
+
+			--*****************************EXISTING FAMILY********************************
+			INSERT INTO @tblResult (Result)
+			SELECT  N'Insuree information is missing for Family with Insurance Number ' + QUOTENAME(F.CHFID) 
+			FROM @tblFamilies F
+			LEFT OUTER JOIN tblInsuree I ON F.CHFID = I.CHFID
+			WHERE i.ValidityTo IS NULL AND I.IsHead= 1 AND I.InsureeId IS NULL AND F.isOffline = 0 ;
+
+			INSERT INTO @tblRejectedFamily (FamilyID)
+			SELECT F.FamilyId
+			FROM @tblFamilies F
+			LEFT OUTER JOIN @tblInsuree I ON F.CHFID = I.CHFID
+			WHERE I.InsureeId IS NULL AND F.isOffline =1 ;
+
+			
+			INSERT INTO @tblResult(Result)
+			SELECT N'Family with Insurance Number : ' + QUOTENAME(TF.CHFID) + ' does not exists' 
+			FROM @tblFamilies TF 
+			LEFT OUTER JOIN tblInsuree I ON TF.CHFID = I.CHFID
+			WHERE I.ValidityTo IS NULL 
+			AND TF.isOffline = 0 
+			AND I.CHFID IS NULL
+			AND I.IsHead = 1;
+
+			INSERT INTO @tblRejectedFamily (FamilyID)
+			SELECT TF.FamilyId
+			FROM @tblFamilies TF 
+			LEFT OUTER JOIN tblInsuree I ON TF.CHFID = I.CHFID
+			WHERE I.ValidityTo IS NULL 
+			AND TF.isOffline = 0 
+			AND I.CHFID IS NULL
+			AND I.IsHead = 1;
+
+			
+
+			INSERT INTO @tblResult (Result)
+			SELECT N'Changing the Location of the Family with Insurance Number : ' + QUOTENAME(I.CHFID) + ' is not allowed' 
+			FROM @tblFamilies TF 
+			INNER JOIN tblInsuree I ON TF.CHFID = I.CHFID
+			INNER JOIN tblFamilies F ON F.FamilyID = ABS(I.FamilyID)
+			WHERE I.ValidityTo IS NULL 
+			AND F.ValidityTo IS NULL
+			AND TF.isOffline = 0 
+			AND F.LocationId <> TF.LocationId
+
+			INSERT INTO @tblRejectedFamily
+			SELECT DISTINCT TF.FamilyId
+			FROM @tblFamilies TF 
+			INNER JOIN tblInsuree I ON TF.CHFID = I.CHFID
+			INNER JOIN tblFamilies F ON F.FamilyID = ABS(I.FamilyID)
+			WHERE I.ValidityTo IS NULL 
+			AND F.ValidityTo IS NULL
+			AND TF.isOffline = 0 
+			AND F.LocationId <> TF.LocationId
+
+			INSERT INTO @tblResult (Result)
+			SELECT N'Changing the family of the Insuree with Insurance Number : ' + QUOTENAME(I.CHFID) + ' is not allowed' 
+			FROM @tblInsuree TI
+			INNER JOIN tblInsuree I ON I.CHFID = TI.CHFID
+			INNER JOIN @tblFamilies TF ON TF.FamilyId = TI.FamilyId
+			WHERE
+			I.ValidityTo IS NULL
+			AND TI.isOffline = 0
+			AND I.FamilyID <> ABS(TI.FamilyId)
+
+			INSERT INTO @tblRejectedFamily
+			SELECT DISTINCT TF.FamilyId
+			FROM @tblInsuree TI
+			INNER JOIN tblInsuree I ON I.CHFID = TI.CHFID
+			INNER JOIN @tblFamilies TF ON TF.FamilyId = TI.FamilyId
+			WHERE
+			I.ValidityTo IS NULL
+			AND TI.isOffline = 0
+			AND I.FamilyID <> ABS(TI.FamilyId)
+
+			
+			/********************************************************************************************************
+										VALIDATING INSUREE				
+			********************************************************************************************************/
+			----**************NEW INSUREE*********************-----
+
+			INSERT INTO @tblResult(Result)
+			SELECT N'Insurance Number : ' + QUOTENAME(TI.CHFID) + ' already exists' 
+			FROM @tblInsuree TI
+			INNER JOIN tblInsuree I ON TI.CHFID = I.CHFID
+			WHERE I.ValidityTo IS NULL AND TI.isOffline = 1
+			
+			INSERT INTO @tblRejectedInsuree(InsureeID)
+			SELECT TI.InsureeId
+			FROM @tblInsuree TI
+			INNER JOIN tblInsuree I ON TI.CHFID = I.CHFID
+			WHERE I.ValidityTo IS NULL AND TI.isOffline = 1
+
+			--Reject Family of the duplicate CHFID
+			INSERT INTO @tblRejectedFamily(FamilyID)
+			SELECT TI.FamilyId
+			FROM @tblInsuree TI
+			INNER JOIN tblInsuree I ON TI.CHFID = I.CHFID
+			WHERE I.ValidityTo IS NULL AND TI.isOffline = 1
+
+
+			----**************EXISTING INSUREE*********************-----
+			INSERT INTO @tblResult(Result)
+			SELECT N'Insurance Number : ' + QUOTENAME(TI.CHFID) + ' does not exists' 
+			FROM @tblInsuree TI
+			LEFT OUTER JOIN tblInsuree I ON TI.CHFID = I.CHFID
+			WHERE 
+			I.ValidityTo IS NULL 
+			AND I.CHFID IS NULL
+			AND TI.isOffline = 0
+			
+			INSERT INTO @tblRejectedInsuree(InsureeID)
+			SELECT TI.InsureeId
+			FROM @tblInsuree TI
+			LEFT OUTER JOIN tblInsuree I ON TI.CHFID = I.CHFID
+			WHERE 
+			I.ValidityTo IS NULL 
+			AND I.CHFID IS NULL
+			AND TI.isOffline = 0
+
+
+			
+
+			/********************************************************************************************************
+										VALIDATING POLICIES				
+			********************************************************************************************************/
+
+
+			/********************************************************************************************************
+										VALIDATING PREMIUMS				
+			********************************************************************************************************/
+			INSERT INTO @tblResult(Result)
+			SELECT N'Receipt number : ' + QUOTENAME(PR.Receipt) + ' is duplicateed in a file ' 
+			FROM @tblPremium PR
+			INNER JOIN @tblPolicy PL ON PL.PolicyId =PR.PolicyId
+			GROUP BY PR.Receipt HAVING COUNT(PR.PolicyId) > 1
+
+			INSERT INTO @tblRejectedPremium(PremiumId)
+			SELECT TPR.PremiumId
+			FROM tblPremium PR
+			INNER JOIN @tblPremium TPR ON PR.Amount = TPR.Amount
+			INNER JOIN @tblPolicy TP ON TP.PolicyId = TPR.PolicyId 
+			AND PR.Receipt = TPR.Receipt 
+			AND PR.PolicyID = TPR.NewPolicyId
+			WHERE PR.ValidityTo IS NULL
+			AND TP.isOffline = 0
+			
+
+            /********************************************************************************************************
+                                        CHECK IF SOME INSUREE ARE ABOUT TO DELETE FROM FAMILY	
+            ********************************************************************************************************/
+
+            -- get the family id to process from online database
+            DECLARE @familyIdToProcess TABLE (FamilyId INT)
+            INSERT INTO @familyIdToProcess(FamilyId)
+            SELECT I.FamilyId
+            FROM @tblInsuree TI
+            INNER JOIN tblInsuree I ON TI.CHFID = I.CHFID
+            WHERE I.ValidityTo IS NULL AND TI.isOffline = 1
+            GROUP BY I.FamilyID
+
+            -- get to compare the structure of families (list of insuree) from online database
+            DECLARE @insureeToProcess TABLE(CHFID NVARCHAR(12), FamilyID INT) 
+            INSERT INTO @insureeToProcess(CHFID, FamilyID)
+            SELECT I.CHFID, F.FamilyID FROM tblInsuree I 
+            LEFT JOIN tblFamilies F ON I.FamilyID = F.FamilyID
+            WHERE F.FamilyID IN (SELECT * FROM @familyIdToProcess) AND I.ValidityTo is NULL
+            GROUP BY I.CHFID, F.FamilyID
+
+            -- select the insuree to delete based on received XML payload
+            -- get the insuree which are not included in "insureeToProcess"
+            DECLARE @insureeToDelete TABLE(CHFID NVARCHAR(12))
+            INSERT INTO @insureeToDelete(CHFID)
+            SELECT IP.CHFID FROM @insureeToProcess IP
+            LEFT JOIN @tblInsuree I ON I.CHFID=IP.CHFID
+            WHERE I.CHFID is NULL
+
+            -- iterate through insuree to delete - process them to remove from existing family
+            -- use SP uspAPIDeleteMemberFamily and 'delete' InsureePolicy also like in webapp 
+            IF EXISTS(SELECT 1 FROM @insureeToDelete)
+            BEGIN 
+                DECLARE @CurInsureeCHFID NVARCHAR(12)
+                DECLARE CurInsuree CURSOR FOR SELECT CHFID FROM @insureeToDelete
+                    OPEN CurInsuree
+                        FETCH NEXT FROM CurInsuree INTO @CurInsureeCHFID;
+                        WHILE @@FETCH_STATUS = 0
+                        BEGIN
+                            DECLARE @currentInsureeId INT
+                            SET @currentInsureeId = (SELECT InsureeID FROM tblInsuree WHERE CHFID=@CurInsureeCHFID AND ValidityTo is NULL)
+                            EXEC uspAPIDeleteMemberFamily -2, @CurInsureeCHFID
+                            UPDATE tblInsureePolicy SET ValidityTo = GETDATE() WHERE InsureeId = @currentInsureeId
+                            FETCH NEXT FROM CurInsuree INTO @CurInsureeCHFID;
+                        END
+                    CLOSE CurInsuree
+                DEALLOCATE CurInsuree;	 
+            END
+
+			--Validation For Phone only
+			IF @AuditUserId > 0
+				BEGIN
+
+					--*****************New Family*********
+					--Family already  exists
+					IF EXISTS(SELECT 1 FROM @tblFamilies TF INNER JOIN tblInsuree F ON F.CHFID = TF.CHFID WHERE TF.isOffline = 1 AND F.ValidityTo IS NULL )
+					RAISERROR(N'-2',16,1)
+					
+					
+					--Family has no HOF
+					IF EXISTS(SELECT 1 FROM @tblFamilies TF LEFT OUTER JOIN @tblInsuree TI ON TI.CHFID =TF.CHFID WHERE TF.isOffline = 1 AND TI.CHFID IS NULL)
+					RAISERROR(N'-1',16,1)
+
+					--Duplicate Insuree foundS
+					IF EXISTS(SELECT 1 FROM @tblInsuree TI INNER JOIN tblInsuree I ON TI.CHFID = I.CHFID WHERE I.ValidityTo IS NULL AND TI.isOffline = 1)
+					RAISERROR(N'-3',16,1)
+
+					--*****************Existing Family*********
+							--Family has no HOF
+					IF EXISTS(SELECT 1 FROM @tblFamilies TF 
+					LEFT OUTER JOIN tblInsuree I ON TF.CHFID = I.CHFID 
+					WHERE I.ValidityTo IS NULL AND I.IsHead = 1 AND I.CHFID IS NULL)
+					RAISERROR(N'-1',16,1)
+
+					--Duplicate Receipt
+					IF EXISTS(SELECT 1 FROM @tblPremium TPR
+					INNER JOIN tblPremium PR ON PR.PolicyID = TPR.PolicyID AND TPR.Amount = PR.Amount AND TPR.Receipt = PR.Receipt
+					INNER JOIN tblPolicy PL ON PL.PolicyID = PR.PolicyID)
+					RAISERROR(N'-4',16,1)
+
+
+				END
+
+
+			/********************************************************************************************************
+										DELETE REJECTED RECORDS		
+			********************************************************************************************************/
+
+			SELECT @FamilyRejected =ISNULL(COUNT(DISTINCT FamilyID),0) FROM
+			@tblRejectedFamily --GROUP BY FamilyID
+
+			SELECT @PolicyRejected =ISNULL(COUNT(DISTINCT PolicyId),0) FROM
+			@tblRejectedPolicy --GROUP BY PolicyId
+
+			SELECT @PolicyRejected= ISNULL(COUNT(DISTINCT TP.PolicyId),0)+ ISNULL(@PolicyRejected ,0)
+			FROM @tblPolicy TP 
+			INNER JOIN @tblFamilies TF ON TF.FamilyId = TP.FamilyId
+			INNER JOIN @tblRejectedFamily RF ON RF.FamilyID = TP.FamilyId
+			GROUP BY TP.PolicyId
+
+			SELECT @PremiumRejected =ISNULL(COUNT(DISTINCT PremiumId),0) FROM
+			@tblRejectedPremium --GROUP BY PremiumId
+
+
+			--Rejected Families
+			DELETE TF FROM @tblFamilies TF
+			INNER JOIN @tblRejectedFamily RF ON TF.FamilyId =RF.FamilyId
+			
+			DELETE TF FROM @tblFamilies TF
+			INNER JOIN @tblInsuree TI ON TI.FamilyId = TF.FamilyId
+			INNER JOIN @tblRejectedInsuree RI ON RI.InsureeID = TI.InsureeId
+
+			DELETE TI FROM @tblInsuree TI
+			INNER JOIN @tblRejectedFamily RF ON TI.FamilyId =RF.FamilyId
+
+			DELETE TP FROM @tblPolicy TP
+			INNER JOIN @tblRejectedFamily RF ON TP.FamilyId =RF.FamilyId
+
+			DELETE TFS FROM @tblFamilySMS TFS
+			INNER JOIN @tblRejectedFamily TF ON TFS.FamilyId = TF.FamilyId
+
+			DELETE TP FROM @tblPolicy TP
+			LEFT OUTER JOIN @tblFamilies TF ON TP.FamilyId =TP.FamilyId WHERE TF.FamilyId IS NULL
+
+			--Rejected Insuree
+			DELETE TI FROM @tblInsuree TI
+			INNER JOIN @tblRejectedInsuree RI ON TI.InsureeId =RI.InsureeID
+
+			DELETE TIP FROM @tblInureePolicy TIP
+			INNER JOIN @tblRejectedInsuree RI ON TIP.InsureeId =RI.InsureeID
+			
+			--Rejected Premium
+			DELETE TPR FROM @tblPremium TPR
+			INNER JOIN @tblRejectedPremium RP ON RP.PremiumId = TPR.PremiumId
+			
+
+			--Making the first insuree to be head for the offline families which miss head of family ONLY for the new family
+			IF NOT EXISTS(SELECT 1 FROM @tblFamilies TF INNER JOIN @tblInsuree TI ON TI.CHFID = TF.CHFID WHERE TI.IsHead = 1 AND TF.isOffline = 1)
+			BEGIN
+				UPDATE TI SET TI.IsHead =1 
+				FROM @tblInsuree TI 
+				INNER JOIN @tblFamilies TF ON TF.FamilyId = TI.FamilyId 
+				WHERE TF.isOffline = 1 
+				AND TI.InsureeId=(SELECT TOP 1 InsureeId FROM @tblInsuree WHERE isOffline = 1 ORDER BY InsureeId ASC)
+			END
+			
+			--Updating FamilyId, PolicyId and InsureeId for the existing records
+			UPDATE @tblFamilies SET NewFamilyId = ABS(FamilyId) WHERE isOffline = 0
+			UPDATE @tblInsuree SET NewFamilyId =ABS(FamilyId)  
+			UPDATE @tblPolicy SET NewPolicyId = PolicyId WHERE isOffline = 0
+			UPDATE @tblFamilySMS SET NewFamilyId = ABS(FamilyId)
+			
+			UPDATE TP SET TP.NewFamilyId = TF.FamilyId FROM @tblPolicy TP 
+			INNER JOIN @tblFamilies TF ON TF.FamilyId = TP.FamilyId 
+			WHERE TF.isOffline = 0
+			
+
+			--updating existing families
+			IF EXISTS(SELECT 1 FROM @tblFamilies WHERE isOffline = 0 AND FamilyId < 0)
+			BEGIN
+				INSERT INTO tblFamilies ([insureeid],[Poverty],[ConfirmationType],isOffline,[ValidityFrom],[ValidityTo],[LegacyID],[AuditUserID],FamilyType, FamilyAddress,Ethnicity,ConfirmationNo, LocationId) 
+				SELECT F.[insureeid],F.[Poverty],F.[ConfirmationType],F.isOffline,F.[ValidityFrom],getdate() ValidityTo,F.FamilyID, @AuditUserID,F.FamilyType, F.FamilyAddress,F.Ethnicity,F.ConfirmationNo,F.LocationId FROM @tblFamilies TF
+				INNER JOIN tblFamilies F ON ABS(TF.FamilyId) = F.FamilyID
+				WHERE 
+				F.ValidityTo IS NULL
+				AND TF.isOffline = 0 AND TF.FamilyId < 0
+
+				
+				UPDATE dst SET dst.[Poverty] = src.Poverty,  dst.[ConfirmationType] = src.ConfirmationType, isOffline=0, dst.[ValidityFrom]=GETDATE(), dst.[AuditUserID] = @AuditUserID, dst.FamilyType = src.FamilyType,  dst.FamilyAddress = src.FamilyAddress,
+							   dst.Ethnicity = src.Ethnicity,  dst.ConfirmationNo = src.ConfirmationNo
+						 FROM tblFamilies dst
+						 INNER JOIN @tblFamilies src ON ABS(src.FamilyID)= dst.FamilyID WHERE src.isOffline = 0 AND src.FamilyId < 0
+				SELECT @FamiliesUpd = ISNULL(@@ROWCOUNT	,0)
+
+				UPDATE dst SET dst.[ApprovalOfSMS] = src.ApprovalOfSMS,  dst.[LanguageOfSMS] = src.LanguageOfSMS, dst.[ValidityFrom] = GETDATE()
+						 FROM tblFamilySMS dst
+						 INNER JOIN @tblFamilySMS src ON ABS(src.FamilyID) = dst.FamilyId WHERE src.FamilyId < 0
+				
+
+			END
+
+			--new family
+				IF EXISTS(SELECT 1 FROM @tblFamilies WHERE isOffline = 1) 
+					BEGIN
+						DECLARE @CurFamilyId INT
+						DECLARE CurFamily CURSOR FOR SELECT FamilyId FROM @tblFamilies WHERE  isOffline = 1
+							OPEN CurFamily
+								FETCH NEXT FROM CurFamily INTO @CurFamilyId;
+								WHILE @@FETCH_STATUS = 0
+								BEGIN
+								INSERT INTO tblFamilies(InsureeId, LocationId, Poverty, ValidityFrom, AuditUserId, FamilyType, FamilyAddress, Ethnicity, ConfirmationNo, ConfirmationType, isOffline) 
+								SELECT 0 , TF.LocationId, TF.Poverty, GETDATE() , @AuditUserId , TF.FamilyType, TF.FamilyAddress, TF.Ethnicity, TF.ConfirmationNo, ConfirmationType, 0 FROM @tblFamilies TF
+								DECLARE @NewFamilyId  INT  =0
+								SELECT @NewFamilyId= SCOPE_IDENTITY();
+
+								
+								IF @@ROWCOUNT > 0
+									BEGIN
+										SET @FamilyImported = ISNULL(@FamilyImported,0) + 1
+										UPDATE @tblFamilies SET NewFamilyId = @NewFamilyId WHERE FamilyId = @CurFamilyId
+										UPDATE @tblInsuree SET NewFamilyId = @NewFamilyId WHERE FamilyId = @CurFamilyId
+										UPDATE @tblPolicy SET NewFamilyId = @NewFamilyId WHERE FamilyId = @CurFamilyId
+										UPDATE @tblFamilySMS SET NewFamilyId = @NewFamilyId WHERE FamilyId = @CurFamilyId
+										
+									END
+								
+								INSERT INTO tblFamilySMS(FamilyId, ApprovalOfSMS, LanguageOfSMS, ValidityFrom) 
+									SELECT @NewFamilyID, dst.ApprovalOfSMS, dst.LanguageOfSMS, GETDATE() FROM @tblFamilySMS dst
+								Where dst.FamilyId = @CurFamilyId;
+								
+
+								FETCH NEXT FROM CurFamily INTO @CurFamilyId;
+							END
+							CLOSE CurFamily
+							DEALLOCATE CurFamily;
+						END
+
+
+			--Delete duplicate policies
+			DELETE TP
+			OUTPUT 'Policy for the family : ' + QUOTENAME(I.CHFID) + ' with Product Code:' + QUOTENAME(Prod.ProductCode) + ' already exists' INTO @tblResult
+			FROM tblPolicy PL 
+			INNER JOIN @tblPolicy TP ON PL.FamilyID = ABS(TP.NewFamilyId )
+									AND PL.EnrollDate = TP.EnrollDate 
+									AND PL.StartDate = TP.StartDate 
+									AND PL.ProdID = TP.ProdId 
+			INNER JOIN tblProduct Prod ON PL.ProdId = Prod.ProdId
+			INNER JOIN tblInsuree I ON PL.FamilyId = I.FamilyId
+			WHERE PL.ValidityTo IS NULL
+			AND I.IsHead = 1;
+
+			--Delete Premiums without polices
+			DELETE TPR FROM @tblPremium TPR
+			LEFT OUTER JOIN @tblPolicy TP ON TP.PolicyId = TPR.PolicyId
+			WHERE TPR.PolicyId IS NULL
+
+
+			--updating existing insuree
+			IF EXISTS(SELECT 1 FROM @tblInsuree WHERE isOffline = 0)
+				BEGIN
+					--Insert Insuree History
+					INSERT INTO tblInsuree ([FamilyID],[CHFID],[LastName],[OtherNames],[DOB],[Gender],[Marital],[IsHead],[passport],[Phone],[PhotoID],[PhotoDate],[CardIssued],isOffline,[AuditUserID],[ValidityFrom] ,[ValidityTo],legacyId,[Relationship],[Profession],[Education],[Email],[TypeOfId],[HFID], [CurrentAddress], [GeoLocation], [CurrentVillage], [Vulnerability]) 
+					SELECT	I.[FamilyID],I.[CHFID],I.[LastName],I.[OtherNames],I.[DOB],I.[Gender],I.[Marital],I.[IsHead],I.[passport],I.[Phone],I.[PhotoID],I.[PhotoDate],I.[CardIssued],I.isOffline,I.[AuditUserID],I.[ValidityFrom] ,GETDATE() ValidityTo,I.InsureeID,I.[Relationship],I.[Profession],I.[Education],I.[Email] ,I.[TypeOfId],I.[HFID], I.[CurrentAddress], I.[GeoLocation], [CurrentVillage], I.[Vulnerability] FROM @tblInsuree TI
+					INNER JOIN tblInsuree I ON TI.CHFID = I.CHFID
+					WHERE I.ValidityTo IS NULL AND
+					TI.isOffline = 0
+
+					UPDATE dst SET  dst.[LastName] = src.LastName,dst.[OtherNames] = src.OtherNames,dst.[DOB] = src.DOB,dst.[Gender] = src.Gender,dst.[Marital] = src.Marital,dst.[passport] = src.passport,dst.[Phone] = src.Phone,dst.[PhotoDate] = GETDATE(),dst.[CardIssued] = src.CardIssued,dst.isOffline=0,dst.[ValidityFrom] = GetDate(),dst.[AuditUserID] = @AuditUserID ,dst.[Relationship] = src.Relationship, dst.[Profession] = src.Profession, dst.[Education] = src.Education,dst.[Email] = src.Email ,dst.TypeOfId = src.TypeOfId,dst.HFID = src.HFID, dst.CurrentAddress = src.CurrentAddress, dst.CurrentVillage = src.CurVillage, dst.GeoLocation = src.GeoLocation, dst.Vulnerability = src.Vulnerability 
+					FROM tblInsuree dst
+					INNER JOIN @tblInsuree src ON src.CHFID = dst.CHFID
+					WHERE dst.ValidityTo IS NULL AND src.isOffline = 0;
+
+					SELECT @InsureeUpd= ISNULL(COUNT(1),0) FROM @tblInsuree WHERE isOffline = 0
+
+
+					--Insert Photo  History
+					INSERT INTO tblPhotos(InsureeID,CHFID,PhotoFolder,PhotoFileName,PhotoDate,OfficerID,ValidityFrom,ValidityTo,AuditUserID) 
+					SELECT P.InsureeID,P.CHFID,P.PhotoFolder,P.PhotoFileName,P.PhotoDate,P.OfficerID,P.ValidityFrom,GETDATE() ValidityTo,P.AuditUserID 
+					FROM tblPhotos P
+					INNER JOIN tblInsuree I ON I.PhotoID =P.PhotoID
+					INNER JOIN @tblInsuree TI ON TI.CHFID = I.CHFID
+					WHERE 
+					P.ValidityTo IS NULL AND I.ValidityTo IS NULL
+					AND TI.isOffline = 0
+
+					--Update Photo
+					UPDATE P SET PhotoFolder = @AssociatedPhotoFolder+'/', PhotoFileName = TI.PhotoPath, OfficerID = @OfficerID, ValidityFrom = GETDATE(), AuditUserID = @AuditUserID 
+					FROM tblPhotos P
+					INNER JOIN tblInsuree I ON I.PhotoID =P.PhotoID
+					INNER JOIN @tblInsuree TI ON TI.CHFID = I.CHFID
+					WHERE 
+					P.ValidityTo IS NULL AND I.ValidityTo IS NULL
+					AND TI.isOffline = 0
+				END
+
+				--new insuree
+				IF EXISTS(SELECT 1 FROM @tblInsuree WHERE isOffline = 1) 
+					BEGIN
+						DECLARE @CurInsureeId INT
+						DECLARE CurInsuree CURSOR FOR SELECT InsureeId FROM @tblInsuree WHERE  isOffline = 1
+							OPEN CurInsuree
+								FETCH NEXT FROM CurInsuree INTO @CurInsureeId;
+								WHILE @@FETCH_STATUS = 0
+								BEGIN
+								INSERT INTO tblInsuree(FamilyId, CHFID, LastName, OtherNames, DOB, Gender, Marital, IsHead, passport, Phone, CardIssued, ValidityFrom,
+								AuditUserId, Relationship, Profession, Education, Email, TypeOfId, HFID, CurrentAddress, GeoLocation, CurrentVillage, isOffline, Vulnerability)
+								SELECT NewFamilyId, CHFID, LastName, OtherNames, DOB, Gender, Marital, IsHead, passport, Phone, CardIssued, GETDATE() ValidityFrom,
+								@AuditUserId AuditUserId, Relationship, Profession, Education, Email, TypeOfId, HFID, CurrentAddress, GeoLocation, CurVillage, 0, Vulnerability
+								FROM @tblInsuree WHERE InsureeId = @CurInsureeId;
+								DECLARE @NewInsureeId  INT  =0
+								SELECT @NewInsureeId= SCOPE_IDENTITY();
+								IF @@ROWCOUNT > 0
+									BEGIN
+										SET @InsureeImported = ISNULL(@InsureeImported,0) + 1
+										--updating insureeID
+										UPDATE @tblInsuree SET NewInsureeId = @NewInsureeId WHERE InsureeId = @CurInsureeId
+										UPDATE @tblInureePolicy SET NewInsureeId = @NewInsureeId WHERE InsureeId = @CurInsureeId
+										UPDATE F SET InsureeId = TI.NewInsureeId
+										FROM @tblInsuree TI 
+										INNER JOIN tblInsuree I ON TI.NewInsureeId = I.InsureeId
+										INNER JOIN tblFamilies F ON TI.NewFamilyId = F.FamilyID
+										WHERE TI.IsHead = 1 AND TI.InsureeId = @NewInsureeId
+									END
+
+								--Now we will insert new insuree in the table tblInsureePolicy for only existing policies
+								IF EXISTS(SELECT 1 FROM tblPolicy P 
+								INNER JOIN tblFamilies F ON F.FamilyID = P.FamilyID
+								INNER JOIN tblInsuree I ON I.FamilyID = I.FamilyID
+								WHERE I.ValidityTo IS NULL AND P.ValidityTo IS NULL AND F.ValidityTo IS NULL AND I.InsureeID = @NewInsureeId)
+									EXEC uspAddInsureePolicy @NewInsureeId	
+
+									INSERT INTO tblPhotos(InsureeID,CHFID,PhotoFolder,PhotoFileName,OfficerID,PhotoDate,ValidityFrom,AuditUserID)
+									SELECT @NewInsureeId InsureeId, CHFID, @AssociatedPhotoFolder +'/' photoFolder, PhotoPath photoFileName, @OfficerID OfficerID, getdate() photoDate, getdate() ValidityFrom,@AuditUserId AuditUserId
+									FROM @tblInsuree WHERE InsureeId = @CurInsureeId 
+
+								--Update photoId in Insuree
+								UPDATE I SET PhotoId = PH.PhotoId, I.PhotoDate = PH.PhotoDate
+								FROM tblInsuree I
+								INNER JOIN tblPhotos PH ON PH.InsureeId = I.InsureeId
+								WHERE I.CHFID IN (SELECT CHFID from @tblInsuree)
+								
+
+								FETCH NEXT FROM CurInsuree INTO @CurInsureeId;
+								END
+						CLOSE CurInsuree
+							DEALLOCATE CurInsuree;
+					END
+				
+				--updating family with the new insureeId of the head
+				UPDATE F SET InsureeID = I.InsureeID FROM tblInsuree I
+				INNER JOIN @tblInsuree TI ON I.CHFID = TI.CHFID
+				INNER JOIN @tblFamilies TF ON I.FamilyID = TF.NewFamilyId
+				INNER JOIN tblFamilies F ON F.FamilyID = I.FamilyID
+				WHERE I.ValidityTo IS NULL AND I.ValidityTo IS NULL AND I.IsHead = 1
+
+			DELETE FROM @tblIds;
+
+				
+				---**************INSERTING POLICIES-----------
+				DECLARE @FamilyId INT = 0,
+				@HOFId INT = 0,
+				@PolicyValue DECIMAL(18, 4),
+				@ProdId INT,
+				@PolicyStage CHAR(1),
+				@StartDate DATE,
+				@ExpiryDate DATE,
+				@EnrollDate DATE,
+				@EffectiveDate DATE,
+				@ErrorCode INT,
+				@PolicyStatus INT,
+				@PolicyId TINYINT,
+				@PolicyValueFromPhone DECIMAL(18, 4),
+				@ContributionAmount DECIMAL(18, 4),
+				@Active TINYINT=2,
+				@Ready TINYINT=16,
+				@Idle TINYINT=1,
+				@NewPolicyId INT,
+				@OldPolicyStatus INT,
+				@NewPolicyStatus INT
+
+
+			
+			--New policies
+		IF EXISTS(SELECT 1 FROM @tblPolicy WHERE isOffline =1)
+			BEGIN
+			DECLARE CurPolicies CURSOR FOR SELECT PolicyId, ProdId, ISNULL(PolicyStage, N'N') PolicyStage, StartDate, EnrollDate,ExpiryDate, PolicyStatus, PolicyValue, NewFamilyId FROM @tblPolicy WHERE isOffline = 1
+			OPEN CurPolicies;
+			FETCH NEXT FROM CurPolicies INTO @PolicyId, @ProdId, @PolicyStage, @StartDate, @EnrollDate, @ExpiryDate,  @PolicyStatus, @PolicyValueFromPhone, @FamilyId;
+			WHILE @@FETCH_STATUS = 0
+			BEGIN			
+							SET @EffectiveDate= NULL;
+							SET @PolicyStatus = @Idle;
+
+							EXEC @PolicyValue = uspPolicyValue @FamilyId, @ProdId, 0, @PolicyStage, @EnrollDate, 0, @ErrorCode OUTPUT;
+
+							INSERT INTO tblPolicy(FamilyID,EnrollDate,StartDate,EffectiveDate,ExpiryDate,PolicyStatus,PolicyValue,ProdID,OfficerID,PolicyStage,ValidityFrom,AuditUserID, isOffline)
+							SELECT	 ABS(NewFamilyID),EnrollDate,StartDate,@EffectiveDate,ExpiryDate,@PolicyStatus,@PolicyValue,ProdID,@OfficerID,PolicyStage,GETDATE(),@AuditUserId,  0 FROM @tblPolicy WHERE PolicyId=@PolicyId
+							SELECT @NewPolicyId = SCOPE_IDENTITY()
+							INSERT INTO @tblIds(OldId, [NewId]) VALUES(@PolicyId, @NewPolicyId)
+							
+							IF @@ROWCOUNT > 0
+								BEGIN
+									SET @PolicyImported = ISNULL(@PolicyImported,0) +1
+									UPDATE @tblInureePolicy SET NewPolicyId = @NewPolicyId WHERE PolicyId=@PolicyId
+									UPDATE @tblPremium SET NewPolicyId =@NewPolicyId  WHERE PolicyId = @PolicyId
+									INSERT INTO tblPremium(PolicyID,PayerID,Amount,Receipt,PayDate,PayType,ValidityFrom,AuditUserID,isPhotoFee,isOffline)
+									SELECT NewPolicyId,PayerID,Amount,Receipt,PayDate,PayType,GETDATE(),@AuditUserId,isPhotoFee,  0
+									FROM @tblPremium WHERE NewPolicyId = @NewPolicyId
+									SELECT @PremiumImported = ISNULL(@PremiumImported,0) +1
+								END
+							
+				
+				SELECT @ContributionAmount = ISNULL(SUM(Amount),0) FROM tblPremium WHERE PolicyId = @NewPolicyId
+					IF ((@PolicyValueFromPhone = @PolicyValue))
+						BEGIN
+							SELECT @PolicyStatus = PolicyStatus FROM @tblPolicy WHERE PolicyId=@PolicyId
+							SELECT @EffectiveDate = EffectiveDate FROM @tblPolicy WHERE PolicyId=@PolicyId
+							
+							UPDATE tblPolicy SET PolicyStatus = @PolicyStatus, EffectiveDate = @EffectiveDate WHERE PolicyID = @NewPolicyId
+
+							INSERT INTO tblInsureePolicy
+								([InsureeId],[PolicyId],[EnrollmentDate],[StartDate],[EffectiveDate],[ExpiryDate],[ValidityFrom],[AuditUserId], isOffline) 
+							SELECT
+								 NewInsureeId,IP.NewPolicyId,@EnrollDate,@StartDate,IP.[EffectiveDate],@ExpiryDate,GETDATE(),@AuditUserId,  0 FROM @tblInureePolicy IP
+							     WHERE IP.PolicyId=@PolicyId
+						END
+					ELSE
+						BEGIN
+							IF @ContributionAmount >= @PolicyValue
+								BEGIN
+									IF (@ActivationOption = 3)
+									  SELECT @PolicyStatus = @Ready
+									ELSE
+									  SELECT @PolicyStatus = @Active
+								END
+								ELSE
+									SELECT @PolicyStatus =@Idle
+							
+									--Checking the Effectice Date
+										DECLARE @Amount DECIMAL(10,0), @TotalAmount DECIMAL(10,0), @PaymentDate DATE 
+										DECLARE CurPremiumPayment CURSOR FOR SELECT PayDate, Amount FROM @tblPremium WHERE PolicyId = @PolicyId;
+										OPEN CurPremiumPayment;
+										FETCH NEXT FROM CurPremiumPayment INTO @PaymentDate,@Amount;
+										WHILE @@FETCH_STATUS = 0
+										BEGIN
+											SELECT @TotalAmount = ISNULL(@TotalAmount,0) + @Amount;
+												IF(@TotalAmount >= @PolicyValue)
+													BEGIN
+														SELECT @EffectiveDate = @PaymentDate
+														BREAK;
+													END
+												ELSE
+														SELECT @EffectiveDate = NULL
+											FETCH NEXT FROM CurPremiumPayment INTO @PaymentDate,@Amount;
+										END
+										CLOSE CurPremiumPayment;
+										DEALLOCATE CurPremiumPayment; 
+							
+								UPDATE tblPolicy SET PolicyStatus = @PolicyStatus, EffectiveDate = @EffectiveDate WHERE PolicyID = @NewPolicyId
+							
+
+							DECLARE @InsureeId INT
+							DECLARE CurNewPolicy CURSOR FOR SELECT I.InsureeID FROM tblInsuree I 
+													INNER JOIN tblFamilies F ON I.FamilyID = F.FamilyID 
+													INNER JOIN tblPolicy P ON P.FamilyID = F.FamilyID 
+													WHERE P.PolicyId = @NewPolicyId 
+													AND I.ValidityTo IS NULL 
+													AND F.ValidityTo IS NULL
+													AND P.ValidityTo IS NULL
+							OPEN CurNewPolicy;
+							FETCH NEXT FROM CurNewPolicy INTO @InsureeId;
+							WHILE @@FETCH_STATUS = 0
+							BEGIN
+								EXEC uspAddInsureePolicy @InsureeId;
+								FETCH NEXT FROM CurNewPolicy INTO @InsureeId;
+							END
+							CLOSE CurNewPolicy;
+							DEALLOCATE CurNewPolicy; 
+
+						END
+
+				
+
+				FETCH NEXT FROM CurPolicies INTO @PolicyId, @ProdId, @PolicyStage, @StartDate, @EnrollDate, @ExpiryDate,  @PolicyStatus, @PolicyValueFromPhone, @FamilyId;
+			END
+			CLOSE CurPolicies;
+			DEALLOCATE CurPolicies; 
+		END
+
+		SELECT @PolicyImported = ISNULL(COUNT(1),0) FROM @tblPolicy WHERE isOffline = 1
+			
+			
+
+		
+
+	
+	IF EXISTS(SELECT COUNT(1) 
+			FROM tblInsuree 
+			WHERE ValidityTo IS NULL
+			AND IsHead = 1
+			GROUP BY FamilyID
+			HAVING COUNT(1) > 1)
+			
+			--Added by Amani
+			BEGIN
+					DELETE FROM @tblResult;
+					SET @FamilyImported = 0;
+					SET @FamilyRejected =0;
+					SET @FamiliesUpd =0;
+					SET @InsureeImported  = 0;
+					SET @InsureeUpd =0;
+					SET @PolicyImported  = 0;
+					SET @PolicyImported  = 0;
+					SET @PolicyRejected  = 0;
+					SET @PremiumImported  = 0 
+					INSERT INTO @tblResult VALUES
+						(N'<h3 style="color:red;">Double HOF Found. <br />Please contact your IT manager for further assistant.</h3>')
+						--GOTO EndOfTheProcess;
+
+						RAISERROR(N'-5',16,1)
+					END
+
+
+		COMMIT TRAN ENROLL;
+
+	END TRY
+	BEGIN CATCH
+		SELECT ERROR_MESSAGE();
+		IF @@TRANCOUNT > 0 ROLLBACK TRAN ENROLL;
+		
+		SELECT * FROM @tblResult;
+		IF  ERROR_MESSAGE()=N'-1'
+			BEGIN
+				RETURN -1
+			END
+		ELSE IF ERROR_MESSAGE()=N'-2'
+			BEGIN
+				RETURN -2
+			END
+		ELSE IF ERROR_MESSAGE()=N'-3'
+			BEGIN
+				RETURN -3
+			END
+		ELSE IF ERROR_MESSAGE()=N'-4'
+			BEGIN
+				RETURN -4
+			END
+		ELSE IF ERROR_MESSAGE()=N'-5'
+			BEGIN
+				RETURN -5
+			END
+		ELSE
+			RETURN -400
+	END CATCH
+
+	
+	SELECT Result FROM @tblResult;
+	
+	RETURN 0 --ALL OK
+	END
+
+
+GO
+
+
+/****** Object:  StoredProcedure [dbo].[uspRestAPISubmitSingleClaim]    Script Date: 10/29/2021 3:27:21 PM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE PROCEDURE [dbo].[uspRestAPISubmitSingleClaim]
+	
+	@AuditUser as int = 0,
+	@ClaimID as int,
+	@RowID as bigint = 0,
+	@RtnStatus as int = 0 OUTPUT,
+	@RtnItemsPassed as int = 0 OUTPUT,
+	@RtnServicesPassed as int = 0 OUTPUT,
+	@RtnItemsRejected as int = 0 OUTPUT,
+	@RtnServicesRejected as int = 0 OUTPUT
+	
+	
+	/*
+	Rejection reasons:
+	0 = NOT REJECTED
+	1 = Item/Service not in Registers
+	2 = Item/Service not in HF Pricelist 
+	3 = Item/Service not in Covering Product/policy
+	4 = Item/Service Limitation Fail
+	5 = Item/Service Frequency Fail
+	6 = Item/Service DUPLICATED
+	7 = CHFID Not valid / Family Not Valid 
+	8 = ICD Code not in current ICD list 
+	9 = Target date provision invalid
+	10= Care type not consistant with Facility 
+	11= Maximum Hospital admissions
+	12= Maximim visits (OP)
+	13= Maximum consulations
+	14= Maximum Surgeries
+	15= Maximum Deliveries
+	16= Item/Service Maximum provision
+	17= Item/Service waiting period violation
+	19= Maximum Antenatal
+	*/
+	
+AS
+BEGIN
+	DECLARE @oReturnValue as int 
+	SET @oReturnValue = 0 
+	SET @RtnStatus = 0  
+	DECLARE @HFID as int  
+	DECLARE @InsureeID as int 
+	DECLARE @FamilyID as int  
+	DECLARE @TargetDate as Date 
+	DECLARE @ClaimItemID as int 
+	DECLARE @ClaimServiceID as int 
+	DECLARE @ItemID as int
+	DECLARE @ServiceID as int
+	DECLARE @ProdItemID as int
+	DECLARE @ProdServiceID as int
+	DECLARE @ItemPatCat as int 
+	DECLARE @ServicePatCat as int 
+	DECLARE @Gender as nvarchar(1)
+	DECLARE @Adult as bit
+	DECLARE @DOB as date 
+	DECLARE @PatientMask as int 
+	DECLARE @WaitingPeriod as int 
+	DECLARE @LimitNo as decimal(18,2) 
+	DECLARE @EffectiveDateInsuree as datetime
+	DECLARE @EffectiveDatePolicy as datetime
+	DECLARE @ExpiryDateInsuree as datetime
+	DECLARE @PolicyStage as CHAR
+	DECLARE @Count as INT
+	DECLARE @ServCategory as CHAR
+	DECLARE @ServLevel as CHAR
+	DECLARE @ProductID as int 
+	DECLARE @ClaimStartDate as datetime
+	DECLARE @ClaimEndDate as datetime
+	DECLARE @CareType as CHAR(1)
+	DECLARE @HFCareType as CHAR(1)
+
+	BEGIN TRY
+	
+	DECLARE @BaseCategory as CHAR(1)  = 'V'
+	DECLARE @ClaimDateFrom date
+	DECLARE @ClaimDateTo date 
+	-- S = Surgery
+	-- D = Delivery
+	-- A = Antenatal care
+	-- H = Hospitalization
+	-- C = Consultation
+	-- O = Other
+	-- V = Visit 
+	SELECT @ClaimDateFrom = DateFrom,  @ClaimDateTo = DateTo FROM tblClaim Where ClaimID = @ClaimID 
+	IF  EXISTS (SELECT tblClaimServices.ClaimServiceID FROM tblClaim INNER JOIN tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID INNER JOIN tblServices ON tblClaimServices.ServiceID = tblServices.ServiceID
+		WHERE        (tblClaim.ClaimID = @ClaimID) AND (tblClaim.ValidityTo IS NULL) AND (tblClaimServices.ValidityTo IS NULL) AND (tblServices.ServCategory = 'S') AND 
+							 (tblServices.ValidityTo IS NULL))
+	BEGIN
+		SET @BaseCategory = 'S'
+	END
+	ELSE
+	BEGIN
+		IF  EXISTS (SELECT tblClaimServices.ClaimServiceID FROM tblClaim INNER JOIN tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID INNER JOIN tblServices ON tblClaimServices.ServiceID = tblServices.ServiceID
+		WHERE        (tblClaim.ClaimID = @ClaimID) AND (tblClaim.ValidityTo IS NULL) AND (tblClaimServices.ValidityTo IS NULL) AND (tblServices.ServCategory = 'D') AND 
+							 (tblServices.ValidityTo IS NULL))
+		BEGIN
+			SET @BaseCategory = 'D'
+		END
+		ELSE
+		BEGIN
+			IF  EXISTS (SELECT tblClaimServices.ClaimServiceID FROM tblClaim INNER JOIN tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID INNER JOIN tblServices ON tblClaimServices.ServiceID = tblServices.ServiceID
+			WHERE        (tblClaim.ClaimID = @ClaimID) AND (tblClaim.ValidityTo IS NULL) AND (tblClaimServices.ValidityTo IS NULL) AND (tblServices.ServCategory = 'A') AND 
+								 (tblServices.ValidityTo IS NULL))
+			BEGIN
+				SET @BaseCategory = 'A'
+			END
+			ELSE
+			BEGIN
+				IF ISNULL(@ClaimDateTo,@ClaimDateFrom) <> @ClaimDateFrom 
+				BEGIN
+					SET @BaseCategory = 'H'
+				END
+				ELSE
+				BEGIN
+					IF  EXISTS (SELECT tblClaimServices.ClaimServiceID FROM tblClaim INNER JOIN tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID INNER JOIN tblServices ON tblClaimServices.ServiceID = tblServices.ServiceID
+					WHERE        (tblClaim.ClaimID = @ClaimID) AND (tblClaim.ValidityTo IS NULL) AND (tblClaimServices.ValidityTo IS NULL) AND (tblServices.ServCategory = 'C') AND 
+										 (tblServices.ValidityTo IS NULL))
+					BEGIN
+						SET @BaseCategory = 'C'
+					END
+					ELSE
+					BEGIN
+						SET @BaseCategory = 'V'
+					END
+				END
+			END
+		END
+	END
+
+	--***** PREPARE PHASE *****
+	SELECT @InsureeID = InsureeID, @ClaimStartDate = DateFrom , @ClaimEndDate = DateTo  FROM tblClaim WHERE ClaimID = @ClaimID 
+	SELECT @FamilyID = tblFamilies.FamilyID FROM tblFamilies INNER JOIN tblInsuree ON tblFamilies.FamilyID = tblInsuree.FamilyID  WHERE tblFamilies.ValidityTo IS NULL AND tblInsuree.InsureeID = @InsureeID AND tblInsuree.ValidityTo IS NULL 
+
+	IF ISNULL(@FamilyID,0)=0 
+	BEGIN
+		UPDATE tblClaimServices SET tblClaimServices.RejectionReason = 7 WHERE ClaimID = @ClaimID AND tblClaimServices.ValidityTo IS NULL
+		UPDATE tblClaimItems SET tblClaimItems.RejectionReason = 7 WHERE ClaimID = @ClaimID AND tblClaimItems.ValidityTo IS NULL
+		GOTO UPDATECLAIM 
+	END	
+	
+	SELECT @TargetDate = ISNULL(TblClaim.DateTo,TblClaim.DateFrom) FROM TblClaim WHERE ClaimID = @ClaimID 
+	IF @TargetDate IS NULL 
+	BEGIN
+		UPDATE tblClaimServices SET tblClaimServices.RejectionReason = 9 WHERE ClaimID = @ClaimID AND tblClaimServices.ValidityTo IS NULL
+		UPDATE tblClaimItems SET tblClaimItems.RejectionReason = 9 WHERE ClaimID = @ClaimID  AND tblClaimItems.ValidityTo IS NULL
+		GOTO UPDATECLAIM 
+	END	
+	  
+	SET @PatientMask = 0 
+	SELECT @Gender = Gender FROm tblInsuree WHERE InsureeID = @InsureeID 
+	IF @Gender = 'M' OR @Gender = 'O'
+		SET @PatientMask = @PatientMask + 1 
+	ELSE
+		SET @PatientMask = @PatientMask + 2 
+	
+	SELECT @DOB = DOB FROM tblInsuree WHERE InsureeID = @InsureeID 
+	IF DATEDIFF(YY  ,@DOB,@TargetDate ) >=18 
+	BEGIN
+		SET @Adult = 1
+		SET @PatientMask = @PatientMask + 4 
+	END
+	ELSE
+	BEGIN
+		SET @Adult = 0
+		SET @PatientMask = @PatientMask + 8 
+	END
+
+	DECLARE  @DTBL_ITEMS TABLE (
+							[ItemID] [int] NOT NULL,
+							[ItemCode] [nvarchar](6) NOT NULL,
+							[ItemType] [char](1) NOT NULL,
+							[ItemPrice] [decimal](18, 2) NOT NULL,
+							[ItemCareType] [char](1) NOT NULL,
+							[ItemFrequency] [smallint] NULL,
+							[ItemPatCat] [tinyint] NOT NULL
+							)
+
+	INSERT INTO @DTBL_ITEMS (ItemID , ItemCode, ItemType , ItemPrice, ItemCaretype ,ItemFrequency, ItemPatCat) 
+	SELECT ItemID , ItemCode, ItemType , ItemPrice, ItemCaretype ,ItemFrequency, ItemPatCat FROM 
+	(SELECT  ROW_NUMBER() OVER(PARTITION BY ItemId ORDER BY ValidityFrom DESC)RNo,AllItems.* FROM
+	(
+	SELECT Sub1.* FROM
+	(
+	SELECT ItemID , ItemCode, ItemType , ItemPrice, ItemCaretype ,ItemFrequency, ItemPatCat , ValidityFrom, ValidityTo, LegacyID from tblitems Where (ValidityTo IS NULL) OR ((NOT ValidityTo IS NULL) AND (LegacyID IS NULL))
+	UNION ALL
+	SELECT  LegacyID as ItemID , ItemCode, ItemType , ItemPrice, ItemCaretype ,ItemFrequency, ItemPatCat , ValidityFrom,ValidityTo, LegacyID  FROM tblItems Where  (NOT ValidityTo IS NULL) AND (NOT LegacyID IS NULL)
+	
+	) Sub1
+	INNER JOIN 
+	(
+	SELECT        tblClaimItems.ItemID
+	FROM            tblClaimItems 
+	WHERE        (tblClaimItems.ValidityTo IS NULL) AND tblClaimItems.ClaimID = @ClaimID
+	) Sub2 ON Sub1.ItemID = Sub2.ItemID 
+	)  AllItems 
+	WHERE CONVERT(date,ValidityFrom,103) <= @TargetDate 
+	)Result
+	WHERE Rno = 1 AND ((ValidityTo IS NULL) OR (NOT ValidityTo IS NULL AND NOT LegacyID IS NULL ))  	
+
+
+
+	DECLARE  @DTBL_SERVICES TABLE (
+							[ServiceID] [int] NOT NULL,
+							[ServCode] [nvarchar](6) NOT NULL,
+							[ServType] [char](1) NOT NULL,
+							[ServLevel] [char](1) NOT NULL,
+							[ServPrice] [decimal](18, 2) NOT NULL,
+							[ServCareType] [char](1) NOT NULL,
+							[ServFrequency] [smallint] NULL,
+							[ServPatCat] [tinyint] NOT NULL,
+							[ServCategory] [char](1) NULL
+							)
+
+	INSERT INTO @DTBL_SERVICES (ServiceID , ServCode, ServType , ServLevel, ServPrice, ServCaretype ,ServFrequency, ServPatCat, ServCategory ) 
+	SELECT ServiceID , ServCode, ServType , ServLevel ,ServPrice, ServCaretype ,ServFrequency, ServPatCat,ServCategory FROM 
+	(SELECT  ROW_NUMBER() OVER(PARTITION BY ServiceId ORDER BY ValidityFrom DESC)RNo,AllServices.* FROM
+	(
+	SELECT Sub1.* FROM
+	(
+	SELECT ServiceID , ServCode, ServType , ServLevel  ,ServPrice, ServCaretype ,ServFrequency, ServPatCat , ServCategory ,ValidityFrom, ValidityTo, LegacyID from tblServices WHere (ValidityTo IS NULL) OR ((NOT ValidityTo IS NULL) AND (LegacyID IS NULL))
+	UNION ALL
+	SELECT  LegacyID as ServiceID , ServCode, ServType , ServLevel  ,ServPrice, ServCaretype ,ServFrequency, ServPatCat , ServCategory , ValidityFrom, ValidityTo, LegacyID FROM tblServices Where  (NOT ValidityTo IS NULL) AND (NOT LegacyID IS NULL)
+	) Sub1
+	INNER JOIN 
+	(
+	SELECT        tblClaimServices.ServiceID 
+	FROM            tblClaim INNER JOIN
+							 tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID
+	WHERE        (tblClaimServices.ValidityTo IS NULL) AND tblClaim.ClaimID = @ClaimID
+	) Sub2 ON Sub1.ServiceID = Sub2.ServiceID 
+	)  AllServices 
+	WHERE CONVERT(date,ValidityFrom,103) <= @TargetDate
+	)Result
+	WHERE Rno = 1 AND ((ValidityTo IS NULL) OR (NOT ValidityTo IS NULL AND NOT LegacyID IS NULL ))  
+
+
+	--***** CHECK 1 ***** --> UPDATE to REJECTED for Items/Services not in registers   REJECTION REASON = 1
+	
+	UPDATE tblClaimItems SET tblClaimItems.RejectionReason = 1     
+	FROM         tblClaim INNER JOIN
+                      tblClaimItems ON tblClaim.ClaimID = tblClaimItems.ClaimID 
+                      WHERE tblClaim.ClaimID = @ClaimID AND tblClaimItems.ValidityTo IS NULL AND tblClaimItems.ItemID NOT IN 
+                      (
+                      SELECT     ItemID FROM @DTBL_ITEMS
+                      )
+                      
+	UPDATE tblClaimServices SET tblClaimServices.RejectionReason = 1     
+	FROM         tblClaim INNER JOIN
+                      tblClaimServices ON tblClaim.ClaimID = tblClaimServices.ClaimID 
+                      WHERE tblClaim.ClaimID = @ClaimID AND tblClaimServices.ValidityTo IS NULL  AND tblClaimServices.ServiceID  NOT IN 
+                      (
+                      SELECT     ServiceID FROM @DTBL_SERVICES  
+                      )
+	
+	--***** CHECK 2 ***** --> UPDATE to REJECTED for Items/Services not in Pricelists  REJECTION REASON = 2
+	
+	SELECT @HFID = HFID from tblClaim WHERE ClaimID = @ClaimID 
+	SELECT @HFCareType = ISNULL(HFCareType,'B')  from tblHF where HFID = @HFID 
+
+	UPDATE tblClaimItems SET tblClaimItems.RejectionReason = 2
+	FROM dbo.tblClaimItems 
+	LEFT OUTER JOIN 
+	(SELECT     tblPLItemsDetail.ItemID
+	FROM         tblHF INNER JOIN
+						  tblPLItems ON tblHF.PLItemID = tblPLItems.PLItemID INNER JOIN
+						  tblPLItemsDetail ON tblPLItems.PLItemID = tblPLItemsDetail.PLItemID
+	WHERE     (tblHF.HfID = @HFID) AND (tblPLItems.ValidityTo IS NULL) AND (tblPLItemsDetail.ValidityTo IS NULL)) PLItems 
+	ON tblClaimItems.ItemID = PLItems.ItemID 
+	WHERE tblClaimItems.ClaimID = @ClaimID AND tblClaimItems.ValidityTo IS NULL AND PLItems.ItemID IS NULL
+	
+	UPDATE tblClaimServices SET tblClaimServices.RejectionReason = 2 
+	FROM dbo.tblClaimServices 
+	LEFT OUTER JOIN 
+	(SELECT     tblPLServicesDetail.ServiceID 
+	FROM         tblHF INNER JOIN
+						  tblPLServicesDetail ON tblHF.PLServiceID = tblPLServicesDetail.PLServiceID
+	WHERE     (tblHF.HfID = @HFID) AND (tblPLServicesDetail.ValidityTo IS NULL) AND (tblPLServicesDetail.ValidityTo IS NULL)) PLServices 
+	ON tblClaimServices.ServiceID = PLServices.ServiceID  
+	WHERE tblClaimServices.ClaimID = @ClaimID AND tblClaimServices.ValidityTo IS NULL AND PLServices.ServiceID  IS NULL
+	
+	
+	-- ** !!!!! ITEMS LOOPING !!!!! ** 
+	
+	--now loop through all (remaining) items and determine what is the matching product within valid policies using the rule least cost sharing for Insuree 
+	-- at this stage we only check if any valid product itemline is found --> will not yet assign the line. 
+	
+	DECLARE @FAULTCODE as INT 
+	DECLARE @ProdFound as BIT
+
+	
+	-- ** !!!!! SERVICES LOOPING !!!!! **
+
+	DECLARE CLAIMSERVICELOOP CURSOR LOCAL FORWARD_ONLY FOR SELECT ClaimServiceID,ServiceID FROM TblClaimServices WHERE ClaimID = @ClaimID AND ValidityTo IS NULL AND RejectionReason = 0 
+	OPEN CLAIMSERVICELOOP
+	FETCH NEXT FROM CLAIMSERVICELOOP INTO @ClaimServiceID,@ServiceID
+	WHILE @@FETCH_STATUS = 0 
+	BEGIN
+		
+					SELECT @CareType =  ServCareType , @ServCategory = [ServCategory],  @ServLevel = [ServLevel] FROM @DTBL_SERVICES WHERE [ServiceID] = @ServiceID
+
+							-- **** START CHECK 10 --> Item Care type / HF caretype Fail (10)*****
+					IF  (@CareType = 'I' AND (@HFCareType = 'O' OR (ISNULL(@ClaimDateTo,@ClaimDateFrom) = @ClaimDateFrom)  )) 
+					OR  (@CareType = 'O' AND (@HFCareType = 'I' OR (ISNULL(@ClaimDateTo,@ClaimDateFrom) <> @ClaimDateFrom)))	
+
+					BEGIN
+						--inconsistant patient type check 
+						UPDATE tblClaimServices SET RejectionReason = 10 WHERE ClaimServiceID  = @ClaimServiceID
+						GOTO NextService
+					END
+					-- **** END CHECK 10 *****	
+		
+					-- **** START CHECK 4 --> Item/Service Limitation Fail (4)*****	
+					SELECT TOP 1 @ServicePatCat = ServPatCat FROM @DTBL_SERVICES WHERE ServiceID = @ServiceID 
+					IF (@ServicePatCat & @PatientMask) <> @PatientMask 	
+					BEGIN
+						--inconsistant patient type check 
+						UPDATE tblClaimServices SET RejectionReason = 4 WHERE ClaimServiceID  = @ClaimServiceID
+						GOTO NextService
+					END
+					-- **** END CHECK 4 *****
+		
+					SET @FAULTCODE = 0 
+					SET @ProdFound = 0
+
+					IF @Adult = 1 
+							DECLARE PRODSERVICELOOP CURSOR LOCAL FORWARD_ONLY FOR 
+							SELECT  TblProduct.ProdID , tblProductServices.ProdServiceID , tblInsureePolicy.EffectiveDate,  tblPolicy.EffectiveDate, tblInsureePolicy.ExpiryDate  , tblPolicy.PolicyStage
+							FROM         tblFamilies INNER JOIN
+												  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+												  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+												  tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID INNER JOIN
+												  tblInsureePolicy ON tblPolicy.PolicyID = tblInsureePolicy.PolicyId
+							WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductServices.ValidityTo IS NULL) AND 
+												  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductServices.ServiceID = @ServiceID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL) AND 
+												  (tblInsureePolicy.EffectiveDate <= @TargetDate) AND (tblInsureePolicy.ExpiryDate >= @TargetDate) AND (tblInsureePolicy.InsureeId = @InsureeID) AND 
+												  (tblInsureePolicy.ValidityTo IS NULL)
+							ORDER BY DATEADD(m,ISNULL(tblProductServices.WaitingPeriodAdult, 0), tblInsureePolicy.EffectiveDate)
+					ELSE
+							DECLARE PRODSERVICELOOP CURSOR LOCAL FORWARD_ONLY FOR 
+							SELECT  TblProduct.ProdID , tblProductServices.ProdServiceID , tblInsureePolicy.EffectiveDate,  tblPolicy.EffectiveDate, tblInsureePolicy.ExpiryDate  , tblPolicy.PolicyStage
+							FROM         tblFamilies INNER JOIN
+												  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+												  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+												  tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID INNER JOIN
+												  tblInsureePolicy ON tblPolicy.PolicyID = tblInsureePolicy.PolicyId
+							WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductServices.ValidityTo IS NULL) AND 
+												  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductServices.ServiceID = @ServiceID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL) AND 
+												  (tblInsureePolicy.EffectiveDate <= @TargetDate) AND (tblInsureePolicy.ExpiryDate >= @TargetDate) AND (tblInsureePolicy.InsureeId = @InsureeID) AND 
+												  (tblInsureePolicy.ValidityTo IS NULL)
+							ORDER BY DATEADD(m,ISNULL(tblProductServices.WaitingPeriodChild, 0), tblInsureePolicy.EffectiveDate)
+
+		
+					OPEN PRODSERVICELOOP
+					FETCH NEXT FROM PRODSERVICELOOP INTO @ProductID ,@ProdServiceID,@EffectiveDateInsuree,@EffectiveDatePolicy,@ExpiryDateInsuree,@PolicyStage
+					WHILE @@FETCH_STATUS = 0 
+					BEGIN
+						SET @ProdFound= 1 --at least there is a product that would cover --> still to check on waiting period!
+			
+						-- **** START CHECK 17 --> Item/Service waiting period violation (17)*****	
+						IF @PolicyStage = 'N' or (@EffectiveDatePolicy < @EffectiveDateInsuree )     --new policy or Insuree was added after policy was defined.
+ 						BEGIN
+							IF @Adult = 1 
+								SELECT TOP 1 @WaitingPeriod = [WaitingPeriodAdult] FROM [dbo].[tblProductServices] WHERE [ProdServiceID] = @ProdServiceID 
+							ELSE
+								SELECT TOP 1 @WaitingPeriod = [WaitingPeriodChild] FROM [dbo].[tblProductServices] WHERE [ProdServiceID] = @ProdServiceID 
+		
+
+							IF @TargetDate < DATEADD(m,@WaitingPeriod,@EffectiveDateInsuree)	
+							BEGIN
+								--Item/Service waiting period violation
+								IF @FAULTCODE = 0 
+									SET @FAULTCODE = 17
+								GOTO ProdServiceNext --ProdLoopFinish
+							END
+						END
+						-- **** END CHECK 17 *****
+
+
+						-- **** START CHECK 16 --> Item/Service Maximum provision (16)*****	
+						SET @LimitNo = -1 
+						IF @Adult = 1 
+							SELECT  @LimitNo = [LimitNoAdult] FROM [dbo].[tblProductServices] WHERE [ProdServiceID] = @ProdServiceID 
+						ELSE
+							SELECT  @LimitNo = [LimitNoChild] FROM [dbo].[tblProductServices] WHERE [ProdServiceID] = @ProdServiceID 
+		
+
+						IF ISNULL(@LimitNo,-1) > -1   --limits are defined --> we need to check 
+						BEGIN
+							SET @Count = 0 
+							SELECT @COUNT = SUM(tblClaimServices.QtyProvided )  
+							FROM         tblClaimServices INNER JOIN
+												  tblClaim ON tblClaimServices.ClaimID = tblClaim.ClaimID
+							WHERE     (tblClaim.InsureeID = @InsureeID) AND (tblClaimServices.ServiceID = @ServiceID) AND (ISNULL(tblClaim.DateTo, tblClaim.DateFrom) BETWEEN @EffectiveDateInsuree AND 
+												  @ExpiryDateInsuree) AND (tblClaim.ClaimStatus > 2) AND (tblClaim.ValidityTo IS NULL) AND (tblClaimServices.ValidityTo IS NULL) AND  tblClaimServices.RejectionReason  = 0 
+			
+							IF ISNULL(@Count,0) >= @LimitNo 
+							BEGIN
+								--Over Item/Service Maximum Number allowed  (16)
+								IF @FAULTCODE = 0 
+									SET @FAULTCODE = 16
+								GOTO ProdServiceNext --ProdLoopFinish
+							END
+						END
+					-- **** END CHECK 16 *****
+
+					-- **** START CHECK 13 --> Maximum consulations (13)*****
+						IF @BaseCategory  = 'C'
+						BEGIN
+							SET @LimitNo = -1
+							SELECT TOP 1 @LimitNo = MaxNoConsultation FROM [dbo].[tblProduct] WHERE [ProdID] = @ProductID 
+
+							IF ISNULL(@LimitNo,-1) > -1   --limits are defined --> we need to check 
+							BEGIN
+								SET @Count = 0 
+								
+								--SELECT @COUNT = COUNT(ClaimID)
+								--FROM
+								--(
+								--SELECT tblClaim.ClaimID 
+								--FROM         tblClaimServices INNER JOIN
+								--					  tblClaim ON tblClaimServices.ClaimID = tblClaim.ClaimID INNER JOIN
+								--					  tblServices ON tblClaimServices.ServiceID = tblServices.ServiceID
+								--WHERE     (tblClaim.InsureeID = @InsureeID)  AND (ISNULL(tblClaim.DateTo, tblClaim.DateFrom) BETWEEN 
+								--					  @EffectiveDateInsuree AND @ExpiryDateInsuree) AND (tblClaim.ClaimStatus > 2) AND (tblClaim.ValidityTo IS NULL) AND (tblClaimServices.ValidityTo IS NULL) AND 
+								--					  (tblServices.ServCategory = 'C') AND tblClaimServices.RejectionReason  = 0
+								--GROUP BY tblClaim.ClaimID  
+								--) Sub
+
+								SELECT @Count = COUNT(ClaimID) from tblClaim WHERE  (tblClaim.InsureeID = @InsureeID)  AND (ISNULL(tblClaim.DateTo, tblClaim.DateFrom) BETWEEN @EffectiveDateInsuree AND @ExpiryDateInsuree) 
+												AND (tblClaim.ClaimStatus > 2) AND (tblClaim.ValidityTo IS NULL) AND ISNULL(ClaimCategory,'V') = 'C'
+
+
+								IF ISNULL(@Count,0) >= @LimitNo 
+								BEGIN
+									--Over Maximum consulations (13)
+									SET @FAULTCODE = 13
+									CLOSE PRODSERVICELOOP
+									DEALLOCATE PRODSERVICELOOP
+									CLOSE CLAIMSERVICELOOP
+									DEALLOCATE CLAIMSERVICELOOP
+									GOTO UPDATECLAIM
+								END
+							END
+						END
+						-- **** END CHECK 13 *****
+
+						-- **** START CHECK 14 --> Maximum Surgeries (14)*****	
+						IF @BaseCategory = 'S'
+						BEGIN
+							SET @LimitNo = -1 
+							SELECT TOP 1 @LimitNo = MaxNoSurgery FROM [dbo].[tblProduct] WHERE [ProdID] = @ProductID 
+
+							IF ISNULL(@LimitNo,-1) > -1   --limits are defined --> we need to check 
+							BEGIN
+								SET @Count = 0 
+								
+								--SELECT @COUNT = COUNT(ClaimID)
+								--FROM
+								--(
+								--SELECT tblClaim.ClaimID
+								--FROM         tblClaimServices INNER JOIN
+								--						tblClaim ON tblClaimServices.ClaimID = tblClaim.ClaimID INNER JOIN
+								--						tblServices ON tblClaimServices.ServiceID = tblServices.ServiceID
+								--WHERE     (tblClaim.InsureeID = @InsureeID) AND (ISNULL(tblClaim.DateTo, tblClaim.DateFrom) BETWEEN 
+								--						@EffectiveDateInsuree AND @ExpiryDateInsuree) AND (tblClaim.ClaimStatus > 2) AND (tblClaim.ValidityTo IS NULL) AND (tblClaimServices.ValidityTo IS NULL) AND 
+								--						(tblServices.ServCategory = 'S') AND tblClaimServices.RejectionReason  = 0
+								--GROUP BY tblClaim.ClaimID 
+								--) Sub
+
+								SELECT @Count = COUNT(ClaimID) from tblClaim WHERE  (tblClaim.InsureeID = @InsureeID)  AND (ISNULL(tblClaim.DateTo, tblClaim.DateFrom) BETWEEN @EffectiveDateInsuree AND @ExpiryDateInsuree) 
+												AND (tblClaim.ClaimStatus > 2) AND (tblClaim.ValidityTo IS NULL) AND ISNULL(ClaimCategory,'V') = 'S'
+
+								IF ISNULL(@Count,0) >= @LimitNo 
+								BEGIN
+									----Over  Maximum Surgeries (14)
+									SET @FAULTCODE = 14
+									CLOSE PRODSERVICELOOP
+									DEALLOCATE PRODSERVICELOOP
+									CLOSE CLAIMSERVICELOOP
+									DEALLOCATE CLAIMSERVICELOOP
+									GOTO UPDATECLAIM
+								END
+							END
+						END
+						-- **** END CHECK 14 *****
+
+						-- **** START CHECK 15 --> Maximum Deliveries (15)*****	
+						IF @BaseCategory = 'D'
+						BEGIN
+							SET @LimitNo = -1 
+							SELECT TOP 1 @LimitNo = MaxNoDelivery FROM [dbo].[tblProduct] WHERE [ProdID] = @ProductID 
+
+							IF ISNULL(@LimitNo,-1) > -1   --limits are defined --> we need to check 
+							BEGIN
+								SET @Count = 0 
+								--SELECT @COUNT = COUNT(ClaimID)
+								--FROM
+								--(
+								--SELECT tblClaim.ClaimID
+								--FROM         tblClaimServices INNER JOIN
+								--						tblClaim ON tblClaimServices.ClaimID = tblClaim.ClaimID INNER JOIN
+								--						tblServices ON tblClaimServices.ServiceID = tblServices.ServiceID
+								--WHERE     (tblClaim.InsureeID = @InsureeID) AND  (ISNULL(tblClaim.DateTo, tblClaim.DateFrom) BETWEEN 
+								--						@EffectiveDateInsuree AND @ExpiryDateInsuree) AND (tblClaim.ClaimStatus > 2) AND (tblClaim.ValidityTo IS NULL) AND (tblClaimServices.ValidityTo IS NULL) AND 
+								--						(tblServices.ServCategory = 'D') AND tblClaimServices.RejectionReason  = 0
+								--GROUP BY tblClaim.ClaimID
+								--) Sub
+								SELECT @Count = COUNT(ClaimID) from tblClaim WHERE  (tblClaim.InsureeID = @InsureeID)  AND (ISNULL(tblClaim.DateTo, tblClaim.DateFrom) BETWEEN @EffectiveDateInsuree AND @ExpiryDateInsuree) 
+												AND (tblClaim.ClaimStatus > 2) AND (tblClaim.ValidityTo IS NULL) AND ISNULL(ClaimCategory,'V') = 'D'
+								IF ISNULL(@Count,0) >= @LimitNo 
+								BEGIN
+									----Over  Maximum deliveries (15)
+									SET @FAULTCODE = 15
+									CLOSE PRODSERVICELOOP
+									DEALLOCATE PRODSERVICELOOP
+									CLOSE CLAIMSERVICELOOP
+									DEALLOCATE CLAIMSERVICELOOP
+									GOTO UPDATECLAIM
+								END
+							END
+						END
+						-- **** END CHECK 15 *****
+
+						-- **** START CHECK 19 --> Maximum Antenatal  (19)*****	
+						IF @BaseCategory = 'A'
+						BEGIN
+							SET @LimitNo = -1 
+							SELECT TOP 1 @LimitNo = MaxNoAntenatal  FROM [dbo].[tblProduct] WHERE [ProdID] = @ProductID 
+
+							IF ISNULL(@LimitNo,-1) > -1   --limits are defined --> we need to check 
+							BEGIN
+								SET @Count = 0 
+								--SELECT @COUNT = COUNT(ClaimID)
+								--FROM
+								--(
+								--SELECT tblClaim.ClaimID
+								--FROM         tblClaimServices INNER JOIN
+								--						tblClaim ON tblClaimServices.ClaimID = tblClaim.ClaimID INNER JOIN
+								--						tblServices ON tblClaimServices.ServiceID = tblServices.ServiceID
+								--WHERE     (tblClaim.InsureeID = @InsureeID) AND (ISNULL(tblClaim.DateTo, tblClaim.DateFrom) BETWEEN 
+								--						@EffectiveDateInsuree AND @ExpiryDateInsuree) AND (tblClaim.ClaimStatus > 2) AND (tblClaim.ValidityTo IS NULL) AND (tblClaimServices.ValidityTo IS NULL) AND 
+								--						(tblServices.ServCategory = 'A') AND tblClaimServices.RejectionReason  = 0
+								--GROUP BY tblClaim.ClaimID
+								--) Sub
+								SELECT @Count = COUNT(ClaimID) from tblClaim WHERE  (tblClaim.InsureeID = @InsureeID)  AND (ISNULL(tblClaim.DateTo, tblClaim.DateFrom) BETWEEN @EffectiveDateInsuree AND @ExpiryDateInsuree) 
+												AND (tblClaim.ClaimStatus > 2) AND (tblClaim.ValidityTo IS NULL) AND ISNULL(ClaimCategory,'V') = 'A'
+								IF ISNULL(@Count,0) >= @LimitNo 
+								BEGIN
+									----Over  Maximum Antenatal (19)
+									SET @FAULTCODE = 19
+									CLOSE PRODSERVICELOOP
+									DEALLOCATE PRODSERVICELOOP
+									CLOSE CLAIMSERVICELOOP
+									DEALLOCATE CLAIMSERVICELOOP
+									GOTO UPDATECLAIM
+								END
+							END
+						END
+
+
+						-- **** START CHECK 11 --> Maximum Hospital admissions (11)*****
+
+						IF (@BaseCategory  = 'H') --(@ClaimStartDate < @ClaimEndDate )
+						BEGIN
+							SET @LimitNo = -1 
+							SELECT TOP 1 @LimitNo = MaxNoHospitalizaion FROM [dbo].[tblProduct] WHERE [ProdID] = @ProductID 
+
+							IF ISNULL(@LimitNo,-1) > -1   --limits are defined --> we need to check    A hospital stay is defined as a differnece between the datefrom and dateto on Claim level (not looking at items/Services !!)
+							BEGIN		
+								SET @Count = 0 
+			
+								--SELECT @COUNT = COUNT(tblClaim.ClaimID) 
+								--FROM        
+								--						tblClaim
+								--WHERE     (tblClaim.InsureeID = @InsureeID) AND (ISNULL(tblClaim.DateTo, tblClaim.DateFrom) BETWEEN 
+								--						@EffectiveDateInsuree AND @ExpiryDateInsuree) AND (tblClaim.ClaimStatus > 2) AND (tblClaim.ValidityTo IS NULL) AND ( ISNULL(tblClaim.DateTo, tblClaim.DateFrom) > tblClaim.DateFrom)
+								SELECT @Count = COUNT(ClaimID) from tblClaim WHERE  (tblClaim.InsureeID = @InsureeID)  AND (ISNULL(tblClaim.DateTo, tblClaim.DateFrom) BETWEEN @EffectiveDateInsuree AND @ExpiryDateInsuree) 
+												AND (tblClaim.ClaimStatus > 2) AND (tblClaim.ValidityTo IS NULL) AND ISNULL(ClaimCategory,'V') = 'H'
+								IF ISNULL(@Count,0) >= @LimitNo 
+								BEGIN
+									--Over Maximum Hospital admissions(11)
+									
+									SET @FAULTCODE = 11
+									CLOSE PRODSERVICELOOP
+									DEALLOCATE PRODSERVICELOOP
+									CLOSE CLAIMSERVICELOOP
+									DEALLOCATE CLAIMSERVICELOOP
+									GOTO UPDATECLAIM
+								END
+							END
+						END
+						-- **** END CHECK 11 *****
+
+
+						-- **** START CHECK 12 --> Maximum Visits (OP) (12)*****	
+						--IF (@ServCategory = 'C' OR @ServCategory = 'D') AND (ISNULL(@ClaimEndDate,@ClaimStartDate) = @ClaimStartDate )
+						IF (@BaseCategory  = 'V') 
+						BEGIN
+							SET @LimitNo = -1 
+							SELECT TOP 1 @LimitNo = [MaxNoVisits] FROM [dbo].[tblProduct] WHERE [ProdID] = @ProductID 
+
+							IF ISNULL(@LimitNo,-1) > -1   --limits are defined --> we need to check    A visit  is defined as the datefrom and dateto the same AND having at least one oitem of service category S or C 
+							BEGIN		
+								SET @Count = 0 
+							
+								--SELECT @COUNT = COUNT(ClaimID)
+								--FROM
+								--(SELECT tblClaim.ClaimID
+								-- FROM         tblClaimServices INNER JOIN
+								--					  tblClaim ON tblClaimServices.ClaimID = tblClaim.ClaimID INNER JOIN
+								--					  tblServices ON tblClaimServices.ServiceID = tblServices.ServiceID
+								--WHERE     (tblClaim.InsureeID = @InsureeID) AND (ISNULL(tblClaim.DateTo, tblClaim.DateFrom) BETWEEN 
+								--					  @EffectiveDateInsuree AND @ExpiryDateInsuree) AND (tblClaim.ClaimStatus > 2) AND (tblClaim.ValidityTo IS NULL) AND (tblClaimServices.ValidityTo IS NULL) AND 
+								--					  (tblServices.ServCategory = 'C' OR
+								--					  tblServices.ServCategory = 'S') AND (tblClaimServices.RejectionReason = 0) AND (ISNULL(tblClaim.DateTo, tblClaim.DateFrom) = tblClaim.DateFrom)
+								--GROUP BY tblClaim.ClaimID) Sub
+								SELECT @Count = COUNT(ClaimID) from tblClaim WHERE  (tblClaim.InsureeID = @InsureeID)  AND (ISNULL(tblClaim.DateTo, tblClaim.DateFrom) BETWEEN @EffectiveDateInsuree AND @ExpiryDateInsuree) 
+												AND (tblClaim.ClaimStatus > 2) AND (tblClaim.ValidityTo IS NULL) AND ISNULL(ClaimCategory,'V') = 'V'
+								IF ISNULL(@Count,0) >= @LimitNo 
+								BEGIN
+									--Over Maximum Visits (12)
+									
+									SET @FAULTCODE = 12
+									CLOSE PRODSERVICELOOP
+									DEALLOCATE PRODSERVICELOOP
+									CLOSE CLAIMSERVICELOOP
+									DEALLOCATE CLAIMSERVICELOOP
+									GOTO UPDATECLAIM
+								END
+							END
+						END
+						-- **** END CHECK 12 *****
+						
+						SET @FAULTCODE = 0
+						GOTO ProdLoopFinishServices
+
+
+			ProdServiceNext:
+						FETCH NEXT FROM PRODSERVICELOOP INTO @ProductID ,@ProdServiceID,@EffectiveDateInsuree,@EffectiveDatePolicy,@ExpiryDateInsuree,@PolicyStage
+					END
+		
+				ProdLoopFinishServices:
+
+					CLOSE PRODSERVICELOOP
+					DEALLOCATE PRODSERVICELOOP
+		
+					IF @ProdFound = 0 
+						SET @FAULTCODE = 3 
+		
+					IF @FAULTCODE <> 0
+					BEGIN
+						UPDATE tblClaimServices SET RejectionReason = @FAULTCODE WHERE ClaimServiceID = @ClaimServiceID
+						GOTO NextService
+					END
+
+
+		NextService:	
+		FETCH NEXT FROM CLAIMSERVICELOOP INTO @ClaimServiceID,@ServiceID
+	END
+	CLOSE CLAIMSERVICELOOP
+	DEALLOCATE CLAIMSERVICELOOP
+	
+	DECLARE CLAIMITEMLOOP CURSOR LOCAL FORWARD_ONLY FOR SELECT ClaimItemID,ItemID FROM TblClaimItems WHERE ClaimID = @ClaimID AND ValidityTo IS NULL AND RejectionReason = 0 
+	OPEN CLAIMITEMLOOP
+	FETCH NEXT FROM CLAIMITEMLOOP INTO @ClaimItemID,@ItemID
+	WHILE @@FETCH_STATUS = 0 
+	BEGIN
+		
+		SELECT @CareType =  ItemCareType  FROM @DTBL_ITEMS WHERE [ItemID] = @ItemID
+		-- **** START CHECK 10 --> Item Care type / HF caretype Fail (10)*****
+		
+		IF  (@CareType = 'I' AND (@HFCareType = 'O' OR (ISNULL(@ClaimDateTo,@ClaimDateFrom) = @ClaimDateFrom)  )) 
+					OR  (@CareType = 'O' AND (@HFCareType = 'I' OR (ISNULL(@ClaimDateTo,@ClaimDateFrom) <> @ClaimDateFrom)))	
+
+		BEGIN
+			--inconsistant patient type check 
+			UPDATE tblClaimItems SET RejectionReason = 10 WHERE ClaimItemID   = @ClaimItemID 
+			GOTO NextItem
+		END
+		-- **** END CHECK 10 *****	
+
+		-- **** START CHECK 4 --> Item/Service Limitation Fail (4)*****
+		SELECT TOP 1 @ItemPatCat = ItemPatCat FROM @DTBL_ITEMS WHERE ItemID  = @ItemID  
+		IF (@ItemPatCat  & @PatientMask) <> @PatientMask 	
+		BEGIN
+			--inconsistant patient type check 
+			UPDATE tblClaimItems SET RejectionReason = 4 WHERE ClaimItemID   = @ClaimItemID 
+			GOTO NextItem
+		END
+		-- **** END CHECK 4 *****	
+		
+		SET @FAULTCODE = 0 
+		SET @ProdFound = 0
+
+		IF @Adult = 1 
+				DECLARE PRODITEMLOOP CURSOR LOCAL FORWARD_ONLY FOR 
+				SELECT  TblProduct.ProdID , tblProductItems.ProdItemID , tblInsureePolicy.EffectiveDate,  tblPolicy.EffectiveDate, tblInsureePolicy.ExpiryDate  , tblPolicy.PolicyStage
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID INNER JOIN
+									  tblInsureePolicy ON tblPolicy.PolicyID = tblInsureePolicy.PolicyId
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductItems.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductItems.ItemID = @ItemID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL) AND 
+									  (tblInsureePolicy.EffectiveDate <= @TargetDate) AND (tblInsureePolicy.ExpiryDate >= @TargetDate) AND (tblInsureePolicy.InsureeId = @InsureeID) AND 
+									  (tblInsureePolicy.ValidityTo IS NULL)
+				ORDER BY DATEADD(m,ISNULL(tblProductItems.WaitingPeriodAdult, 0), tblInsureePolicy.EffectiveDate)
+		ELSE
+				DECLARE PRODITEMLOOP CURSOR LOCAL FORWARD_ONLY FOR 
+				SELECT  TblProduct.ProdID , tblProductItems.ProdItemID , tblInsureePolicy.EffectiveDate,  tblPolicy.EffectiveDate, tblInsureePolicy.ExpiryDate  , tblPolicy.PolicyStage
+				FROM         tblFamilies INNER JOIN
+									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
+									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
+									  tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID INNER JOIN
+									  tblInsureePolicy ON tblPolicy.PolicyID = tblInsureePolicy.PolicyId
+				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductItems.ValidityTo IS NULL) AND 
+									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductItems.ItemID = @ItemID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL) AND 
+									  (tblInsureePolicy.EffectiveDate <= @TargetDate) AND (tblInsureePolicy.ExpiryDate >= @TargetDate) AND (tblInsureePolicy.InsureeId = @InsureeID) AND 
+									  (tblInsureePolicy.ValidityTo IS NULL)
+				ORDER BY DATEADD(m,ISNULL(tblProductItems.WaitingPeriodChild, 0), tblInsureePolicy.EffectiveDate)
+
+		
+		OPEN PRODITEMLOOP
+		FETCH NEXT FROM PRODITEMLOOP INTO @ProductID ,@ProdItemID,@EffectiveDateInsuree,@EffectiveDatePolicy,@ExpiryDateInsuree,@PolicyStage
+		WHILE @@FETCH_STATUS = 0 
+		BEGIN
+			SET @ProdFound= 1 --at least there is a product that would cover --> still to check on waiting period!
+			
+			-- **** START CHECK 17 --> Item/Service waiting period violation (17)*****	
+			IF @PolicyStage = 'N' or (@EffectiveDatePolicy < @EffectiveDateInsuree )     --new policy or Insuree was added after policy was defined.
+ 			BEGIN
+				IF @Adult = 1 
+					SELECT  @WaitingPeriod = [WaitingPeriodAdult] FROM [dbo].[tblProductItems] WHERE [ProdItemID] = @ProdItemID 
+				ELSE
+					SELECT  @WaitingPeriod = [WaitingPeriodChild] FROM [dbo].[tblProductItems] WHERE [ProdItemID] = @ProdItemID 
+		
+
+				IF @TargetDate < DATEADD(m,@WaitingPeriod,@EffectiveDateInsuree)	
+				BEGIN
+					--Item/Service waiting period violation (17)
+					IF @FAULTCODE = 0 
+						SET @FAULTCODE = 17
+					GOTO ProdItemNext --ProdLoopFinish
+				END
+			
+			END
+			-- **** END CHECK 17 *****
+
+			-- **** START CHECK 16 --> Item/Service Maximum provision (16)*****	
+			SET @LimitNo = -1
+			IF @Adult = 1 
+				SELECT  @LimitNo = [LimitNoAdult] FROM [dbo].[tblProductItems] WHERE [ProdItemID] = @ProdItemID 
+			ELSE
+				SELECT  @LimitNo = [LimitNoChild] FROM [dbo].[tblProductItems] WHERE [ProdItemID] = @ProdItemID 
+		
+
+			IF ISNULL(@LimitNo,-1) > -1   --limits are defined --> we need to check 
+			BEGIN
+				SET @Count = 0 
+				SELECT @COUNT = SUM(tblClaimItems.QtyProvided)  
+				FROM         tblClaimItems INNER JOIN
+									  tblClaim ON tblClaimItems.ClaimID = tblClaim.ClaimID
+				WHERE     (tblClaim.InsureeID = @InsureeID) AND (tblClaimItems.ItemID = @ItemID) AND (ISNULL(tblClaim.DateTo, tblClaim.DateFrom) BETWEEN @EffectiveDateInsuree AND 
+									  @ExpiryDateInsuree) AND (tblClaim.ClaimStatus > 2) AND (tblClaim.ValidityTo IS NULL) AND (tblClaimItems.ValidityTo IS NULL) AND tblClaimItems.RejectionReason  = 0  
+			
+				IF ISNULL(@Count,0) >= @LimitNo  
+				BEGIN
+					--Over Item/Service Maximum Number allowed  (16)
+					IF @FAULTCODE = 0 
+						SET @FAULTCODE = 16
+					GOTO ProdItemNext --ProdLoopFinish
+				END
+			END
+		-- **** END CHECK 16 *****
+
+		    SET @FAULTCODE = 0
+			GOTO ProdLoopFinishItems
+
+ProdItemNext:
+			FETCH NEXT FROM PRODITEMLOOP INTO @ProductID ,@ProdItemID,@EffectiveDateInsuree,@EffectiveDatePolicy,@ExpiryDateInsuree,@PolicyStage
+		END
+		
+	ProdLoopFinishItems:
+
+		CLOSE PRODITEMLOOP
+		DEALLOCATE PRODITEMLOOP
+		
+		IF @ProdFound = 0 
+			SET @FAULTCODE = 3 
+		
+		IF @FAULTCODE <> 0
+		BEGIN
+			UPDATE tblClaimItems SET RejectionReason = @FAULTCODE WHERE ClaimItemID = @ClaimItemID
+			GOTO NextItem
+		END
+		
+		NextItem:
+		FETCH NEXT FROM CLAIMITEMLOOP INTO @ClaimItemID,@ItemID
+	END
+	CLOSE CLAIMITEMLOOP
+	DEALLOCATE CLAIMITEMLOOP
+		
+	--***** START CHECK 5 ITEMS ***** --> Item/Service Limitation Fail (5)
+	UPDATE tblClaimItems SET RejectionReason = 5 WHERE ClaimID = @ClaimID AND ValidityTo IS NULL AND RejectionReason = 0 AND ItemID IN
+	(
+	SELECT ClaimedItems.ItemID FROM
+	(
+	SELECT     Items.ItemFrequency, tblClaim.InsureeID, tblClaimItems.ItemID
+	FROM         tblClaimItems INNER JOIN
+				  tblClaim ON tblClaimItems.ClaimID = tblClaim.ClaimID INNER JOIN
+				  @DTBL_ITEMS Items ON tblClaimItems.ItemID = Items.ItemID
+	WHERE     (Items.ItemFrequency > 0) AND (tblClaim.ClaimID = @ClaimID) AND (tblClaimItems.ValidityTo IS NULL) AND (tblClaimItems.RejectionReason = 0)
+	) ClaimedItems 
+	INNER JOIN 
+	(
+	SELECT     Items.ItemFrequency, tblClaim.InsureeID, tblClaimItems.ItemID
+	FROM         tblClaimItems INNER JOIN
+				  tblClaim ON tblClaimItems.ClaimID = tblClaim.ClaimID INNER JOIN
+				  @DTBL_ITEMS Items ON tblClaimItems.ItemID = Items.ItemID
+	WHERE     (Items.ItemFrequency > 0) AND (tblClaimItems.ValidityTo IS NULL) AND (tblClaimItems.RejectionReason = 0) AND (tblClaim.InsureeID = @InsureeID) AND 
+				  (tblClaim.ValidityTo IS NULL) AND (tblClaimItems.ClaimItemStatus = 1) AND (tblClaim.ClaimStatus > 2)
+				  AND ABS(DATEDIFF(DD  ,ISNULL(tblClaim.DateTo,tblClaim.DateFrom) ,@TargetDate )) < ItemFrequency
+	) ClaimedPrevious  --already checked,processed or valuated claims with passed items within frequency limit of days from the claim to be checked for certain Insuree
+	ON ClaimedItems.InsureeID = ClaimedPrevious.InsureeID AND ClaimedItems.ItemID = ClaimedPrevious.ItemID 
+	)
+	-- **** END CHECK 5 ITEMS *****
+	
+	--***** START CHECK 5 SERVICESS ***** --> Item/Service Limitation Fail (5)
+	UPDATE tblClaimServices SET RejectionReason = 5 WHERE ClaimID = @ClaimID AND ValidityTo IS NULL AND RejectionReason = 0 AND ServiceID IN
+	(
+	SELECT ClaimedServices.ServiceID FROM
+	(
+	SELECT     [Services].ServFrequency, tblClaim.InsureeID, tblClaimServices.ServiceID
+	FROM         tblClaimServices INNER JOIN
+				  tblClaim ON tblClaimServices.ClaimID = tblClaim.ClaimID INNER JOIN
+				  @DTBL_SERVICES [Services] ON tblClaimServices.ServiceID = [Services].ServiceID
+	WHERE     ([Services].ServFrequency > 0) AND (tblClaim.ClaimID = @ClaimID) AND (tblClaimServices.ValidityTo IS NULL) AND (tblClaimServices.RejectionReason = 0)
+	) ClaimedServices 
+	INNER JOIN 
+	(
+	SELECT     [Services].ServFrequency, tblClaim.InsureeID, tblClaimServices.ServiceID
+	FROM         tblClaimServices INNER JOIN
+				  tblClaim ON tblClaimServices.ClaimID = tblClaim.ClaimID INNER JOIN
+				  @DTBL_SERVICES [Services] ON tblClaimServices.ServiceID = [Services].ServiceID
+	WHERE     ([Services].ServFrequency > 0) AND (tblClaimServices.ValidityTo IS NULL) AND (tblClaimServices.RejectionReason = 0) AND (tblClaim.InsureeID = @InsureeID) AND 
+				  (tblClaim.ValidityTo IS NULL) AND (tblClaimServices.ClaimServiceStatus = 1) AND (tblClaim.ClaimStatus > 2)
+				  AND ABS(DATEDIFF(DD  ,ISNULL(tblClaim.DateTo,tblClaim.DateFrom) ,@TargetDate )) < ServFrequency
+	) ClaimedPrevious  --already checked,processed or valuated claims with passed services within frequency limit of days from the claim to be checked for certain Insuree
+	ON ClaimedServices.InsureeID = ClaimedPrevious.InsureeID AND ClaimedServices.ServiceID = ClaimedPrevious.ServiceID 
+	)
+	-- **** END CHECK 5 SERVICES *****
+
+
+
+
+UPDATECLAIM:
+
+	IF @FAULTCODE IN (11,12,13,14,15,19) 
+	BEGIN
+		--we went over themaximum of a category --> all items and services in the claim are rejected !!
+		UPDATE tblClaimItems SET ClaimItemStatus = 2, QtyApproved = 0 , RejectionReason = @FAULTCODE  WHERE ClaimID = @ClaimID  
+		UPDATE tblClaimServices SET ClaimServiceStatus = 2, QtyApproved = 0,  RejectionReason = @FAULTCODE  WHERE ClaimID = @ClaimID 
+		
+	END
+	ELSE
+	BEGIN
+		UPDATE tblClaimItems SET ClaimItemStatus = 2, QtyApproved = 0 WHERE ClaimID = @ClaimID  AND  RejectionReason <> 0 
+		UPDATE tblClaimServices SET ClaimServiceStatus = 2, QtyApproved = 0 WHERE ClaimID = @ClaimID AND RejectionReason <> 0 
+	
+	END
+
+	
+	SELECT @RtnItemsPassed = ISNULL(COUNT(ClaimItemID),0) FROM dbo.tblClaimItems WHERE ClaimID = @ClaimID AND ClaimItemStatus = 1 AND ValidityTo IS NULL
+	SELECT @RtnServicesPassed  = ISNULL(COUNT(ClaimServiceID),0) FROM dbo.tblClaimServices  WHERE ClaimID = @ClaimID AND ClaimServiceStatus = 1 AND ValidityTo IS NULL
+	SELECT @RtnItemsRejected = ISNULL(COUNT(ClaimItemID),0) FROM dbo.tblClaimItems WHERE ClaimID = @ClaimID AND ClaimItemStatus = 2 AND ValidityTo IS NULL
+	SELECT @RtnServicesRejected  = ISNULL(COUNT(ClaimServiceID),0) FROM dbo.tblClaimServices  WHERE ClaimID = @ClaimID AND ClaimServiceStatus = 2 AND ValidityTo IS NULL
+	
+	DECLARE @AppItemValue as decimal(18,2)
+	DECLARE @AppServiceValue as decimal(18,2)
+	SET @AppItemValue = 0 
+	SET @AppServiceValue = 0 
+	
+	IF @RtnItemsPassed > 0  OR @RtnServicesPassed > 0  --UPDATE CLAIM TO PASSED !! (default is not yet passed before checking procedure 
+	BEGIN
+		IF @RtnItemsRejected > 0 OR @RtnServicesRejected > 0
+		BEGIN
+			--Update Claim Approved Value 
+			SELECT @AppItemValue = ISNULL(SUM((ISNULL(QtyProvided,QtyApproved) * ISNULL(PriceAsked ,PriceApproved))), 0) 
+									FROM tblClaimItems WHERE 
+										  (tblClaimItems.ValidityTo IS NULL )
+										  AND (tblClaimItems.ClaimItemStatus = 1) 
+										  AND (tblClaimItems.ClaimID  = @ClaimID)
+									
+			SELECT @AppServiceValue = ISNULL(SUM((ISNULL(QtyProvided,QtyApproved) * ISNULL(PriceAsked ,PriceApproved))), 0) 
+									FROM tblClaimServices WHERE 
+										  (tblClaimServices.ValidityTo IS NULL )
+										  AND (tblClaimServices.ClaimServiceStatus = 1) 
+										  AND (tblClaimServices.ClaimID  = @ClaimID)
+			
+			--update claim approved value due to some rejections (not all rejected!)
+			UPDATE tblClaim SET ClaimStatus = 4, Approved = (@AppItemValue + @AppServiceValue) , AuditUserIDSubmit = @AuditUser , SubmitStamp = GETDATE() ,  ClaimCategory = @BaseCategory WHERE ClaimID = @ClaimID 
+		END
+		ELSE
+		BEGIN
+			--no rejections 
+			UPDATE tblClaim SET ClaimStatus = 4, AuditUserIDSubmit = @AuditUser , SubmitStamp = GETDATE() ,  ClaimCategory = @BaseCategory WHERE ClaimID = @ClaimID 
+		END
+		SET @RtnStatus = 1 
+	END
+	ELSE
+	BEGIN
+		UPDATE tblClaim SET ClaimStatus = 1, AuditUserIDSubmit = @AuditUser , SubmitStamp = GETDATE() ,  ClaimCategory = @BaseCategory WHERE ClaimID = @ClaimID --> set rejected as all items ands services did not pass ! 
+		SET @RtnStatus = 2 
+	END
+	
+FINISH:
+	
+	RETURN @oReturnValue
+	END TRY
+	
+	BEGIN CATCH
+		SELECT 'Unexpected error encountered'
+		SET @oReturnValue = 1 
+		RETURN @oReturnValue
+		
+	END CATCH
+END
+
+
+/****** Object:  StoredProcedure [dbo].[uspRestAPIUpdateClaimFromPhone]    Script Date: 10/29/2021 3:21:24 PM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE PROCEDURE [dbo].[uspRestAPIUpdateClaimFromPhone]
+(
+	@XML XML,
+	@ByPassSubmit BIT = 0,
+	@ClaimRejected BIT = 0 OUTPUT
+)
+
+/*
+-1	-- Fatal Error
+0	-- All OK
+1	--Invalid HF CODe
+2	--Duplicate Claim Code
+3	--Invald CHFID
+4	--End date is smaller than start date
+5	--Invalid ICDCode
+6	--Claimed amount is 0
+7	--Invalid ItemCode
+8	--Invalid ServiceCode
+9	--Invalid Claim Admin
+*/
+
+AS
+BEGIN
+
+	SET XACT_ABORT ON
+
+	DECLARE @Query NVARCHAR(3000)
+
+	DECLARE @ClaimID INT
+	DECLARE @ClaimDate DATE
+	DECLARE @HFCode NVARCHAR(8)
+	DECLARE @ClaimAdmin NVARCHAR(8)
+	DECLARE @ClaimCode NVARCHAR(8)
+	DECLARE @CHFID NVARCHAR(12)
+	DECLARE @StartDate DATE
+	DECLARE @EndDate DATE
+	DECLARE @ICDCode NVARCHAR(6)
+	DECLARE @Comment NVARCHAR(MAX)
+	DECLARE @Total DECIMAL(18,2)
+	DECLARE @ICDCode1 NVARCHAR(6)
+	DECLARE @ICDCode2 NVARCHAR(6)
+	DECLARE @ICDCode3 NVARCHAR(6)
+	DECLARE @ICDCode4 NVARCHAR(6)
+	DECLARE @VisitType CHAR(1)
+	DECLARE @GuaranteeId NVARCHAR(50)
+
+
+	DECLARE @HFID INT
+	DECLARE @ClaimAdminId INT
+	DECLARE @InsureeID INT
+	DECLARE @ICDID INT
+	DECLARE @ICDID1 INT
+	DECLARE @ICDID2 INT
+	DECLARE @ICDID3 INT
+	DECLARE @ICDID4 INT
+	DECLARE @TotalItems DECIMAL(18,2) = 0
+	DECLARE @TotalServices DECIMAL(18,2) = 0
+
+	DECLARE @isClaimAdminRequired BIT = (SELECT CASE Adjustibility WHEN N'M' THEN 1 ELSE 0 END FROM tblControls WHERE FieldName = N'ClaimAdministrator')
+	DECLARE @isClaimAdminOptional BIT = (SELECT CASE Adjustibility WHEN N'O' THEN 1 ELSE 0 END FROM tblControls WHERE FieldName = N'ClaimAdministrator')
+
+	SELECT @ClaimRejected = 0
+
+	BEGIN TRY
+
+			IF NOT OBJECT_ID('tempdb..#tblItem') IS NULL DROP TABLE #tblItem
+			CREATE TABLE #tblItem(ItemCode NVARCHAR(6),ItemPrice DECIMAL(18,2), ItemQuantity INT)
+
+			IF NOT OBJECT_ID('tempdb..#tblService') IS NULL DROP TABLE #tblService
+			CREATE TABLE #tblService(ServiceCode NVARCHAR(6),ServicePrice DECIMAL(18,2), ServiceQuantity INT)
+
+			--SET @Query = (N'SELECT @XML = CAST(X as XML) FROM OPENROWSET(BULK '''+ @FileName +''',SINGLE_BLOB) AS T(X)')
+
+			--EXECUTE SP_EXECUTESQL @Query,N'@XML XML OUTPUT',@XML OUTPUT
+
+			SELECT
+			@ClaimDate = Claim.value('(ClaimDate)[1]','DATE'),
+			@HFCode = Claim.value('(HFCode)[1]','NVARCHAR(8)'),
+			@ClaimAdmin = Claim.value('(ClaimAdmin)[1]','NVARCHAR(8)'),
+			@ClaimCode = Claim.value('(ClaimCode)[1]','NVARCHAR(8)'),
+			@CHFID = Claim.value('(CHFID)[1]','NVARCHAR(12)'),
+			@StartDate = Claim.value('(StartDate)[1]','DATE'),
+			@EndDate = Claim.value('(EndDate)[1]','DATE'),
+			@ICDCode = Claim.value('(ICDCode)[1]','NVARCHAR(6)'),
+			@Comment = Claim.value('(Comment)[1]','NVARCHAR(MAX)'),
+			@Total = CASE Claim.value('(Total)[1]','VARCHAR(10)') WHEN '' THEN 0 ELSE CONVERT(DECIMAL(18,2),ISNULL(Claim.value('(Total)[1]','VARCHAR(10)'),0)) END,
+			@ICDCode1 = Claim.value('(ICDCode1)[1]','NVARCHAR(6)'),
+			@ICDCode2 = Claim.value('(ICDCode2)[1]','NVARCHAR(6)'),
+			@ICDCode3 = Claim.value('(ICDCode3)[1]','NVARCHAR(6)'),
+			@ICDCode4 = Claim.value('(ICDCode4)[1]','NVARCHAR(6)'),
+			@VisitType = Claim.value('(VisitType)[1]','CHAR(1)'),
+			@GuaranteeId = Claim.value('(GuaranteeNo)[1]','NVARCHAR(50)')
+			FROM @XML.nodes('Claim/Details')AS T(Claim)
+
+
+			INSERT INTO #tblItem(ItemCode,ItemPrice,ItemQuantity)
+			SELECT
+			T.Items.value('(ItemCode)[1]','NVARCHAR(6)'),
+			CONVERT(DECIMAL(18,2),T.Items.value('(ItemPrice)[1]','DECIMAL(18,2)')),
+			CONVERT(DECIMAL(18,2),T.Items.value('(ItemQuantity)[1]','NVARCHAR(15)'))
+			FROM @XML.nodes('Claim/Items/Item') AS T(Items)
+
+
+
+			INSERT INTO #tblService(ServiceCode,ServicePrice,ServiceQuantity)
+			SELECT
+			T.[Services].value('(ServiceCode)[1]','NVARCHAR(6)'),
+			CONVERT(DECIMAL(18,2),T.[Services].value('(ServicePrice)[1]','DECIMAL(18,2)')),
+			CONVERT(DECIMAL(18,2),T.[Services].value('(ServiceQuantity)[1]','NVARCHAR(15)'))
+			FROM @XML.nodes('Claim/Services/Service') AS T([Services])
+
+			--isValid HFCode
+
+			SELECT @HFID = HFID FROM tblHF WHERE HFCode = @HFCode AND ValidityTo IS NULL
+			IF @HFID IS NULL
+				RETURN 1
+
+			--isDuplicate ClaimCode
+			IF EXISTS(SELECT ClaimCode FROM tblClaim WHERE ClaimCode = @ClaimCode AND HFID = @HFID AND ValidityTo IS NULL)
+				RETURN 2
+
+			--isValid CHFID
+			SELECT @InsureeID = InsureeID FROM tblInsuree WHERE CHFID = @CHFID AND ValidityTo IS NULL
+			IF @InsureeID IS NULL
+				RETURN 3
+
+			--isValid EndDate
+			IF DATEDIFF(DD,@ENDDATE,@STARTDATE) > 0
+				RETURN 4
+
+			--isValid ICDCode
+			SELECT @ICDID = ICDID FROM tblICDCodes WHERE ICDCode = @ICDCode AND ValidityTo IS NULL
+			IF @ICDID IS NULL
+				RETURN 5
+
+			IF NOT NULLIF(@ICDCode1, '')IS NULL
+			BEGIN
+				SELECT @ICDID1 = ICDID FROM tblICDCodes WHERE ICDCode = @ICDCode1 AND ValidityTo IS NULL
+				IF @ICDID1 IS NULL
+					RETURN 5
+			END
+
+			IF NOT NULLIF(@ICDCode2, '') IS NULL
+			BEGIN
+				SELECT @ICDID2 = ICDID FROM tblICDCodes WHERE ICDCode = @ICDCode2 AND ValidityTo IS NULL
+				IF @ICDID2 IS NULL
+					RETURN 5
+			END
+
+			IF NOT NULLIF(@ICDCode3, '') IS NULL
+			BEGIN
+				SELECT @ICDID3 = ICDID FROM tblICDCodes WHERE ICDCode = @ICDCode3 AND ValidityTo IS NULL
+				IF @ICDID3 IS NULL
+					RETURN 5
+			END
+
+			IF NOT NULLIF(@ICDCode4, '') IS NULL
+			BEGIN
+				SELECT @ICDID4 = ICDID FROM tblICDCodes WHERE ICDCode = @ICDCode4 AND ValidityTo IS NULL
+				IF @ICDID4 IS NULL
+					RETURN 5
+			END
+			--isValid Claimed Amount
+			--THIS CONDITION CAN BE PUT BACK
+			--IF @Total <= 0
+			--	RETURN 6
+
+			--isValid ItemCode
+			IF EXISTS (SELECT I.ItemCode
+			FROM tblItems I FULL OUTER JOIN #tblItem TI ON I.ItemCode COLLATE DATABASE_DEFAULT = TI.ItemCode COLLATE DATABASE_DEFAULT
+			WHERE I.ItemCode IS NULL AND I.ValidityTo IS NULL)
+				RETURN 7
+
+			--isValid ServiceCode
+			IF EXISTS(SELECT S.ServCode
+			FROM tblServices S FULL OUTER JOIN #tblService TS ON S.ServCode COLLATE DATABASE_DEFAULT = TS.ServiceCode COLLATE DATABASE_DEFAULT
+			WHERE S.ServCode IS NULL AND S.ValidityTo IS NULL)
+				RETURN 8
+
+			--isValid Claim Admin
+			IF @isClaimAdminRequired = 1
+				BEGIN
+					SELECT @ClaimAdminId = ClaimAdminId FROM tblClaimAdmin WHERE ClaimAdminCode = @ClaimAdmin AND ValidityTo IS NULL
+					IF @ClaimAdmin IS NULL
+						RETURN 9
+				END
+			ELSE
+				IF @isClaimAdminOptional = 1
+					BEGIN
+						SELECT @ClaimAdminId = ClaimAdminId FROM tblClaimAdmin WHERE ClaimAdminCode = @ClaimAdmin AND ValidityTo IS NULL
+					END
+
+		BEGIN TRAN CLAIM
+			INSERT INTO tblClaim(InsureeID,ClaimCode,DateFrom,DateTo,ICDID,ClaimStatus,Claimed,DateClaimed,Explanation,AuditUserID,HFID,ClaimAdminId,ICDID1,ICDID2,ICDID3,ICDID4,VisitType,GuaranteeId)
+						VALUES(@InsureeID,@ClaimCode,@StartDate,@EndDate,@ICDID,2,@Total,@ClaimDate,@Comment,-1,@HFID,@ClaimAdminId,@ICDID1,@ICDID2,@ICDID3,@ICDID4,@VisitType,@GuaranteeId);
+
+			SELECT @ClaimID = SCOPE_IDENTITY();
+
+			;WITH PLID AS
+			(
+				SELECT PLID.ItemId, PLID.PriceOverule
+				FROM tblHF HF
+				INNER JOIN tblPLItems PLI ON PLI.PLItemId = HF.PLItemID
+				INNER JOIN tblPLItemsDetail PLID ON PLID.PLItemId = PLI.PLItemId
+				WHERE HF.ValidityTo IS NULL
+				AND PLI.ValidityTo IS NULL
+				AND PLID.ValidityTo IS NULL
+				AND HF.HFID = @HFID
+			)
+			INSERT INTO tblClaimItems(ClaimID,ItemID,QtyProvided,PriceAsked,AuditUserID)
+			SELECT @ClaimID, I.ItemId, T.ItemQuantity, COALESCE(NULLIF(T.ItemPrice,0),PLID.PriceOverule,I.ItemPrice)ItemPrice, -1
+			FROM #tblItem T
+			INNER JOIN tblItems I  ON T.ItemCode COLLATE DATABASE_DEFAULT = I.ItemCode COLLATE DATABASE_DEFAULT AND I.ValidityTo IS NULL
+			LEFT OUTER JOIN PLID ON PLID.ItemID = I.ItemID
+
+			SELECT @TotalItems = SUM(PriceAsked * QtyProvided) FROM tblClaimItems
+						WHERE ClaimID = @ClaimID
+						GROUP BY ClaimID
+
+			;WITH PLSD AS
+			(
+				SELECT PLSD.ServiceId, PLSD.PriceOverule
+				FROM tblHF HF
+				INNER JOIN tblPLServices PLS ON PLS.PLServiceId = HF.PLServiceID
+				INNER JOIN tblPLServicesDetail PLSD ON PLSD.PLServiceId = PLS.PLServiceId
+				WHERE HF.ValidityTo IS NULL
+				AND PLS.ValidityTo IS NULL
+				AND PLSD.ValidityTo IS NULL
+				AND HF.HFID = @HFID
+			)
+			INSERT INTO tblClaimServices(ClaimId, ServiceID, QtyProvided, PriceAsked, AuditUserID)
+			SELECT @ClaimID, S.ServiceID, T.ServiceQuantity,COALESCE(NULLIF(T.ServicePrice,0),PLSD.PriceOverule,S.ServPrice)ServicePrice , -1
+			FROM #tblService T
+			INNER JOIN tblServices S ON T.ServiceCode COLLATE DATABASE_DEFAULT = S.ServCode COLLATE DATABASE_DEFAULT AND S.ValidityTo IS NULL
+			LEFT OUTER JOIN PLSD ON PLSD.ServiceId = S.ServiceId
+
+						SELECT @TotalServices = SUM(PriceAsked * QtyProvided) FROM tblClaimServices
+						WHERE ClaimID = @ClaimID
+						GROUP BY ClaimID
+
+						UPDATE tblClaim SET Claimed = ISNULL(@TotalItems,0) + ISNULL(@TotalServices,0)
+						WHERE ClaimID = @ClaimID
+
+		COMMIT TRAN CLAIM
+
+
+		SELECT @ClaimID  = IDENT_CURRENT('tblClaim')
+
+		IF @ByPassSubmit = 0
+		BEGIN
+			DECLARE @ClaimRejectionStatus INT
+			EXEC uspRestAPISubmitSingleClaim -1, @ClaimID,0, @RtnStatus=@ClaimRejectionStatus OUTPUT
+			IF @ClaimRejectionStatus = 2
+				SELECT @ClaimRejected = 1
+		END
+
+	END TRY
+	BEGIN CATCH
+		IF @@TRANCOUNT > 0
+			ROLLBACK TRAN CLAIM
+			SELECT ERROR_MESSAGE()
+		RETURN -1
+	END CATCH
+
+	RETURN 0
+END
+
+GO
+
+GO

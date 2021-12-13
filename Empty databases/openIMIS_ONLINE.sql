@@ -3074,7 +3074,8 @@ CREATE TABLE [dbo].[tblPolicy](
 	[AuditUserID] [int] NOT NULL,
 	[RowID] [timestamp] NULL,
 	[isOffline] [bit] NULL,
-	[RenewalOrder] [int] NULL
+	[RenewalOrder] [int] NULL,
+	[SelfRenewed] [bit] NOT NULL DEFAULT 0
  CONSTRAINT [PK_tblPolicy] PRIMARY KEY CLUSTERED 
 (
 	[PolicyID] ASC

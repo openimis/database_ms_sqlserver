@@ -11238,3 +11238,10 @@ BEGIN
 	AND ISNULL(R.ResponseStatus, 0) = 0
 END
 GO
+
+
+-- OTC-484
+IF COL_LENGTH(N'tblPolicy', N'SelfRenewed') IS NULL
+	ALTER TABLE tblPolicy
+	ADD SelfRenewed BIT NOT NULL DEFAULT 0
+GO

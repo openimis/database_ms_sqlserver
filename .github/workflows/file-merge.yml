@@ -9,8 +9,7 @@ on:
       - 'Automated CI testing'
 
 jobs:
-  merge_files:
-    name: Merge files!
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

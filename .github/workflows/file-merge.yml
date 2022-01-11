@@ -1,12 +1,12 @@
 name: Merge sql files
 
 on:
-  workflow_run:
-    types:
-      - completed
-    workflows:
-      # List all required workflow names here.
-      - 'Automated CI testing'
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      comment:
+        description: Just a simple comment to know the purpose of the manual build
+        required: false
 
 jobs:
   build:

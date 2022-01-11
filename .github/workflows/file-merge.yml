@@ -1,5 +1,6 @@
-name: Merge sql files
-
+name: Merge SQL files
+# This workflow run automatically for every commit on github it checks the syntax and launch the tests.
+# | grep . | uniq -c filters out empty lines and then groups consecutive lines together with the number of occurrences
 on:
   pull_request:
   workflow_dispatch:

@@ -38,7 +38,7 @@ BEGIN
 	    DECLARE @LastDay DATE = EOMONTH(CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Month AS VARCHAR(2)) + '-01', 0)
 	    DECLARE @DaysInMonth INT = DATEDIFF(DAY,@FirstDay,DATEADD(MONTH,1,@FirstDay));
 
-		set @DistrictId = CASE @DistrictId WHEN 0 THEN NULL ELSE @DistrictId END
+		 set @DistrictId = CASE @DistrictId WHEN 0 THEN NULL ELSE @DistrictId END
 
 		DECLARE @Locations TABLE (
 			LocationId INT,
@@ -249,7 +249,7 @@ BEGIN
 				AND C.ClaimStatus > 4
 				AND YEAR(C.DateProcessed) = @Year
 				AND MONTH(C.DateProcessed) = @Month
-				AND C.HFID  in  (SELECT id FROM @listOfHF)and ci.ValidityTo IS NULL 
+				AND ci.ValidityTo IS NULL 
 			UNION ALL
 			SELECT HFID, c.ClaimId, PriceValuated FROM tblClaim C WITH (NOLOCK) 
 			LEFT JOIN tblClaimServices cs ON c.ClaimID = cs.ClaimID   and  ProdId = @ProdId AND (@WeightAdjustedAmount > 0.0)
@@ -257,7 +257,7 @@ BEGIN
 				AND C.ClaimStatus > 4
 				AND YEAR(C.DateProcessed) = @Year
 				AND MONTH(C.DateProcessed) = @Month	
-				AND C.HFID  in (SELECT id FROM @listOfHF) and CS.ValidityTo IS NULL 
+				AND CS.ValidityTo IS NULL 
 			) claimdetails GROUP BY HFID,ClaimId
 		)claims GROUP by HFID
 

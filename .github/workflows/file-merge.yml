@@ -9,7 +9,7 @@ on:
       - 'Automated CI testing'
 
 jobs:
-  merge-files:
+  merge_files:
     name: Merge files!
     runs-on: ubuntu-latest
     steps:

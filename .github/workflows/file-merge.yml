@@ -1,0 +1,27 @@
+name: Merge sql files
+
+on:
+  workflow_run:
+    types:
+      - completed
+    workflows:
+      # List all required workflow names here.
+      - 'Automated CI testing'
+
+jobs:
+  merge-files:
+    name: Merge files!
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Merge me!
+        run : |
+          mkdir output
+          cat "Migration script/openIMIS migration latest.sql" "Migration script/storedProceduresl/*" > output/fullMigrationScipt.sql
+          cat "Empty databasesopenIMIS_ONLINE.sql" "Migration script/storedProceduresl/*" > output/fullEmptyDatabase.sql
+          cat "Empty databasesopenIMIS_ONLINE.sql"  "Demo database/openIMIS_demo_ONLINE.sql" "Migration script/storedProceduresl/*" > output/fullEmptyDatabase.sql
+    - name: Publish artifact
+      uses: actions/upload-artifact@master
+      with:
+        name: sql-files
+        path: output 

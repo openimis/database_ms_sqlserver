@@ -17,9 +17,9 @@ jobs:
       - name: Merge me!
         run : |
           mkdir output
-          cat "Migration script/openIMIS migration latest.sql" "Migration script/storedProceduresl/*" > output/fullMigrationScipt.sql
-          cat "Empty databasesopenIMIS_ONLINE.sql" "Migration script/storedProceduresl/*" > output/fullEmptyDatabase.sql
-          cat "Empty databasesopenIMIS_ONLINE.sql"  "Demo database/openIMIS_demo_ONLINE.sql" "Migration script/storedProceduresl/*" > output/fullDemoDatabase.sql
+          cat "Migration script/openIMIS migration latest.sql" "Migration script/storedProcedures/*" > output/fullMigrationScipt.sql
+          cat "Empty databasesopenIMIS_ONLINE.sql" "Migration script/storedProcedures/*" > output/fullEmptyDatabase.sql
+          cat "Empty databasesopenIMIS_ONLINE.sql"  "Demo database/openIMIS_demo_ONLINE.sql" "Migration script/storedProcedures/*" > output/fullDemoDatabase.sql
       - name: Publish artifact
         uses: actions/upload-artifact@master
         with:

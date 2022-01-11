@@ -260,7 +260,7 @@ BEGIN
 				AND C.ClaimStatus > 4
 				AND YEAR(C.DateProcessed) = @Year
 				AND MONTH(C.DateProcessed) = @Month
-				AND C.HFID  in  (SELECT id FROM @listOfHF)and ci.ValidityTo IS NULL 
+				AND ci.ValidityTo IS NULL 
 			UNION ALL
 			SELECT HFID, c.ClaimId, PriceValuated FROM tblClaim C WITH (NOLOCK) 
 			LEFT JOIN tblClaimServices cs ON c.ClaimID = cs.ClaimID   and  ProdId = @ProdId AND (@WeightAdjustedAmount > 0.0)
@@ -268,7 +268,7 @@ BEGIN
 				AND C.ClaimStatus > 4
 				AND YEAR(C.DateProcessed) = @Year
 				AND MONTH(C.DateProcessed) = @Month	
-				AND C.HFID  in (SELECT id FROM @listOfHF) and CS.ValidityTo IS NULL 
+				AND  CS.ValidityTo IS NULL 
 			) claimdetails GROUP BY HFID,ClaimId
 		)claims GROUP by HFID
 

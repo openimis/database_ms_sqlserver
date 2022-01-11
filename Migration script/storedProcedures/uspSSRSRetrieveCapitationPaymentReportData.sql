@@ -15,7 +15,7 @@ AS
 BEGIN		
 		declare @listOfHF table (id int);
 
-		IF @ProdId is NULL
+		IF @ProdId is NULL or @ProdId <=0
 		begin
 			IF  @RegionId IS  NULL or @RegionId =0
 				INSERT INTO @listOfHF(id) SELECT tblHF.HfID FROM tblHF WHERE tblHF.ValidityTo is NULL;

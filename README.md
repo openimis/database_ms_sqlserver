@@ -1,3 +1,4 @@
+[![Automated CI testing](https://github.com/openimis/database_ms_sqlserver/actions/workflows/openmis-module-test.yml/badge.svg?branch=develop)](https://github.com/openimis/database_ms_sqlserver/actions/workflows/openmis-module-test.yml)
 # openIMIS SQL Server database
 
 This repository contains the openIMIS database for Microsoft SQL Server.

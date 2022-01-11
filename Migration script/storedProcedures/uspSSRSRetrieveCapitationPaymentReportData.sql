@@ -1,4 +1,3 @@
-
 IF OBJECT_ID('uspSSRSRetrieveCapitationPaymentReportData', 'P') IS NOT NULL
     DROP PROCEDURE uspSSRSRetrieveCapitationPaymentReportData
 GO
@@ -16,13 +15,15 @@ AS
 BEGIN		
 		declare @listOfHF table (id int);
 
-		IF  @RegionId IS  NULL or @RegionId =0
-			INSERT INTO @listOfHF(id) SELECT tblHF.HfID FROM tblHF WHERE tblHF.ValidityTo is NULL;
-		 ELSE IF  @DistrictId is NULL or @DistrictId =0
-			INSERT INTO @listOfHF(id) SELECT tblHF.HfID FROM tblHF JOIN tblLocations l on tblHF.LocationId = l.LocationId   WHERE l.ParentLocationId =  @RegionId  ;
-		ELSE 
-			INSERT INTO @listOfHF(id) SELECT tblHF.HfID FROM tblHF WHERE tblHF.LocationId = @DistrictId and tblHF.ValidityTo is NULL;
-
+		IF @ProdId is NULL
+		begin
+			IF  @RegionId IS  NULL or @RegionId =0
+				INSERT INTO @listOfHF(id) SELECT tblHF.HfID FROM tblHF WHERE tblHF.ValidityTo is NULL;
+			ELSE IF  @DistrictId is NULL or @DistrictId =0
+				INSERT INTO @listOfHF(id) SELECT tblHF.HfID FROM tblHF JOIN tblLocations l on tblHF.LocationId = l.LocationId   WHERE l.ParentLocationId =  @RegionId  ;
+			ELSE 
+				INSERT INTO @listOfHF(id) SELECT tblHF.HfID FROM tblHF WHERE tblHF.LocationId = @DistrictId and tblHF.ValidityTo is NULL;
+		ENd
 
 	    SELECT  RegionCode, 
 				RegionName,
@@ -52,6 +53,6 @@ BEGIN
 				UPAdjustedAmount,
 				PaymentCathment,
 				TotalAdjusted
-	   FROM tblCapitationPayment WHERE [year] = @Year AND [month] = @Month AND HfID in (SELECT id from  @listOfHF) AND @ProdId = ProductID;
+	   FROM tblCapitationPayment WHERE [year] = @Year AND [month] = @Month AND ( (SELECT count(id) from  @listOfHF)=0 OR HfID in (SELECT id from  @listOfHF)) AND ISNULL(@ProdId,-1) in  (ProductID,-1);
 END
 GO 

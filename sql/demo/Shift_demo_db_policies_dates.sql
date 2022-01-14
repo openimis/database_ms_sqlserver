@@ -1,8 +1,5 @@
 BEGIN
 	
-	--Update the database to be used
-	use [openIMIS-demo];
-	GO 
 
 	DECLARE @monthShift INT
 

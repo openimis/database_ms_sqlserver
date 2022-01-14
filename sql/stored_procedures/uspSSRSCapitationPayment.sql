@@ -360,5 +360,6 @@ BEGIN
 	 FROM @ReportData
 
 	 GROUP BY HFCode
-END
+END 
 GO
+ 

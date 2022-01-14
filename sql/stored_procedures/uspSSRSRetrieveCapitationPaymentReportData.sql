@@ -56,3 +56,4 @@ BEGIN
 	   FROM tblCapitationPayment WHERE [year] = @Year AND [month] = @Month AND ( (SELECT count(id) from  @listOfHF)=0 OR HfID in (SELECT id from  @listOfHF)) AND ISNULL(@ProdId,-1) in  (ProductID,-1);
 END
 GO
+ 

@@ -347,3 +347,4 @@ BEGIN
 					FROM @ReportData GROUP BY HFCode) r;
 END
 GO
+ 

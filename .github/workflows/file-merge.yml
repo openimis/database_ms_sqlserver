@@ -16,10 +16,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Merge me!
         run : |
-          mkdir output
-          cat Migration\ script/openIMIS\ migration\ latest.sql Migration\ script/storedProcedures/* > output/fullMigrationScipt.sql
-          cat Empty\ databases/openIMIS_ONLINE.sql Migration\ script/storedProcedures/* > output/fullEmptyDatabase.sql
-          cat Empty\ databases/openIMIS_ONLINE.sql  Demo\ database/openIMIS_demo_ONLINE.sql Migration\ script/storedProcedures/* > output/fullDemoDatabase.sql
+          bash concatenate_files.sh
       - name: Publish artifact
         uses: actions/upload-artifact@master
         with:

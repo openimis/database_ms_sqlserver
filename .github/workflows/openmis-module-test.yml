@@ -34,7 +34,7 @@ jobs:
           path: './new'
       - name: generate new files
         working-directory: ./new
-        run: concatenate_files.sh
+        run: bash concatenate_files.sh
       - name: install linux packages
         run: |
             mkdir ./oldMain 

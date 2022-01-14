@@ -32,6 +32,9 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: './new'
+      - name: generate new files
+        working-directory: ./new
+        run: concatenate_files.sh
       - name: install linux packages
         run: |
             mkdir ./oldMain 
@@ -49,8 +52,8 @@ jobs:
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'DROP DATABASE IF EXISTS imis_1_4_2'
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'CREATE DATABASE imis_1_4_2'
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_1_4_2 -i 1.42/openIMIS_ONLINE.sql | grep . | uniq -c
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_1_4_2 -i "new/Migration script/openIMIS migration latest.sql" | grep . | uniq -c
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_1_4_2 -i "new/Demo database/openIMIS_demo_ONLINE.sql" | grep . | uniq -c           
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_1_4_2 -i "new/sql/migration/1_migration_latest.sql" | grep . | uniq -c
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_1_4_2 -i "new/Dsql/demo/demo_online.sql" | grep . | uniq -c           
         env:
             SA_PASSWORD: GitHub999
             ACCEPT_EULA: Y
@@ -58,8 +61,8 @@ jobs:
         run: |
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'DROP DATABASE IF EXISTS imis'
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'CREATE DATABASE imis'
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/Empty databases/openIMIS_ONLINE.sql" | grep . | uniq -c
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/Demo database/openIMIS_demo_ONLINE.sql" | grep . | uniq -c
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis -i "new/output/fullDemoDatabase.sql" | grep . | uniq -c
+
 
         env:
           SA_PASSWORD: GitHub999

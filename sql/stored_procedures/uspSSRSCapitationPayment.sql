@@ -321,7 +321,8 @@ BEGIN
 		JOIN tblHFSublevel  on 1=1
 		INNER JOIN tblProduct Prod on prodid = @ProdID
 		AND
-		( (Prod.Level1 = HFLevel and Prod.Sublevel1 is NULL or Prod.Level1 = HFLevel and Prod.Sublevel1=HFSublevel)
+		((Prod.Level1 IS NULL AND Prod.Level2 IS NULL AND Prod.Level3 IS NULL AND Prod.Level4 IS NULL)
+		OR (Prod.Level1 = HFLevel and Prod.Sublevel1 is NULL or Prod.Level1 = HFLevel and Prod.Sublevel1=HFSublevel)
 		OR (Prod.Level2 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel2=HFSublevel)
 		OR (Prod.Level3 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel3=HFSublevel)
 		OR (Prod.Level4 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel4=HFSublevel)

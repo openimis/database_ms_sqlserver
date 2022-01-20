@@ -10477,3 +10477,10 @@ IF COL_LENGTH(N'tblPolicy', N'SelfRenewed') IS NULL
 	ALTER TABLE tblPolicy
 	ADD SelfRenewed BIT NOT NULL DEFAULT 0
 GO
+
+
+--OTC-73
+IF COL_LENGTH(N'tblLanguages', N'CountryCode') IS NULL
+	ALTER TABLE tblLanguages
+	ADD [CountryCode] NVARCHAR(10) NULL
+GO

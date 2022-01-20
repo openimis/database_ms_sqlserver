@@ -1049,6 +1049,7 @@ CREATE TABLE [dbo].[tblLanguages](
 	[LanguageCode] [nvarchar](5) NOT NULL,
 	[LanguageName] [nvarchar](50) NOT NULL,
 	[SortOrder] [int] NULL,
+	[CountryCode] [nvarchar](10) NULL,
  CONSTRAINT [PK_Language] PRIMARY KEY CLUSTERED 
 (
 	[LanguageCode] ASC

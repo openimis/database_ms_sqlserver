@@ -10484,3 +10484,16 @@ IF COL_LENGTH(N'tblLanguages', N'CountryCode') IS NULL
 	ALTER TABLE tblLanguages
 	ADD [CountryCode] NVARCHAR(10) NULL
 GO
+
+--feature/fix_missing_fk
+IF OBJECT_ID('FK_tblControlNumber_tblPayment') IS NULL
+	ALTER TABLE tblControlNumber
+	ADD CONSTRAINT FK_tblControlNumber_tblPayment
+	FOREIGN KEY (PaymentId) REFERENCES tblPayment(PaymentId)
+GO
+
+IF OBJECT_ID('FK_tblPaymentDetails_tblPayment') IS NULL
+	ALTER TABLE tblPaymentDetails
+	ADD CONSTRAINT FK_tblPaymentDetails_tblPayment
+	FOREIGN KEY (PaymentId) REFERENCES tblPayment(PaymentId)
+GO

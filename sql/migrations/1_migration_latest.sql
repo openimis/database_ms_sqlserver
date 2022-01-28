@@ -10484,3 +10484,9 @@ IF COL_LENGTH(N'tblLanguages', N'CountryCode') IS NULL
 	ALTER TABLE tblLanguages
 	ADD [CountryCode] NVARCHAR(10) NULL
 GO
+
+--OTC-511
+IF COL_LENGTH(N'tblPremium', N'CreatedDate') IS NULL
+	ALTER TABLE tblPremium 
+	ADD [CreatedDate] DATETIME NULL CONSTRAINT DF_tblPremium_CreatedDate DEFAULT GETDATE()
+GO

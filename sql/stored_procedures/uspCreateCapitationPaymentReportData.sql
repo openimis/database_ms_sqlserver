@@ -55,7 +55,7 @@ BEGIN
 			SELECT LocationId,LocationName, LocationCode, ISNULL(ParentLocationId, 0) 
 			FROM tblLocations 
 			WHERE ValidityTo IS NULL 
-				AND (LocationType IN ('R', 'D') 
+				AND LocationType IN ('R', 'D') 
 
 		DECLARE @LocationTemp table (LocationId int, RegionId int, RegionCode [nvarchar](8) , RegionName [nvarchar](50), DistrictId int, DistrictCode [nvarchar](8), 
 			DistrictName [nvarchar](50), ParentLocationId int)
@@ -224,7 +224,7 @@ BEGIN
 		    FROM tblPremium PR 
 		    INNER JOIN tblPolicy PL ON PR.PolicyID = PL.PolicyID
 		    INNER JOIN tblProduct Prod ON Prod.ProdId = PL.ProdID
-		    INNER JOIN  @Locations L ON ISNULL(Prod.LocationId, 0) = L.LocationId and (L.LocationId = ISNULL(@DistrictId, @RegionId) OR   (LocationType IN ('R', 'D') AND L.ParentLocationId = ISNULL(@DistrictId, @RegionId)))
+		    INNER JOIN  @Locations L ON ISNULL(Prod.LocationId, 0) = L.LocationId and (L.LocationId = ISNULL(@DistrictId, @RegionId) OR   ( L.ParentLocationId = ISNULL(@DistrictId, @RegionId)))
 		    WHERE PR.ValidityTo IS NULL
 		    AND PL.ValidityTo IS NULL
 		    AND PL.ProdID = @ProdId
@@ -281,7 +281,7 @@ BEGIN
 		(
 			SELECT HFID, SUM(PriceValuated)TotalAdjusted, ClaimId
 			FROM 
-			(SELECT HFID,c.ClaimId, PriceValuated 
+			(SELECT C.HFID,c.ClaimId, PriceValuated 
 			FROM  tblClaim C WITH (NOLOCK)
 			INNER JOIN tblClaimItems ci ON c.ClaimID = ci.ClaimID and  ProdId = @ProdId AND (@WeightAdjustedAmount > 0.0)
 			INNER JOIN tblHF HF ON HF.HFID = C.HFID AND (
@@ -295,7 +295,7 @@ BEGIN
 				AND YEAR(C.DateProcessed) = @Year
 				AND MONTH(C.DateProcessed) = @Month
 			UNION ALL
-			SELECT HFID, c.ClaimId, PriceValuated 
+			SELECT C.HFID, c.ClaimId, PriceValuated 
 			FROM tblClaim C WITH (NOLOCK) 
 			INNER JOIN tblClaimServices cs ON c.ClaimID = cs.ClaimID   and  ProdId = @ProdId AND (@WeightAdjustedAmount > 0.0)
 			INNER JOIN tblHF HF ON HF.HFID = C.HFID AND (

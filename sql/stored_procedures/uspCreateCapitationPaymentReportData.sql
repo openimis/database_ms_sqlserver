@@ -62,12 +62,27 @@ BEGIN
 		DECLARE @LocationTemp table (LocationId int, RegionId int, RegionCode [nvarchar](8) , RegionName [nvarchar](50), DistrictId int, DistrictCode [nvarchar](8), 
 			DistrictName [nvarchar](50), ParentLocationId int)
 
-
+		-- create table with locaiton hiearchy
 		INSERT INTO  @LocationTemp(LocationId , RegionId , RegionCode , RegionName , DistrictId , DistrictCode , 
-		DistrictName , ParentLocationId)( SELECT ISNULL(d.LocationId,r.LocationId) LocationId , r.LocationId as RegionId , r.LocationCode as RegionCode  , r.LocationName as RegionName , d.LocationId as DistrictId , d.LocationCode as DistrictCode , 
-		d.LocationName as DistrictName , ISNULL(d.ParentLocationId,r.ParentLocationId) ParentLocationId FROM @Locations  d  INNER JOIN @Locations r on d.ParentLocationId = r.LocationId
-		UNION ALL SELECT r.LocationId, r.LocationId as RegionId , r.LocationCode as RegionCode  , r.LocationName as RegionName , NULL DistrictId , NULL DistrictCode , 
-		NULL DistrictName ,  ParentLocationId FROM @Locations  r WHERE ParentLocationId = 0)
+		DistrictName , ParentLocationId)
+			( SELECT ISNULL(d.LocationId,r.LocationId) LocationId , 
+				r.LocationId as RegionId , 
+				r.LocationCode as RegionCode  , 
+				r.LocationName as RegionName , 
+				d.LocationId as DistrictId , 
+				d.LocationCode as DistrictCode , 
+				d.LocationName as DistrictName , 
+				ISNULL(d.ParentLocationId,r.ParentLocationId) ParentLocationId 
+			FROM @Locations  d  
+			INNER JOIN @Locations r on d.ParentLocationId = r.LocationId
+		UNION ALL 
+			SELECT r.LocationId, r.LocationId as RegionId , 
+			r.LocationCode as RegionCode  , 
+			r.LocationName as RegionName , 
+			NULL DistrictId , 
+			NULL DistrictCode , 
+		    NULL DistrictName ,  ParentLocationId 
+			FROM @Locations  r WHERE ParentLocationId = 0)
 		;
 		declare @listOfHF table (id int);
 
@@ -96,11 +111,22 @@ BEGIN
 			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @Sublevel4 OR @Sublevel4 IS NULL))
 		      );
 
-
-	    SELECT @Level1 = Level1, @Sublevel1 = Sublevel1, @Level2 = Level2, @Sublevel2 = Sublevel2, @Level3 = Level3, @Sublevel3 = Sublevel3, 
-	    @Level4 = Level4, @Sublevel4 = Sublevel4, @ShareContribution = ISNULL(ShareContribution, 0), @WeightPopulation = ISNULL(WeightPopulation, 0), 
-	    @WeightNumberFamilies = ISNULL(WeightNumberFamilies, 0), @WeightInsuredPopulation = ISNULL(WeightInsuredPopulation, 0), @WeightNumberInsuredFamilies = ISNULL(WeightNumberInsuredFamilies, 0), 
-	    @WeightNumberVisits = ISNULL(WeightNumberVisits, 0), @WeightAdjustedAmount = ISNULL(WeightAdjustedAmount, 0)
+		-- get the product data
+	    SELECT @Level1 = Level1, 
+			@Sublevel1 = Sublevel1, 
+			@Level2 = Level2, 
+			@Sublevel2 = Sublevel2, 
+			@Level3 = Level3, 
+			@Sublevel3 = Sublevel3, 
+			@Level4 = Level4, 
+			@Sublevel4 = Sublevel4, 
+			@ShareContribution = ISNULL(ShareContribution, 0), 
+			@WeightPopulation = ISNULL(WeightPopulation, 0), 
+			@WeightNumberFamilies = ISNULL(WeightNumberFamilies, 0), 
+			@WeightInsuredPopulation = ISNULL(WeightInsuredPopulation, 0), 
+			@WeightNumberInsuredFamilies = ISNULL(WeightNumberInsuredFamilies, 0), 
+			@WeightNumberVisits = ISNULL(WeightNumberVisits, 0), 
+			@WeightAdjustedAmount = ISNULL(WeightAdjustedAmount, 0)
 	    FROM tblProduct Prod 
 	    WHERE ProdId = @ProdId;
 

@@ -140,8 +140,8 @@ BEGIN
 		INSERT INTO @TotalPopFam 
 
 		    SELECT C.HFID HFID ,
-		    CASE WHEN ISNULL(@DistrictId, @RegionId) IN (D.RegionId, D.DistrictId) THEN 1 ELSE 0 END * SUM((ISNULL(L.MalePopulation, 0) + ISNULL(L.FemalePopulation, 0) + ISNULL(L.OtherPopulation, 0)) *(0.01* Catchment)) TotalPopulation, 
-		    CASE WHEN ISNULL(@DistrictId, @RegionId) IN (D.RegionId, D.DistrictId) THEN 1 ELSE 0 END * SUM(ISNULL(((L.Families)*(0.01* Catchment)), 0))TotalFamilies
+		    SUM((ISNULL(L.MalePopulation, 0) + ISNULL(L.FemalePopulation, 0) + ISNULL(L.OtherPopulation, 0)) *(0.01* Catchment)) TotalPopulation, 
+		    SUM(ISNULL(((L.Families)*(0.01* Catchment)), 0))TotalFamilies
 		    FROM tblHFCatchment C
 		    LEFT JOIN tblLocations L ON L.LocationId = C.LocationId OR  L.LegacyId = C.LocationId
 		    INNER JOIN tblHF HF ON C.HFID = HF.HfID

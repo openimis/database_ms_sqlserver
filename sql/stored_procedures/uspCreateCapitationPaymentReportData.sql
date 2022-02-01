@@ -230,7 +230,7 @@ BEGIN
 		    FROM tblPremium PR 
 		    INNER JOIN tblPolicy PL ON PR.PolicyID = PL.PolicyID
 		    INNER JOIN tblProduct Prod ON Prod.ProdId = PL.ProdID
-		    INNER JOIN  @Locations L ON ISNULL(Prod.LocationId, 0) = L.LocationId
+		    INNER JOIN  @Locations L ON ISNULL(Prod.LocationId, 0) = L.LocationId and (L.LocationId = ISNULL(@DistrictId, @RegionId) OR   (LocationType IN ('R', 'D') AND L.ParentLocationId = ISNULL(@DistrictId, @RegionId)))
 		    WHERE PR.ValidityTo IS NULL
 		    AND PL.ValidityTo IS NULL
 		    AND PL.ProdID = @ProdId

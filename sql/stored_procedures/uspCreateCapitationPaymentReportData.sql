@@ -46,7 +46,7 @@ BEGIN
 			LocationCode VARCHAR(8),
 			ParentLocationId INT
 			);
-
+		-- fetch all the region and districts
 		INSERT INTO @Locations 
 		    SELECT 0 LocationId, N'National' LocationName, NULL ParentLocationId,  0 LocationCode
 
@@ -54,10 +54,8 @@ BEGIN
 
 			SELECT LocationId,LocationName, LocationCode, ISNULL(ParentLocationId, 0) 
 			FROM tblLocations 
-			WHERE (ValidityTo IS NULL )
-				AND (LocationId = ISNULL(@DistrictId, @RegionId) OR 
-				(LocationType IN ('R', 'D') AND ParentLocationId = ISNULL(@DistrictId, @RegionId)))
-
+			WHERE ValidityTo IS NULL 
+				AND (LocationType IN ('R', 'D') 
 
 		DECLARE @LocationTemp table (LocationId int, RegionId int, RegionCode [nvarchar](8) , RegionName [nvarchar](50), DistrictId int, DistrictCode [nvarchar](8), 
 			DistrictName [nvarchar](50), ParentLocationId int)
@@ -85,7 +83,7 @@ BEGIN
 			FROM @Locations  r WHERE ParentLocationId = 0)
 		;
 		declare @listOfHF table (id int);
-
+		-- get the list of Hf part of the covered regions and config
 		IF  @RegionId IS  NULL or @RegionId =0
 			INSERT INTO @listOfHF(id) SELECT HF.HfID FROM tblHF HF WHERE HF.ValidityTo is NULL
 			AND(
@@ -130,7 +128,7 @@ BEGIN
 	    FROM tblProduct Prod 
 	    WHERE ProdId = @ProdId;
 
-
+		-- get pop
 	    DECLARE @TotalPopFam TABLE (
 			HFID INT,
 			TotalPopulation DECIMAL(18, 6), 
@@ -153,7 +151,7 @@ BEGIN
 		    GROUP BY C.HFID, D.DistrictId, D.RegionId
 
 
-
+		-- get insuree
 		DECLARE @InsuredInsuree TABLE (
 			HFID INT,
 			ProdId INT, 
@@ -181,7 +179,7 @@ BEGIN
 
 
 
-
+		-- get insured family
 		DECLARE @InsuredFamilies TABLE (
 			HFID INT,
 			TotalInsuredFamilies DECIMAL(18, 6)
@@ -205,11 +203,7 @@ BEGIN
 			AND HC.HFID in  (SELECT id FROM @listOfHF)
 		    GROUP BY HC.HFID, Catchment--, L.LocationId
 
-
-
-
-
-
+		-- get allocated contribution
 		DECLARE @Allocation TABLE (
 			ProdId INT,
 			Allocated DECIMAL(18, 6)
@@ -296,7 +290,7 @@ BEGIN
 			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @Sublevel3 OR @Sublevel3 IS NULL))
 			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @Sublevel4 OR @Sublevel4 IS NULL))
 		      )
-			 WHERE CI.ValidityTo IS NULL  AND C.ValidityTo IS NULL
+			WHERE CI.ValidityTo IS NULL  AND C.ValidityTo IS NULL
 				AND C.ClaimStatus > 4
 				AND YEAR(C.DateProcessed) = @Year
 				AND MONTH(C.DateProcessed) = @Month
@@ -314,7 +308,6 @@ BEGIN
 				AND C.ClaimStatus > 4
 				AND YEAR(C.DateProcessed) = @Year
 				AND MONTH(C.DateProcessed) = @Month	
-				AND CS.ValidityTo IS NULL 
 			) claimdetails GROUP BY HFID,ClaimId
 		)claims GROUP by HFID
 

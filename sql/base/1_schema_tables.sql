@@ -1921,7 +1921,8 @@ CREATE TABLE [dbo].[tblPremium](
 	[ReportingId] [int] NULL,
 	[OverviewCommissionReport] datetime NULL,
 	[AllDetailsCommissionReport] datetime NULL,
-	[ReportingCommissionID] [int] NULL
+	[ReportingCommissionID] [int] NULL,
+	[CreatedDate] [datetime] NULL CONSTRAINT DF_tblPremium_CreatedDate DEFAULT GETDATE()
  CONSTRAINT [PK_tblPremium] PRIMARY KEY CLUSTERED 
 (
 	[PremiumId] ASC

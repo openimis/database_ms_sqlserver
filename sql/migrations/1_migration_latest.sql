@@ -10496,4 +10496,10 @@ IF OBJECT_ID('FK_tblPaymentDetails_tblPayment') IS NULL
 	ALTER TABLE tblPaymentDetails
 	ADD CONSTRAINT FK_tblPaymentDetails_tblPayment
 	FOREIGN KEY (PaymentId) REFERENCES tblPayment(PaymentId)
+
+--OTC-511
+IF COL_LENGTH(N'tblPremium', N'CreatedDate') IS NULL
+	ALTER TABLE tblPremium 
+	ADD [CreatedDate] DATETIME NULL CONSTRAINT DF_tblPremium_CreatedDate DEFAULT GETDATE()
+
 GO

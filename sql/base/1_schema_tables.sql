@@ -958,7 +958,7 @@ CREATE TABLE [dbo].[tblControlNumber](
 	[ValidityFrom] [datetime] NULL,
 	[ValidityTo] [datetime] NULL,
 	[AuditedUserID] [int] NULL,
-	[PaymentID] [bigint] NULL,
+	[PaymentID] [bigint] NULL CONSTRAINT FK_tblControlNumber_tblPayment FOREIGN KEY REFERENCES tblPayment(PaymentId),
 	[ControlNumber] [nvarchar](50) NULL,
 	[IssuedDate] [datetime] NULL,
 	[Comment] [nvarchar](max) NULL,
@@ -1688,7 +1688,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[tblPaymentDetails](
 	[PaymentDetailsID] [bigint] IDENTITY(1,1) NOT NULL,
-	[PaymentID] [bigint] NOT NULL,
+	[PaymentID] [bigint] NOT NULL CONSTRAINT FK_tblPaymentDetails_tblPayment FOREIGN KEY REFERENCES tblPayment(PaymentId),
 	[ProductCode] [nvarchar](8) NULL,
 	[InsuranceNumber] [nvarchar](12) NULL,
 	[PolicyStage] [nvarchar](1) NULL,

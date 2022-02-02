@@ -10485,8 +10485,21 @@ IF COL_LENGTH(N'tblLanguages', N'CountryCode') IS NULL
 	ADD [CountryCode] NVARCHAR(10) NULL
 GO
 
+--feature/fix_missing_fk
+IF OBJECT_ID('FK_tblControlNumber_tblPayment') IS NULL
+	ALTER TABLE tblControlNumber
+	ADD CONSTRAINT FK_tblControlNumber_tblPayment
+	FOREIGN KEY (PaymentId) REFERENCES tblPayment(PaymentId)
+GO
+
+IF OBJECT_ID('FK_tblPaymentDetails_tblPayment') IS NULL
+	ALTER TABLE tblPaymentDetails
+	ADD CONSTRAINT FK_tblPaymentDetails_tblPayment
+	FOREIGN KEY (PaymentId) REFERENCES tblPayment(PaymentId)
+
 --OTC-511
 IF COL_LENGTH(N'tblPremium', N'CreatedDate') IS NULL
 	ALTER TABLE tblPremium 
 	ADD [CreatedDate] DATETIME NULL CONSTRAINT DF_tblPremium_CreatedDate DEFAULT GETDATE()
+
 GO

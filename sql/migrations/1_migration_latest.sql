@@ -150,6 +150,8 @@ BEGIN
 END
 GO
 
+ALTER TABLE tblFamilySMS DROP CONSTRAINT IF EXISTS DF_tblFamilies_LanguageOfSMS;
+GO
 DROP FUNCTION IF EXISTS [dbo].[udfDefaultLanguageCode] 
 GO
 

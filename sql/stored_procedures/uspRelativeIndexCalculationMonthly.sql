@@ -21,20 +21,18 @@ BEGIN
 	DECLARE @oReturnValue as int 
 	SET @oReturnValue = 0 
 	BEGIN TRY
-	
-	DECLARE @DaysInCovered as int
+
+	DECLARE @locationId as int
 	DECLARE @PrdValue as decimal(18,2)
 
-	SELECT @DaysInCovered = DATEDIFF(DAY,@startDate,@EndDate)
-	SELECT  @PrdValue = ISNULL(SUM(NumValue.Allocated),0)  
-	FROM 
-	(	
-	SELECT
-	(CAST(1+DATEDIFF(DAY,
+
+
+	SELECT  @PrdValue = SUM(ISNULL(
+	CAST(1+DATEDIFF(DAY,
 		CASE WHEN @startDate >  PR.PayDate and  @startDate >  PL.EffectiveDate  THEN  @startDate  WHEN PR.PayDate > PL.EffectiveDate THEN PR.PayDate ELSE  PL.EffectiveDate  END
 		,CASE WHEN PL.ExpiryDate < @EndDate THEN PL.ExpiryDate ELSE @EndDate END)
 		as decimal(18,4)) / DATEDIFF (DAY,(CASE WHEN PR.PayDate > PL.EffectiveDate THEN PR.PayDate ELSE  PL.EffectiveDate  END), PL.ExpiryDate ) * PR.Amount 
-	) Allocated
+	 ,0))
 	FROM tblPremium PR INNER JOIN tblPolicy PL ON PR.PolicyID = PL.PolicyID
 	INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID 
 	LEFT JOIN tblLocations L ON ISNULL(Prod.LocationId,-1) = ISNULL(L.LocationId,-1)
@@ -47,20 +45,20 @@ BEGIN
 	AND PL.EffectiveDate < PL.ExpiryDate
 	AND PL.ExpiryDate >= @startDate
 	AND (PR.PayDate <=  @EndDate AND PL.EffectiveDate <= @EndDate) 
-	) NumValue
 
+	if @locationId is null and @ProductID is not null
+		select @locationId = isnull(locationId,0) FROM tblProduct where ProdID=@ProductID
 
 	EXEC  @oReturnValue =[dbo].[uspInsertIndexMonthly] @Type = @DistrType,
 		@RelType = @RelType, 
 		@startDate = @startDate, 
 		@EndDate = @EndDate, 
 		@Period = @Period,
-		@LocationId = 0 ,
+		@LocationId = @locationId ,
 		@ProductID = @ProductID ,
 		@PrdValue = @PrdValue ,
 		@AuditUser = @AuditUser , 
 		@RelIndex =  @RelIndex OUTPUT;
-
 
 
 FINISH:
@@ -83,6 +81,3 @@ END TRY
 	END CATCH
 	
 END
-
-/****** Object:  StoredProcedure [dbo].[uspBatchProcess]    Script Date: 10/25/2021 2:50:08 PM ******/
-SET ANSI_NULLS ON

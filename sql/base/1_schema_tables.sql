@@ -1652,7 +1652,7 @@ CREATE TABLE [dbo].[tblPayment](
 	[ExpectedAmount] [decimal](18, 2) NULL,
 	[ReceivedAmount] [decimal](18, 2) NULL,
 	[OfficerCode] [nvarchar](50) NULL,
-	[PhoneNumber] [nvarchar](15) NULL,
+	[PhoneNumber] [nvarchar](50) NULL,
 	[PayerPhoneNumber] [nvarchar](15) NULL,
 	[RequestDate] [datetime] NULL,
 	[ReceivedDate] [datetime] NULL,

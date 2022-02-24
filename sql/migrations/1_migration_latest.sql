@@ -9777,3 +9777,9 @@ IF COL_LENGTH(N'tblPremium', N'CreatedDate') IS NULL
 	ADD [CreatedDate] DATETIME NULL CONSTRAINT DF_tblPremium_CreatedDate DEFAULT GETDATE()
 
 GO
+
+--OTC-520
+IF COL_LENGTH(N'tblPayment', N'PhoneNumber') IS NOT NULL
+	ALTER TABLE tblPayment
+	ALTER COLUMN PhoneNumber NVARCHAR(50) NULL
+GO

@@ -35,10 +35,12 @@ CREATE PROCEDURE [dbo].[uspSSRSPremiumDistribution]
 			SET @MaxCount = @Month
 		END
 
+
 		IF @LocationId = -1
 		SET @LocationId = NULL
 
 		WHILE @Counter <> @MaxCount + 1
+
 		BEGIN	
 			SELECT @Date = CAST(CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Counter AS VARCHAR(2)) + '-' + '01' AS DATE)
 			SELECT @DaysInMonth = DATEDIFF(DAY,@Date,DATEADD(MONTH,1,@Date))
@@ -115,14 +117,11 @@ CREATE PROCEDURE [dbo].[uspSSRSPremiumDistribution]
 			SELECT @Counter MonthId,L.LocationName DistrictName,Prod.ProductCode,Prod.ProductName,
 			0 TotalCollected,
 			0 NotAllocated,
-			CASE 
-			WHEN MONTH(DATEADD(D,-1,PL.ExpiryDate)) = @Counter AND YEAR(DATEADD(D,-1,PL.ExpiryDate)) = @Year AND (DAY(PL.ExpiryDate)) > 1
-			THEN CASE WHEN DATEDIFF(D,CASE WHEN PR.PayDate < @Date THEN @Date ELSE PR.PayDate END,PL.ExpiryDate) = 0 THEN 1 ELSE DATEDIFF(D,CASE WHEN PR.PayDate < @Date THEN @Date ELSE PR.PayDate END,PL.ExpiryDate) END  * ((SUM(PR.Amount))/(CASE WHEN (DATEDIFF(DAY,CASE WHEN PR.PayDate < PL.EffectiveDate THEN PL.EffectiveDate ELSE PR.PayDate END,PL.ExpiryDate)) <= 0 THEN 1 ELSE DATEDIFF(DAY,CASE WHEN PR.PayDate < PL.EffectiveDate THEN PL.EffectiveDate ELSE PR.PayDate END,PL.ExpiryDate) END))
-			WHEN MONTH(CASE WHEN PR.PayDate < PL.EffectiveDate THEN PL.EffectiveDate ELSE PR.PayDate END) = @Counter AND YEAR(CASE WHEN PR.PayDate < PL.EffectiveDate THEN PL.EffectiveDate ELSE PR.PayDate END) = @Year
-			THEN ((@DaysInMonth + 1 - DAY(CASE WHEN PR.PayDate < PL.EffectiveDate THEN PL.EffectiveDate ELSE PR.PayDate END)) * ((SUM(PR.Amount))/CASE WHEN DATEDIFF(DAY,CASE WHEN PR.PayDate < PL.EffectiveDate THEN PL.EffectiveDate ELSE PR.PayDate END,PL.ExpiryDate) <= 0 THEN 1 ELSE DATEDIFF(DAY,CASE WHEN PR.PayDate < PL.EffectiveDate THEN PL.EffectiveDate ELSE PR.PayDate END,PL.ExpiryDate) END)) 
-			WHEN PL.EffectiveDate < @Date AND PL.ExpiryDate > @EndDate AND PR.PayDate < @Date
-			THEN @DaysInMonth * (SUM(PR.Amount)/CASE WHEN (DATEDIFF(DAY,CASE WHEN PR.PayDate < PL.EffectiveDate THEN PL.EffectiveDate ELSE PR.PayDate END,DATEADD(D,-1,PL.ExpiryDate))) <= 0 THEN 1 ELSE DATEDIFF(DAY,CASE WHEN PR.PayDate < PL.EffectiveDate THEN PL.EffectiveDate ELSE PR.PayDate END,PL.ExpiryDate) END)
-			END Allocated
+			SUM(ISNULL( CAST(1+DATEDIFF(DAY,
+			CASE WHEN @Date >  PR.PayDate and  @Date >  PL.EffectiveDate  THEN  @Date  WHEN PR.PayDate > PL.EffectiveDate THEN PR.PayDate ELSE  PL.EffectiveDate  END
+				,CASE WHEN PL.ExpiryDate < @EndDate THEN PL.ExpiryDate ELSE @EndDate END)
+				as decimal(18,4)) / DATEDIFF (DAY,(CASE WHEN PR.PayDate > PL.EffectiveDate THEN PR.PayDate ELSE  PL.EffectiveDate  END), PL.ExpiryDate ) * PR.Amount 
+			 ,0)) Allocated
 			FROM tblPremium PR 
 			INNER JOIN tblPolicy PL ON PR.PolicyID = PL.PolicyID
 			INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID 
@@ -133,6 +132,8 @@ CREATE PROCEDURE [dbo].[uspSSRSPremiumDistribution]
 			AND Prod.ProdID = @ProductID
 			AND PL.PolicyStatus <> 1
 			AND PR.PayDate <= PL.ExpiryDate
+			AND PL.ExpiryDate >= @Date
+			AND (PR.PayDate <=  @EndDate AND PL.EffectiveDate <= @EndDate) 
 			GROUP BY L.LocationName,Prod.ProductCode,Prod.ProductName,PR.Amount,PR.PayDate,PL.ExpiryDate,PL.EffectiveDate
 			)PremiumDistribution
 			GROUP BY MonthId,DistrictName,ProductCode,ProductName		

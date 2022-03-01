@@ -27,3 +27,4 @@ BEGIN
 	-- remove the run id
 	DELETE FROM tblBatchRun WHERE tblBatchRun.RunID = @runid or tblBatchRun.LegacyID = @runid
 END
+GO

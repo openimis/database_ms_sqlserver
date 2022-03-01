@@ -24,6 +24,11 @@ BEGIN
 	INNER JOIN tblProduct p on idx.ProdID = p.ProdID
 	LEFT JOIN tblBatchRun br on p.LocationId = br.LocationId and idx.RelPeriod = br.RunMonth and idx.RelYear = br.RunYear 
 	WHERE br.RunID = @runid
+	-- remove Capitation
+	DELETE cp FROM tblCapitationPayment cp
+	INNER JOIN tblProduct p on cp.ProductID = p.ProdID
+	LEFT JOIN tblBatchRun br on p.LocationId = br.LocationId and cp.month = br.RunMonth and cp.Year = br.RunYear 
+	WHERE br.RunID = @runid	
 	-- remove the run id
 	DELETE FROM tblBatchRun WHERE tblBatchRun.RunID = @runid or tblBatchRun.LegacyID = @runid
 END

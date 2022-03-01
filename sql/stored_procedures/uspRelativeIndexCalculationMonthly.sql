@@ -15,7 +15,6 @@ CREATE PROCEDURE [dbo].[uspRelativeIndexCalculationMonthly]
 @AuditUser int = -1,
 @RelIndex  decimal(18,4) OUTPUT
 )
-
 AS
 BEGIN
 	DECLARE @oReturnValue as int 
@@ -81,3 +80,4 @@ END TRY
 	END CATCH
 	
 END
+GO

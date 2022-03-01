@@ -1,4 +1,8 @@
-PROCEDURE [dbo].[uspBatchProcess]
+IF OBJECT_ID('uspBatchProcess', 'P') IS NOT NULL
+    DROP PROCEDURE uspBatchProcess
+GO
+
+CREATE PROCEDURE [dbo].[uspBatchProcess]
 	
 	@AuditUser as int = 0,
 	@LocationId as int, 

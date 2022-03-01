@@ -178,28 +178,24 @@ BEGIN
 			);
 	    
 		INSERT INTO @Allocation
-	        SELECT ProdId, CAST(SUM(ISNULL(Allocated, 0)) AS DECIMAL(18, 6)) Allocated
-		    FROM
-		    (SELECT PL.ProdID,
-		    CASE 
-		    WHEN MONTH(DATEADD(D,-1,PL.ExpiryDate)) = @Month AND YEAR(DATEADD(D,-1,PL.ExpiryDate)) = @Year AND (DAY(PL.ExpiryDate)) > 1
-			    THEN CASE WHEN DATEDIFF(D,CASE WHEN PR.PayDate < @FirstDay THEN @FirstDay ELSE PR.PayDate END,PL.ExpiryDate) = 0 THEN 1 ELSE DATEDIFF(D,CASE WHEN PR.PayDate < @FirstDay THEN @FirstDay ELSE PR.PayDate END,PL.ExpiryDate) END  * ((SUM(PR.Amount))/(CASE WHEN (DATEDIFF(DAY,CASE WHEN PR.PayDate < PL.EffectiveDate THEN PL.EffectiveDate ELSE PR.PayDate END,PL.ExpiryDate)) <= 0 THEN 1 ELSE DATEDIFF(DAY,CASE WHEN PR.PayDate < PL.EffectiveDate THEN PL.EffectiveDate ELSE PR.PayDate END,PL.ExpiryDate) END))
-		    WHEN MONTH(CASE WHEN PR.PayDate < PL.EffectiveDate THEN PL.EffectiveDate ELSE PR.PayDate END) = @Month AND YEAR(CASE WHEN PR.PayDate < PL.EffectiveDate THEN PL.EffectiveDate ELSE PR.PayDate END) = @Year
-			    THEN ((@DaysInMonth + 1 - DAY(CASE WHEN PR.PayDate < PL.EffectiveDate THEN PL.EffectiveDate ELSE PR.PayDate END)) * ((SUM(PR.Amount))/CASE WHEN DATEDIFF(DAY,CASE WHEN PR.PayDate < PL.EffectiveDate THEN PL.EffectiveDate ELSE PR.PayDate END,PL.ExpiryDate) <= 0 THEN 1 ELSE DATEDIFF(DAY,CASE WHEN PR.PayDate < PL.EffectiveDate THEN PL.EffectiveDate ELSE PR.PayDate END,PL.ExpiryDate) END)) 
-		    WHEN PL.EffectiveDate < @FirstDay AND PL.ExpiryDate > @LastDay AND PR.PayDate < @FirstDay
-			    THEN @DaysInMonth * (SUM(PR.Amount)/CASE WHEN (DATEDIFF(DAY,CASE WHEN PR.PayDate < PL.EffectiveDate THEN PL.EffectiveDate ELSE PR.PayDate END,DATEADD(D,-1,PL.ExpiryDate))) <= 0 THEN 1 ELSE DATEDIFF(DAY,CASE WHEN PR.PayDate < PL.EffectiveDate THEN PL.EffectiveDate ELSE PR.PayDate END,PL.ExpiryDate) END)
-		    END Allocated
-		    FROM tblPremium PR 
-		    INNER JOIN tblPolicy PL ON PR.PolicyID = PL.PolicyID
-		    INNER JOIN tblProduct Prod ON Prod.ProdId = PL.ProdID
-		    INNER JOIN  @Locations L ON ISNULL(Prod.LocationId, 0) = L.LocationId
-		    WHERE PR.ValidityTo IS NULL
-		    AND PL.ValidityTo IS NULL
-		    AND PL.ProdID = @ProdId
-		    AND PL.PolicyStatus <> 1
-		    AND PR.PayDate <= PL.ExpiryDate
-		    GROUP BY PL.ProdID, PL.ExpiryDate, PR.PayDate,PL.EffectiveDate)Alc
-		    GROUP BY ProdId;
+			SELECT Prod.ProdId, SUM(ISNULL( CAST(1+DATEDIFF(DAY,
+			CASE WHEN @FirstDay >  PR.PayDate and  @FirstDay >  PL.EffectiveDate  THEN  @FirstDay  WHEN PR.PayDate > PL.EffectiveDate THEN PR.PayDate ELSE  PL.EffectiveDate  END
+				,CASE WHEN PL.ExpiryDate < @LastDay THEN PL.ExpiryDate ELSE @LastDay END)
+				as decimal(18,4)) / DATEDIFF (DAY,(CASE WHEN PR.PayDate > PL.EffectiveDate THEN PR.PayDate ELSE  PL.EffectiveDate  END), PL.ExpiryDate ) * PR.Amount 
+			 ,0)) Allocated
+			FROM tblPremium PR 
+			INNER JOIN tblPolicy PL ON PR.PolicyID = PL.PolicyID
+			INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID 
+			INNER JOIN  @Locations L ON ISNULL(Prod.LocationId, 0) = L.LocationId and (L.LocationId = ISNULL(@DistrictId, @RegionId) OR   ( L.ParentLocationId = ISNULL(@DistrictId, @RegionId)))
+			WHERE PR.ValidityTo IS NULL
+			AND PL.ValidityTo IS NULL
+			AND Prod.ValidityTo IS  NULL
+			AND Prod.ProdID = @ProdId
+			AND PL.PolicyStatus <> 1
+			AND PR.PayDate <= PL.ExpiryDate
+			AND PL.ExpiryDate >= @FirstDay
+			AND (PR.PayDate <=  @LastDay AND PL.EffectiveDate <= @LastDay) 
+			GROUP BY Prod.ProdId
 	    
 
 		DECLARE @ReportData TABLE (

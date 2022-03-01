@@ -83,31 +83,6 @@ BEGIN
 			FROM @Locations  r WHERE ParentLocationId = 0)
 		
 		declare @listOfHF table (id int)
-		-- get the list of Hf part of the covered regions and config
-		IF  @RegionId IS  NULL or @RegionId =0
-			INSERT INTO @listOfHF(id) SELECT HF.HfID FROM tblHF HF WHERE HF.ValidityTo is NULL
-			AND(
-			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @Sublevel1 OR @Sublevel1 IS NULL))
-			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @Sublevel2 OR @Sublevel2 IS NULL))
-			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @Sublevel3 OR @Sublevel3 IS NULL))
-			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @Sublevel4 OR @Sublevel4 IS NULL))
-		      )
-		 ELSE IF  @DistrictId is NULL or @DistrictId =0
-			INSERT INTO @listOfHF(id) SELECT HF.HfID FROM tblHF HF JOIN tblLocations l on HF.LocationId = l.LocationId   WHERE l.ParentLocationId =  @RegionId 
-			AND(
-			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @Sublevel1 OR @Sublevel1 IS NULL))
-			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @Sublevel2 OR @Sublevel2 IS NULL))
-			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @Sublevel3 OR @Sublevel3 IS NULL))
-			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @Sublevel4 OR @Sublevel4 IS NULL))
-		      )
-		ELSE 
-			INSERT INTO @listOfHF(id) SELECT HF.HfID FROM tblHF HF WHERE HF.LocationId = @DistrictId and HF.ValidityTo is NULL
-			AND(
-			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @Sublevel1 OR @Sublevel1 IS NULL))
-			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @Sublevel2 OR @Sublevel2 IS NULL))
-			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @Sublevel3 OR @Sublevel3 IS NULL))
-			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @Sublevel4 OR @Sublevel4 IS NULL))
-		      )
 
 		-- get the product data
 	    SELECT @Level1 = Level1, 
@@ -128,6 +103,37 @@ BEGIN
 	    FROM tblProduct Prod 
 	    WHERE ProdId = @ProdId
 
+				-- get the list of Hf part of the covered regions and config
+		IF  (@RegionId IS  NULL or @RegionId =0) AND (@DistrictId is NULL or @DistrictId =0)
+		BEGIN
+			INSERT INTO @listOfHF(id) SELECT HF.HfID FROM tblHF HF WHERE HF.ValidityTo is NULL
+			AND(
+			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @Sublevel1 OR @Sublevel1 IS NULL))
+			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @Sublevel2 OR @Sublevel2 IS NULL))
+			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @Sublevel3 OR @Sublevel3 IS NULL))
+			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @Sublevel4 OR @Sublevel4 IS NULL))
+		      )
+		 END
+		 ELSE IF  @DistrictId is NULL or @DistrictId =0
+		 begin
+			INSERT INTO @listOfHF(id) SELECT HF.HfID FROM tblHF HF JOIN tblLocations l on HF.LocationId = l.LocationId   WHERE l.ParentLocationId =  @RegionId 
+			AND(
+			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @Sublevel1 OR @Sublevel1 IS NULL))
+			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @Sublevel2 OR @Sublevel2 IS NULL))
+			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @Sublevel3 OR @Sublevel3 IS NULL))
+			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @Sublevel4 OR @Sublevel4 IS NULL))
+		      )
+		END
+		ELSE
+		BEGIN
+			INSERT INTO @listOfHF(id) SELECT HF.HfID FROM tblHF HF WHERE HF.LocationId = @DistrictId and HF.ValidityTo is NULL
+			AND(
+			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @Sublevel1 OR @Sublevel1 IS NULL))
+			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @Sublevel2 OR @Sublevel2 IS NULL))
+			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @Sublevel3 OR @Sublevel3 IS NULL))
+			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @Sublevel4 OR @Sublevel4 IS NULL))
+		      )
+		END
 		-- get pop
 	    DECLARE @TotalPopFam TABLE (
 			HFID INT,
@@ -144,10 +150,10 @@ BEGIN
 		    LEFT JOIN tblLocations L ON L.LocationId = C.LocationId OR  L.LegacyId = C.LocationId
 		    INNER JOIN tblHF HF ON C.HFID = HF.HfID
 		    INNER JOIN @LocationTemp D ON HF.LocationId = D.DistrictId
+			INNER JOIN @listOfHF HFF ON C.HFID = HFF.ID
 		    WHERE (C.ValidityTo IS NULL OR C.ValidityTo >= @FirstDay) AND C.ValidityFrom< @FirstDay
 		    AND(L.ValidityTo IS NULL OR L.ValidityTo >= @FirstDay) AND L.ValidityFrom< @FirstDay
 		    AND (HF.ValidityTo IS NULL )
-			AND C.HFID in  (SELECT id FROM @listOfHF)
 		    GROUP BY C.HFID, D.DistrictId, D.RegionId
 
 
@@ -166,6 +172,7 @@ BEGIN
 		    INNER JOIN tblFamilies F ON F.FamilyId = I.FamilyId
 		    INNER JOIN tblHFCatchment HC ON HC.LocationId = F.LocationId
 		    INNER JOIN tblPolicy PL ON PL.PolicyID = IP.PolicyId
+			INNER JOIN @listOfHF HFF ON HC.HFID = HFF.ID
 		    WHERE (HC.ValidityTo IS NULL OR HC.ValidityTo >= @FirstDay) AND HC.ValidityFrom< @FirstDay
 		    AND I.ValidityTo IS NULL
 		    AND IP.ValidityTo IS NULL
@@ -174,7 +181,6 @@ BEGIN
 		    AND IP.EffectiveDate <= @LastDay 
 		    AND IP.ExpiryDate > @LastDay
 		    AND PL.ProdID = @ProdId
-			AND HC.HFID in  (SELECT id FROM @listOfHF)
 		    GROUP BY HC.HFID, Catchment--, L.LocationId
 
 
@@ -192,6 +198,7 @@ BEGIN
 		    INNER JOIN tblFamilies F ON F.InsureeID = I.InsureeID
 		    INNER JOIN tblHFCatchment HC ON HC.LocationId = F.LocationId
 		    INNER JOIN tblPolicy PL ON PL.PolicyID = IP.PolicyId
+			INNER JOIN @listOfHF HFF ON HC.HFID = HFF.ID
 		    WHERE (HC.ValidityTo IS NULL OR HC.ValidityTo >= @FirstDay) AND HC.ValidityFrom< @FirstDay
 		    AND I.ValidityTo IS NULL
 		    AND IP.ValidityTo IS NULL
@@ -200,7 +207,6 @@ BEGIN
 		    AND IP.EffectiveDate <= @LastDay 
 		    AND IP.ExpiryDate > @LastDay
 		    AND PL.ProdID = @ProdId
-			AND HC.HFID in  (SELECT id FROM @listOfHF)
 		    GROUP BY HC.HFID, Catchment--, L.LocationId
 
 		-- get allocated contribution
@@ -398,4 +404,3 @@ BEGIN
 					FROM @ReportData GROUP BY HFCode) r
 END
 GO
- 

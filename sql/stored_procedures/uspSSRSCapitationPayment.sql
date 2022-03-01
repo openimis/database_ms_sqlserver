@@ -13,7 +13,7 @@ CREATE PROCEDURE [dbo].[uspSSRSCapitationPayment]
 )
 AS
 BEGIN
-	
+
 		DECLARE @Level1 CHAR(1) = NULL,
 			    @Sublevel1 CHAR(1) = NULL,
 			    @Level2 CHAR(1) = NULL,
@@ -31,105 +31,145 @@ BEGIN
 			    @WeightAdjustedAmount DECIMAL(5, 2)
 
 
-	    DECLARE @FirstDay DATE = CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Month AS VARCHAR(2)) + '-01'; 
-	    DECLARE @LastDay DATE = EOMONTH(CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Month AS VARCHAR(2)) + '-01', 0)
-	    DECLARE @DaysInMonth INT = DATEDIFF(DAY,@FirstDay,DATEADD(MONTH,1,@FirstDay));
+	    DECLARE @FirstDay DATE = CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Month AS VARCHAR(2)) + '-01'
+	    DECLARE @LastDay DATE = EOMONTH(@FirstDay, 0)
+	    DECLARE @DaysInMonth INT = DATEDIFF(DAY,@FirstDay,DATEADD(MONTH,1,@FirstDay))
 
-		set @DistrictId = CASE @DistrictId WHEN 0 THEN NULL ELSE @DistrictId END
+		 set @DistrictId = CASE @DistrictId WHEN 0 THEN NULL ELSE @DistrictId END
 
 		DECLARE @Locations TABLE (
 			LocationId INT,
 			LocationName VARCHAR(50),
 			LocationCode VARCHAR(8),
 			ParentLocationId INT
-			);
-	    
+			)
+		-- fetch all the region and districts
 		INSERT INTO @Locations 
 		    SELECT 0 LocationId, N'National' LocationName, NULL ParentLocationId,  0 LocationCode
-		    
+
 			UNION ALL
-		    
+
 			SELECT LocationId,LocationName, LocationCode, ISNULL(ParentLocationId, 0) 
 			FROM tblLocations 
-			WHERE (ValidityTo IS NULL )
-				AND (LocationId = ISNULL(@DistrictId, @RegionId) OR 
-				(LocationType IN ('R', 'D') AND ParentLocationId = ISNULL(@DistrictId, @RegionId)))
-		    
-		
+			WHERE ValidityTo IS NULL 
+				AND LocationType IN ('R', 'D') 
+
 		DECLARE @LocationTemp table (LocationId int, RegionId int, RegionCode [nvarchar](8) , RegionName [nvarchar](50), DistrictId int, DistrictCode [nvarchar](8), 
 			DistrictName [nvarchar](50), ParentLocationId int)
-		
 
+		-- create table with locaiton hiearchy
 		INSERT INTO  @LocationTemp(LocationId , RegionId , RegionCode , RegionName , DistrictId , DistrictCode , 
-		DistrictName , ParentLocationId)( SELECT ISNULL(d.LocationId,r.LocationId) LocationId , r.LocationId as RegionId , r.LocationCode as RegionCode  , r.LocationName as RegionName , d.LocationId as DistrictId , d.LocationCode as DistrictCode , 
-		d.LocationName as DistrictName , ISNULL(d.ParentLocationId,r.ParentLocationId) ParentLocationId FROM @Locations  d  INNER JOIN @Locations r on d.ParentLocationId = r.LocationId
-		UNION ALL SELECT r.LocationId, r.LocationId as RegionId , r.LocationCode as RegionCode  , r.LocationName as RegionName , NULL DistrictId , NULL DistrictCode , 
-		NULL DistrictName ,  ParentLocationId FROM @Locations  r WHERE ParentLocationId = 0)
-		;
-		declare @listOfHF table (id int);
+		DistrictName , ParentLocationId)
+			( SELECT ISNULL(d.LocationId,r.LocationId) LocationId , 
+				r.LocationId as RegionId , 
+				r.LocationCode as RegionCode  , 
+				r.LocationName as RegionName , 
+				d.LocationId as DistrictId , 
+				d.LocationCode as DistrictCode , 
+				d.LocationName as DistrictName , 
+				ISNULL(d.ParentLocationId,r.ParentLocationId) ParentLocationId 
+			FROM @Locations  d  
+			INNER JOIN @Locations r on d.ParentLocationId = r.LocationId
+		UNION ALL 
+			SELECT r.LocationId, r.LocationId as RegionId , 
+			r.LocationCode as RegionCode  , 
+			r.LocationName as RegionName , 
+			NULL DistrictId , 
+			NULL DistrictCode , 
+		    NULL DistrictName ,  ParentLocationId 
+			FROM @Locations  r WHERE ParentLocationId = 0)
 		
-		IF  @RegionId IS  NULL or @RegionId =0
-			INSERT INTO @listOfHF(id) SELECT tblHF.HfID FROM tblHF WHERE tblHF.ValidityTo is NULL;
-		 ELSE IF  @DistrictId is NULL or @DistrictId =0
-			INSERT INTO @listOfHF(id) SELECT tblHF.HfID FROM tblHF JOIN tblLocations l on tblHF.LocationId = l.LocationId   WHERE l.ParentLocationId =  @RegionId  ;
-		ELSE 
-			INSERT INTO @listOfHF(id) SELECT tblHF.HfID FROM tblHF WHERE tblHF.LocationId = @DistrictId and tblHF.ValidityTo is NULL;
+		declare @listOfHF table (id int)
 
-
-	    SELECT @Level1 = Level1, @Sublevel1 = Sublevel1, @Level2 = Level2, @Sublevel2 = Sublevel2, @Level3 = Level3, @Sublevel3 = Sublevel3, 
-	    @Level4 = Level4, @Sublevel4 = Sublevel4, @ShareContribution = ISNULL(ShareContribution, 0), @WeightPopulation = ISNULL(WeightPopulation, 0), 
-	    @WeightNumberFamilies = ISNULL(WeightNumberFamilies, 0), @WeightInsuredPopulation = ISNULL(WeightInsuredPopulation, 0), @WeightNumberInsuredFamilies = ISNULL(WeightNumberInsuredFamilies, 0), 
-	    @WeightNumberVisits = ISNULL(WeightNumberVisits, 0), @WeightAdjustedAmount = ISNULL(WeightAdjustedAmount, 0)
+		-- get the product data
+	    SELECT @Level1 = Level1, 
+			@Sublevel1 = Sublevel1, 
+			@Level2 = Level2, 
+			@Sublevel2 = Sublevel2, 
+			@Level3 = Level3, 
+			@Sublevel3 = Sublevel3, 
+			@Level4 = Level4, 
+			@Sublevel4 = Sublevel4, 
+			@ShareContribution = ISNULL(ShareContribution, 0), 
+			@WeightPopulation = ISNULL(WeightPopulation, 0), 
+			@WeightNumberFamilies = ISNULL(WeightNumberFamilies, 0), 
+			@WeightInsuredPopulation = ISNULL(WeightInsuredPopulation, 0), 
+			@WeightNumberInsuredFamilies = ISNULL(WeightNumberInsuredFamilies, 0), 
+			@WeightNumberVisits = ISNULL(WeightNumberVisits, 0), 
+			@WeightAdjustedAmount = ISNULL(WeightAdjustedAmount, 0)
 	    FROM tblProduct Prod 
-	    WHERE ProdId = @ProdId;
+	    WHERE ProdId = @ProdId
 
-
-	    PRINT @ShareContribution
-	    PRINT @WeightPopulation
-	    PRINT @WeightNumberFamilies 
-	    PRINT @WeightInsuredPopulation 
-	    PRINT @WeightNumberInsuredFamilies 
-	    PRINT @WeightNumberVisits 
-	    PRINT @WeightAdjustedAmount
-
-
+				-- get the list of Hf part of the covered regions and config
+		IF  (@RegionId IS  NULL or @RegionId =0) AND (@DistrictId is NULL or @DistrictId =0)
+		BEGIN
+			INSERT INTO @listOfHF(id) SELECT HF.HfID FROM tblHF HF WHERE HF.ValidityTo is NULL
+			AND(
+			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @Sublevel1 OR @Sublevel1 IS NULL))
+			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @Sublevel2 OR @Sublevel2 IS NULL))
+			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @Sublevel3 OR @Sublevel3 IS NULL))
+			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @Sublevel4 OR @Sublevel4 IS NULL))
+		      )
+		 END
+		 ELSE IF  @DistrictId is NULL or @DistrictId =0
+		 begin
+			INSERT INTO @listOfHF(id) SELECT HF.HfID FROM tblHF HF JOIN tblLocations l on HF.LocationId = l.LocationId   WHERE l.ParentLocationId =  @RegionId 
+			AND(
+			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @Sublevel1 OR @Sublevel1 IS NULL))
+			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @Sublevel2 OR @Sublevel2 IS NULL))
+			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @Sublevel3 OR @Sublevel3 IS NULL))
+			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @Sublevel4 OR @Sublevel4 IS NULL))
+		      )
+		END
+		ELSE
+		BEGIN
+			INSERT INTO @listOfHF(id) SELECT HF.HfID FROM tblHF HF WHERE HF.LocationId = @DistrictId and HF.ValidityTo is NULL
+			AND(
+			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @Sublevel1 OR @Sublevel1 IS NULL))
+			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @Sublevel2 OR @Sublevel2 IS NULL))
+			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @Sublevel3 OR @Sublevel3 IS NULL))
+			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @Sublevel4 OR @Sublevel4 IS NULL))
+		      )
+		END
+		-- get pop
 	    DECLARE @TotalPopFam TABLE (
 			HFID INT,
 			TotalPopulation DECIMAL(18, 6), 
 			TotalFamilies DECIMAL(18, 6)
-			);
+			)
 
 		INSERT INTO @TotalPopFam 
-	    
+
 		    SELECT C.HFID HFID ,
-		    CASE WHEN ISNULL(@DistrictId, @RegionId) IN (D.RegionId, D.DistrictId) THEN 1 ELSE 0 END * SUM((ISNULL(L.MalePopulation, 0) + ISNULL(L.FemalePopulation, 0) + ISNULL(L.OtherPopulation, 0)) *(0.01* Catchment)) TotalPopulation, 
-		    CASE WHEN ISNULL(@DistrictId, @RegionId) IN (D.RegionId, D.DistrictId) THEN 1 ELSE 0 END * SUM(ISNULL(((L.Families)*(0.01* Catchment)), 0))TotalFamilies
+		    SUM((ISNULL(L.MalePopulation, 0) + ISNULL(L.FemalePopulation, 0) + ISNULL(L.OtherPopulation, 0)) *(0.01* Catchment)) TotalPopulation, 
+		    SUM(ISNULL(((L.Families)*(0.01* Catchment)), 0))TotalFamilies
 		    FROM tblHFCatchment C
 		    LEFT JOIN tblLocations L ON L.LocationId = C.LocationId OR  L.LegacyId = C.LocationId
 		    INNER JOIN tblHF HF ON C.HFID = HF.HfID
 		    INNER JOIN @LocationTemp D ON HF.LocationId = D.DistrictId
+			INNER JOIN @listOfHF HFF ON C.HFID = HFF.ID
 		    WHERE (C.ValidityTo IS NULL OR C.ValidityTo >= @FirstDay) AND C.ValidityFrom< @FirstDay
 		    AND(L.ValidityTo IS NULL OR L.ValidityTo >= @FirstDay) AND L.ValidityFrom< @FirstDay
 		    AND (HF.ValidityTo IS NULL )
-			AND C.HFID in  (SELECT id FROM @listOfHF)
 		    GROUP BY C.HFID, D.DistrictId, D.RegionId
-	    
 
 
+		-- get insuree
 		DECLARE @InsuredInsuree TABLE (
 			HFID INT,
 			ProdId INT, 
 			TotalInsuredInsuree DECIMAL(18, 6)
-			);
+			)
 
 		INSERT INTO @InsuredInsuree
-	    
+
 		    SELECT HC.HFID, @ProdId ProdId, COUNT(DISTINCT IP.InsureeId)*(0.01 * Catchment) TotalInsuredInsuree
 		    FROM tblInsureePolicy IP
 		    INNER JOIN tblInsuree I ON I.InsureeId = IP.InsureeId
 		    INNER JOIN tblFamilies F ON F.FamilyId = I.FamilyId
 		    INNER JOIN tblHFCatchment HC ON HC.LocationId = F.LocationId
 		    INNER JOIN tblPolicy PL ON PL.PolicyID = IP.PolicyId
+			INNER JOIN @listOfHF HFF ON HC.HFID = HFF.ID
 		    WHERE (HC.ValidityTo IS NULL OR HC.ValidityTo >= @FirstDay) AND HC.ValidityFrom< @FirstDay
 		    AND I.ValidityTo IS NULL
 		    AND IP.ValidityTo IS NULL
@@ -138,16 +178,15 @@ BEGIN
 		    AND IP.EffectiveDate <= @LastDay 
 		    AND IP.ExpiryDate > @LastDay
 		    AND PL.ProdID = @ProdId
-			AND HC.HFID in  (SELECT id FROM @listOfHF)
 		    GROUP BY HC.HFID, Catchment--, L.LocationId
 
 
-			
 
+		-- get insured family
 		DECLARE @InsuredFamilies TABLE (
 			HFID INT,
 			TotalInsuredFamilies DECIMAL(18, 6)
-			);
+			)
 
 		INSERT INTO @InsuredFamilies
 		    SELECT HC.HFID, COUNT(DISTINCT F.FamilyID)*(0.01 * Catchment) TotalInsuredFamilies
@@ -156,6 +195,7 @@ BEGIN
 		    INNER JOIN tblFamilies F ON F.InsureeID = I.InsureeID
 		    INNER JOIN tblHFCatchment HC ON HC.LocationId = F.LocationId
 		    INNER JOIN tblPolicy PL ON PL.PolicyID = IP.PolicyId
+			INNER JOIN @listOfHF HFF ON HC.HFID = HFF.ID
 		    WHERE (HC.ValidityTo IS NULL OR HC.ValidityTo >= @FirstDay) AND HC.ValidityFrom< @FirstDay
 		    AND I.ValidityTo IS NULL
 		    AND IP.ValidityTo IS NULL
@@ -164,19 +204,14 @@ BEGIN
 		    AND IP.EffectiveDate <= @LastDay 
 		    AND IP.ExpiryDate > @LastDay
 		    AND PL.ProdID = @ProdId
-			AND HC.HFID in  (SELECT id FROM @listOfHF)
 		    GROUP BY HC.HFID, Catchment--, L.LocationId
 
-
-
-
-		
-	    
+		-- get allocated contribution
 		DECLARE @Allocation TABLE (
 			ProdId INT,
 			Allocated DECIMAL(18, 6)
-			);
-	    
+			)
+
 		INSERT INTO @Allocation
 			SELECT Prod.ProdId, SUM(ISNULL( CAST(1+DATEDIFF(DAY,
 			CASE WHEN @FirstDay >  PR.PayDate and  @FirstDay >  PL.EffectiveDate  THEN  @FirstDay  WHEN PR.PayDate > PL.EffectiveDate THEN PR.PayDate ELSE  PL.EffectiveDate  END
@@ -196,7 +231,7 @@ BEGIN
 			AND PL.ExpiryDate >= @FirstDay
 			AND (PR.PayDate <=  @LastDay AND PL.EffectiveDate <= @LastDay) 
 			GROUP BY Prod.ProdId
-	    
+
 
 		DECLARE @ReportData TABLE (
 			RegionCode VARCHAR(MAX),
@@ -204,6 +239,7 @@ BEGIN
 			DistrictCode VARCHAR(MAX),
 			DistrictName VARCHAR(MAX),
 			HFCode VARCHAR(MAX),
+			HFID INT,
 			HFName VARCHAR(MAX),
 			AccCode VARCHAR(MAX),
 			HFLevel VARCHAR(MAX),
@@ -228,42 +264,60 @@ BEGIN
 			UPInsFamilies DECIMAL(18, 6),
 			UPVisits DECIMAL(18, 6),
 			UPAdjustedAmount DECIMAL(18, 6)
-			
 
-			);
-	    
+
+			)
+
 		DECLARE @ClaimValues TABLE (
 			HFID INT,
 			ProdId INT,
 			TotalAdjusted DECIMAL(18, 6),
 			TotalClaims DECIMAL(18, 6)
-			);
+			)
 
 		INSERT INTO @ClaimValues
 		SELECT HFID, @ProdId ProdId, SUM(TotalAdjusted)TotalAdjusted, COUNT(DISTINCT ClaimId)TotalClaims FROM
 		(
-			SELECT HFID, SUM(PriceValuated)TotalAdjusted, ClaimId
+			SELECT HFID, SUM(PriceAdjusted)TotalAdjusted, ClaimId
 			FROM 
-			(SELECT HFID,c.ClaimId, PriceValuated FROM  tblClaim C WITH (NOLOCK)
-			 LEFT JOIN tblClaimItems ci ON c.ClaimID = ci.ClaimID and  ProdId = @ProdId AND (@WeightAdjustedAmount > 0.0)
-			 WHERE CI.ValidityTo IS NULL  AND C.ValidityTo IS NULL
+			(SELECT C.HFID,c.ClaimId, PriceAdjusted 
+			FROM  tblClaim C WITH (NOLOCK)
+			INNER JOIN tblClaimItems ci ON c.ClaimID = ci.ClaimID
+			INNER JOIN tblHF HF ON HF.HFID = C.HFID 
+			WHERE CI.ValidityTo IS NULL  AND C.ValidityTo IS NULL
 				AND C.ClaimStatus > 4
 				AND YEAR(C.DateProcessed) = @Year
 				AND MONTH(C.DateProcessed) = @Month
-				AND ci.ValidityTo IS NULL 
+				AND ci.ProdId = @ProdId 
+				AND (@WeightAdjustedAmount > 0.0 or @WeightNumberVisits > 0.0)
+				AND (
+			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @Sublevel1 OR @Sublevel1 IS NULL))
+			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @Sublevel2 OR @Sublevel2 IS NULL))
+			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @Sublevel3 OR @Sublevel3 IS NULL))
+			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @Sublevel4 OR @Sublevel4 IS NULL))
+		      )
 			UNION ALL
-			SELECT HFID, c.ClaimId, PriceValuated FROM tblClaim C WITH (NOLOCK) 
-			LEFT JOIN tblClaimServices cs ON c.ClaimID = cs.ClaimID   and  ProdId = @ProdId AND (@WeightAdjustedAmount > 0.0)
+			SELECT C.HFID, c.ClaimId, PriceAdjusted 
+			FROM tblClaim C WITH (NOLOCK) 
+			INNER JOIN tblClaimServices cs ON c.ClaimID = cs.ClaimID 
+			INNER JOIN tblHF HF ON HF.HFID = C.HFID 
 			WHERE cs.ValidityTo IS NULL  	AND C.ValidityTo IS NULL
 				AND C.ClaimStatus > 4
 				AND YEAR(C.DateProcessed) = @Year
 				AND MONTH(C.DateProcessed) = @Month	
-				AND  CS.ValidityTo IS NULL 
+				AND cs.ProdId = @ProdId 
+				AND (@WeightAdjustedAmount > 0.0 or @WeightNumberVisits > 0.0)
+				AND (
+			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @Sublevel1 OR @Sublevel1 IS NULL))
+			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @Sublevel2 OR @Sublevel2 IS NULL))
+			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @Sublevel3 OR @Sublevel3 IS NULL))
+			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @Sublevel4 OR @Sublevel4 IS NULL))
+		      )
 			) claimdetails GROUP BY HFID,ClaimId
 		)claims GROUP by HFID
 
 	    INSERT INTO @ReportData 
-		    SELECT L.RegionCode, L.RegionName, L.DistrictCode, L.DistrictName, HF.HFCode, HF.HFName, Hf.AccCode, 
+		    SELECT L.RegionCode, L.RegionName, L.DistrictCode, L.DistrictName, HF.HFCode, HF.HfID, HF.HFName, Hf.AccCode, 
 			HL.Name HFLevel, 
 			SL.HFSublevelDesc HFSublevel,
 		    PF.[TotalPopulation] TotalPopulation, PF.TotalFamilies TotalFamilies, II.TotalInsuredInsuree, IFam.TotalInsuredFamilies, CV.TotalClaims, CV.TotalAdjusted
@@ -290,7 +344,7 @@ BEGIN
 		    ,  ISNULL((A.Allocated * (0.01 * @WeightNumberInsuredFamilies) * (0.01 * @ShareContribution))/ NULLIF(SUM(IFam.TotalInsuredFamilies) OVER(),0),0) UPInsFamilies
 		    ,  ISNULL((A.Allocated * (0.01 * @WeightNumberVisits) * (0.01 * @ShareContribution)) / NULLIF(SUM(CV.TotalClaims) OVER(),0),0) UPVisits
 		    ,  ISNULL((A.Allocated * (0.01 * @WeightAdjustedAmount) * (0.01 * @ShareContribution))/ NULLIF(SUM(CV.TotalAdjusted) OVER(),0),0) UPAdjustedAmount
-			
+
 		    FROM tblHF HF
 		    INNER JOIN @HFLevel HL ON HL.Code = HF.HFLevel
 		    LEFT OUTER JOIN tblHFSublevel SL ON SL.HFSublevel = HF.HFSublevel
@@ -298,26 +352,18 @@ BEGIN
 		    LEFT OUTER JOIN @TotalPopFam PF ON PF.HFID = HF.HfID
 		    LEFT OUTER JOIN @InsuredInsuree II ON II.HFID = HF.HfID
 		    LEFT OUTER JOIN @InsuredFamilies IFam ON IFam.HFID = HF.HfID
-		   -- LEFT OUTER JOIN @Claims C ON C.HFID = HF.HfID
+		    --LEFT OUTER JOIN @Claims C ON C.HFID = HF.HfID
 		    LEFT OUTER JOIN @ClaimValues CV ON CV.HFID = HF.HfID
 		    LEFT OUTER JOIN @Allocation A ON A.ProdID = @ProdId
 
 		    WHERE HF.ValidityTo IS NULL
 		    AND (((L.RegionId = @RegionId OR @RegionId IS NULL) AND (L.DistrictId = @DistrictId OR @DistrictId IS NULL)) OR CV.ProdID IS NOT NULL OR II.ProdId IS NOT NULL)
-		    
-	AND  CONCAT(HF.HFLevel,'.',HF.HFSublevel)  IN (
-		SELECT CONCAT(HFlevel,'.',HFSublevel) 
-		FROM  (values ('H'), ('C'), ('D')) v(HFLevel)
-		JOIN tblHFSublevel  on 1=1
-		INNER JOIN tblProduct Prod on prodid = @ProdID
-		AND
-		((Prod.Level1 IS NULL AND Prod.Level2 IS NULL AND Prod.Level3 IS NULL AND Prod.Level4 IS NULL)
-		OR (Prod.Level1 = HFLevel and Prod.Sublevel1 is NULL or Prod.Level1 = HFLevel and Prod.Sublevel1=HFSublevel)
-		OR (Prod.Level2 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel2=HFSublevel)
-		OR (Prod.Level3 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel3=HFSublevel)
-		OR (Prod.Level4 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel4=HFSublevel)
-		)
-	);
+		    AND(
+			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @Sublevel1 OR @Sublevel1 IS NULL))
+			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @Sublevel2 OR @Sublevel2 IS NULL))
+			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @Sublevel3 OR @Sublevel3 IS NULL))
+			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @Sublevel4 OR @Sublevel4 IS NULL))
+		      )
 
 	    SELECT  MAX (RegionCode)RegionCode, 
 			MAX(RegionName)RegionName,

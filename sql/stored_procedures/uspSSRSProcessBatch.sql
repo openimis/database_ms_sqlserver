@@ -73,12 +73,12 @@ CREATE PROCEDURE [dbo].[uspSSRSProcessBatch]
 		FROM  (values ('H'), ('C'), ('D')) v(HFLevel)
 		JOIN tblHFSublevel  on 1=1
 		INNER JOIN tblProduct Prod on prodid = @ProdID
-		AND
-		( (Prod.Level1 = HFLevel and Prod.Sublevel1 is NULL or Prod.Level1 = HFLevel and Prod.Sublevel1=HFSublevel)
-		OR (Prod.Level2 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel2=HFSublevel)
-		OR (Prod.Level3 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel3=HFSublevel)
-		OR (Prod.Level4 = HFLevel and Prod.Sublevel2 is NULL or Prod.Level2 = HFLevel and Prod.Sublevel4=HFSublevel)
-		)
+		AND (
+			    ((HF.HFLevel = prod.Level1) AND (HF.HFSublevel = Prod.SubLevel1 OR Prod.SubLevel1 IS NULL))
+			    OR ((HF.HFLevel = Prod.Level2 ) AND (HF.HFSublevel = Prod.SubLevel2 OR Prod.SubLevel2 IS NULL))
+			    OR ((HF.HFLevel = Prod.Level3) AND (HF.HFSublevel = Prod.SubLevel3 OR Prod.SubLevel3 IS NULL))
+			    OR ((HF.HFLevel = Prod.Level4) AND (HF.HFSublevel = Prod.SubLevel4 OR Prod.SubLevel4 IS NULL))
+		      )
 	)
 		   
 	GROUP BY  R.RegionName,D.DistrictName, HF.HFCode, HF.HFName, Prod.ProductCode, Prod.ProductName, Prod.AccCodeRemuneration, HF.AccCode

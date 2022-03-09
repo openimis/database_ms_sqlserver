@@ -43,12 +43,12 @@ BEGIN TRY
 			CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END = 'H')
 		OR (@TYPE =  'O'  and (c.ProcessStamp BETWEEN @startDate AND  @endDate) AND  
 			CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END <> 'H')
-	)AND NOT (
-			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @SubLevel1 OR @SubLevel1 IS NULL))
-			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @SubLevel2 OR @SubLevel2 IS NULL))
-			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @SubLevel3 OR @SubLevel3 IS NULL))
-			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @SubLevel4 OR @SubLevel4 IS NULL))
-		      )
+	)
+	AND NOT (HF.HFLevel = ISNULL(@Level1,'A') AND (HF.HFSublevel = ISNULL(@SubLevel1,HF.HFSublevel)))
+	AND NOT (HF.HFLevel = ISNULL(@Level2,'A') AND (HF.HFSublevel = ISNULL(@SubLevel2,HF.HFSublevel)))
+	AND NOT (HF.HFLevel = ISNULL(@Level3,'A') AND (HF.HFSublevel = ISNULL(@SubLevel3,HF.HFSublevel)))
+	AND NOT (HF.HFLevel =ISNULL(@Level4,'A') AND (HF.HFSublevel = ISNULL(@SubLevel4,HF.HFSublevel)))
+
 	-- sum of service value
 	SELECT @ClaimValueservices = SUM(ISNULL(d.PriceValuated,0) )
 	FROM 	tblClaimServices d 
@@ -63,12 +63,11 @@ BEGIN TRY
 			CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END = 'H')
 		OR (@TYPE =  'O'  and (c.ProcessStamp BETWEEN @startDate AND  @endDate) AND  
 			CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END <> 'H')
-	)AND NOT (
-			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @SubLevel1 OR @SubLevel1 IS NULL))
-			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @SubLevel2 OR @SubLevel2 IS NULL))
-			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @SubLevel3 OR @SubLevel3 IS NULL))
-			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @SubLevel4 OR @SubLevel4 IS NULL))
-		      )
+	)	AND NOT (HF.HFLevel = ISNULL(@Level1,'A') AND (HF.HFSublevel = ISNULL(@SubLevel1,HF.HFSublevel)))
+	AND NOT (HF.HFLevel = ISNULL(@Level2,'A') AND (HF.HFSublevel = ISNULL(@SubLevel2,HF.HFSublevel)))
+	AND NOT (HF.HFLevel = ISNULL(@Level3,'A') AND (HF.HFSublevel = ISNULL(@SubLevel3,HF.HFSublevel)))
+	AND NOT (HF.HFLevel =ISNULL(@Level4,'A') AND (HF.HFSublevel = ISNULL(@SubLevel4,HF.HFSublevel)))
+
 	
 	SET @ClaimValueItems =ISNULL(@ClaimValueItems,0)
 	SET @ClaimValueservices =ISNULL( @ClaimValueservices,0)
@@ -78,14 +77,14 @@ BEGIN TRY
 		--basically all 100% is available
 		SET @RtnStatus = 0 
 		SET @RelIndex = 1.0
-		INSERT INTO [tblRelIndex] ([ProdID],[RelType],[RelCareType],[RelYear],[RelPeriod],[CalcDate],[RelIndex],[AuditUserID],[LocationId] )
-		VALUES (@ProductID,@RelType,@Type,YEAR(@startDate),@Period,GETDATE(),@RelIndex,@AuditUser,@LocationId )
+		INSERT INTO [tblRelIndex] ([ProdID],[RelType],[RelCareType],[RelYear],[RelPeriod],[CalcDate],[RelIndex],[AuditUserID],[LocationId],PrdValue )
+		VALUES (@ProductID,@RelType,@Type,YEAR(@startDate),@Period,GETDATE(),@RelIndex,@AuditUser,@LocationId, @PrdValue )
 	END
 	ELSE
 	BEGIN
 		SET @RelIndex = CAST((@PrdValue * @DistrPerc) as Decimal(18,4)) / (@ClaimValueItems + @ClaimValueservices)
-		INSERT INTO [tblRelIndex] ([ProdID],[RelType],[RelCareType],[RelYear],[RelPeriod],[CalcDate],[RelIndex],[AuditUserID],[LocationId])
-		VALUES (@ProductID,@RelType,@Type,YEAR(@startDate),@Period,GETDATE(),@RelIndex,@AuditUser,@LocationId )
+		INSERT INTO [tblRelIndex] ([ProdID],[RelType],[RelCareType],[RelYear],[RelPeriod],[CalcDate],[RelIndex],[AuditUserID],[LocationId],PrdValue)
+		VALUES (@ProductID,@RelType,@Type,YEAR(@startDate),@Period,GETDATE(),@RelIndex,@AuditUser,@LocationId, @PrdValue )
 		SET @RtnStatus = 0
 	END
 	

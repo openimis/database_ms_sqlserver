@@ -152,7 +152,9 @@ BEGIN
 	IF ISNULL(@Index,0) > 0  OR ISNULL(@IndexIP,0) > 0 
 		BEGIN
 			UPDATE d SET RemuneratedAmount = CAST(
-			CASE WHEN d.PriceOrigin <> 'R' THEN 1.0 
+			CASE
+			WHEN d.PriceOrigin <> 'R' THEN 1.0
+			
 				WHEN (CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END) <>'H' THEN @Index  
 				ELSE @IndexIP END 
 				 as decimal(18, 4))	*  isnull(d.PriceValuated, ISNULL(PriceApproved, PriceAdjusted) * isnull(QtyApproved,QtyProvided)) 
@@ -168,16 +170,16 @@ BEGIN
 					CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END = 'H')
 				OR (@startDateOP is not NULL  and (c.ProcessStamp BETWEEN @startDateOP AND  @endDate) AND  
 					CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END <> 'H')
-			)AND NOT (
-			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @SubLevel1 OR @SubLevel1 IS NULL))
-			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @SubLevel2 OR @SubLevel2 IS NULL))
-			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @SubLevel3 OR @SubLevel3 IS NULL))
-			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @SubLevel4 OR @SubLevel4 IS NULL))
-		      )
+			)	AND NOT (HF.HFLevel = ISNULL(@Level1,'A') AND (HF.HFSublevel = ISNULL(@SubLevel1,HF.HFSublevel)))
+	AND NOT (HF.HFLevel = ISNULL(@Level2,'A') AND (HF.HFSublevel = ISNULL(@SubLevel2,HF.HFSublevel)))
+	AND NOT (HF.HFLevel = ISNULL(@Level3,'A') AND (HF.HFSublevel = ISNULL(@SubLevel3,HF.HFSublevel)))
+	AND NOT (HF.HFLevel =ISNULL(@Level4,'A') AND (HF.HFSublevel = ISNULL(@SubLevel4,HF.HFSublevel)))
 
  
 			UPDATE d SET RemuneratedAmount = CAST(
-			CASE WHEN d.PriceOrigin <> 'R' THEN 1.0
+			CASE 
+			  WHEN d.PriceOrigin <> 'R' THEN 1.0
+				
 				WHEN (CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END) <>'H' THEN @Index  
 				ELSE @IndexIP END 
 				 as decimal(18, 4))	*  isnull(d.PriceValuated, ISNULL(PriceApproved, PriceAdjusted) * isnull(QtyApproved,QtyProvided)) 
@@ -193,12 +195,10 @@ BEGIN
 					CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END = 'H')
 				OR (@startDateOP is not NULL  and (c.ProcessStamp BETWEEN @startDateOP AND  @endDate) AND  
 					CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END <> 'H')
-			)AND NOT (
-			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @SubLevel1 OR @SubLevel1 IS NULL))
-			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @SubLevel2 OR @SubLevel2 IS NULL))
-			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @SubLevel3 OR @SubLevel3 IS NULL))
-			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @SubLevel4 OR @SubLevel4 IS NULL))
-		      )
+			)	AND NOT (HF.HFLevel = ISNULL(@Level1,'A') AND (HF.HFSublevel = ISNULL(@SubLevel1,HF.HFSublevel)))
+	AND NOT (HF.HFLevel = ISNULL(@Level2,'A') AND (HF.HFSublevel = ISNULL(@SubLevel2,HF.HFSublevel)))
+	AND NOT (HF.HFLevel = ISNULL(@Level3,'A') AND (HF.HFSublevel = ISNULL(@SubLevel3,HF.HFSublevel)))
+	AND NOT (HF.HFLevel =ISNULL(@Level4,'A') AND (HF.HFSublevel = ISNULL(@SubLevel4,HF.HFSublevel)))
 
 			 
 		END

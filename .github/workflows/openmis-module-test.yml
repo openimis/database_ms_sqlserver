@@ -111,7 +111,6 @@ jobs:
               DB_PASSWORD: GitHub999
               #DEV_SERVER: true
               SITE_ROOT: api
-              REMOTE_USER_AUTHENTICATION: True
       - name: Django tests 1.4.2
         working-directory: ./openimis
         run: |
@@ -132,7 +131,6 @@ jobs:
             DB_PASSWORD: GitHub999
             #DEV_SERVER: true
             SITE_ROOT: api
-            REMOTE_USER_AUTHENTICATION: True
       - name: Django tests last main
         working-directory: ./openimis
         run: |
@@ -153,4 +151,3 @@ jobs:
             DB_PASSWORD: GitHub999
             #DEV_SERVER: true
             SITE_ROOT: api
-            REMOTE_USER_AUTHENTICATION: True

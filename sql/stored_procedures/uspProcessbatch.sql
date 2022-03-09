@@ -47,6 +47,7 @@ BEGIN
 	DECLARE @Index as decimal(18,4)
 	DECLARE @IndexIP as decimal(18,4)
 
+	DECLARE @Level1  Char(1), @SubLevel1  Char(1), @Level2  Char(1), @SubLevel2  Char(1), @Level3  Char(1), @SubLevel3  Char(1), @Level4  Char(1), @SubLevel4  Char(1)
 	
 	DECLARE @tblClaimIDs TABLE(ClaimID INT)
 	DECLARE @Months TABLE(monthnbr INT)
@@ -57,12 +58,12 @@ BEGIN
 	DECLARE @endDate date = EOMONTH(@startDateMonth)
 
 
-	if   @endDate >  GETDATE()
-	BEGIN
-		SELECT  'End report date must be before today'
-		SET @oReturnValue = 2 
-		RETURN @oReturnValue
-	END
+    -- if   @endDate >  GETDATE()
+	-- BEGIN
+	-- 	SELECT  'End report date must be before today'
+	-- 	SET @oReturnValue = 2 
+	-- 	RETURN @oReturnValue
+	-- END
 	-- check if already run
 	SELECT @RP_Period = RunMonth FROM tblBatchRun WHERE RunYear = @Year AND RunMonth = @Period AND ISNULL(LocationId,-1) = ISNULL(@LocationId,-1) AND ValidityTo IS NULL
 	IF ISNULL(@RP_Period,0) <> 0 
@@ -83,9 +84,9 @@ BEGIN
 
 	-- loop all product for that location
 	DECLARE PRODUCTLOOPITEMS CURSOR LOCAL FORWARD_ONLY FOR 
-		SELECT prodID,  PeriodRelPrices ,  PeriodRelPricesOP,  PeriodRelPricesIP, CeilingInterpretation FROM tblProduct WHERE ValidityTo is NULL AND ISNULL(tblProduct.LocationId,-1) = ISNULL(@LocationId,-1)
+		SELECT prodID,  PeriodRelPrices ,  PeriodRelPricesOP,  PeriodRelPricesIP, CeilingInterpretation, Level1  , SubLevel1 , Level2  , SubLevel2  , Level3  , SubLevel3 , Level4 , SubLevel4 FROM tblProduct WHERE ValidityTo is NULL AND ISNULL(tblProduct.LocationId,-1) = ISNULL(@LocationId,-1)
 	OPEN PRODUCTLOOPITEMS
-	FETCH NEXT FROM PRODUCTLOOPITEMS INTO @ProdID,@RP_G,@RP_OP,@RP_IP,@CI
+	FETCH NEXT FROM PRODUCTLOOPITEMS INTO @ProdID,@RP_G,@RP_OP,@RP_IP,@CI, @Level1  , @SubLevel1 , @Level2  , @SubLevel2  , @Level3  , @SubLevel3 , @Level4 , @SubLevel4
 	WHILE @@FETCH_STATUS = 0 
 	BEGIN
 	-- calculate the diferent start/stop dates
@@ -152,42 +153,52 @@ BEGIN
 		BEGIN
 			UPDATE d SET RemuneratedAmount = CAST(
 			CASE WHEN d.PriceOrigin <> 'R' THEN 1.0 
-				WHEN (CASE WHEN  @CI='H' THEN  tblHF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END) <>'H' THEN @Index  
+				WHEN (CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END) <>'H' THEN @Index  
 				ELSE @IndexIP END 
 				 as decimal(18, 4))	*  isnull(d.PriceValuated, ISNULL(PriceApproved, PriceAdjusted) * isnull(QtyApproved,QtyProvided)) 
 			FROM 	tblClaimItems d 
 			INNER JOIN tblClaim  c ON c.ClaimID = d.ClaimID AND (c.ValidityTo IS NULL)
-			INNER JOIN tblHF ON c.HFID = tblHF.HfID
+			INNER JOIN tblHF HF ON c.HFID = HF.HfID
 			WHERE     (d.ClaimItemStatus = 1)    
 			AND (d.ValidityTo IS NULL) 
 			AND	(d.ProdID = @ProdID) 
 			AND(
 				(@startDate is not NULL and (c.ProcessStamp BETWEEN @startDate AND  @endDate)    )
 				OR (@startDateIP is not NULL and (c.ProcessStamp BETWEEN @startDateIP AND  @endDate) AND  
-					CASE WHEN  @CI='H' THEN  tblHF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END = 'H')
+					CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END = 'H')
 				OR (@startDateOP is not NULL  and (c.ProcessStamp BETWEEN @startDateOP AND  @endDate) AND  
-					CASE WHEN  @CI='H' THEN  tblHF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END <> 'H')
-			)
+					CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END <> 'H')
+			)AND NOT (
+			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @SubLevel1 OR @SubLevel1 IS NULL))
+			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @SubLevel2 OR @SubLevel2 IS NULL))
+			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @SubLevel3 OR @SubLevel3 IS NULL))
+			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @SubLevel4 OR @SubLevel4 IS NULL))
+		      )
 
  
 			UPDATE d SET RemuneratedAmount = CAST(
 			CASE WHEN d.PriceOrigin <> 'R' THEN 1.0
-				WHEN (CASE WHEN  @CI='H' THEN  tblHF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END) <>'H' THEN @Index  
+				WHEN (CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END) <>'H' THEN @Index  
 				ELSE @IndexIP END 
 				 as decimal(18, 4))	*  isnull(d.PriceValuated, ISNULL(PriceApproved, PriceAdjusted) * isnull(QtyApproved,QtyProvided)) 
 			FROM 	tblClaimServices d 
 			INNER JOIN tblClaim  c ON c.ClaimID = d.ClaimID AND (c.ValidityTo IS NULL)
-			INNER JOIN tblHF ON c.HFID = tblHF.HfID
+			INNER JOIN tblHF  HF ON c.HFID = HF.HfID
 			WHERE     (d.ClaimServiceStatus = 1)   
 			AND (d.ValidityTo IS NULL) 
 			AND	(d.ProdID = @ProdID) 
 			AND(
 				(@startDate is not NULL and (c.ProcessStamp BETWEEN @startDate AND  @endDate)    )
 				OR (@startDateIP is not NULL and (c.ProcessStamp BETWEEN @startDateIP AND  @endDate) AND  
-					CASE WHEN  @CI='H' THEN  tblHF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END = 'H')
+					CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END = 'H')
 				OR (@startDateOP is not NULL  and (c.ProcessStamp BETWEEN @startDateOP AND  @endDate) AND  
-					CASE WHEN  @CI='H' THEN  tblHF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END <> 'H')
-			)
+					CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END <> 'H')
+			)AND NOT (
+			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @SubLevel1 OR @SubLevel1 IS NULL))
+			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @SubLevel2 OR @SubLevel2 IS NULL))
+			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @SubLevel3 OR @SubLevel3 IS NULL))
+			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @SubLevel4 OR @SubLevel4 IS NULL))
+		      )
 
 			 
 		END
@@ -210,7 +221,7 @@ BEGIN
 				CASE WHEN  @CI='H' THEN  tblHF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END = 'H')
 			OR (@startDateOP is not NULL and (c.ProcessStamp BETWEEN @startDateOP AND  @endDate) AND  
 				CASE WHEN  @CI='H' THEN  tblHF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END <> 'H')
-			)
+			)	
 			UNION ALL
 			SELECT c.ClaimID, ISNULL(RemuneratedAmount,0) RemuneratedAmount
 			FROM 	tblClaimItems d 
@@ -225,17 +236,12 @@ BEGIN
 				CASE WHEN  @CI='H' THEN  tblHF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END = 'H')
 			OR (@startDateOP is not NULL and (c.ProcessStamp BETWEEN @startDateOP AND  @endDate) AND  
 				CASE WHEN  @CI='H' THEN  tblHF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END <> 'H')
-			)
+			)		
 			) as tolal GROUP BY claimID
 	) as CDetails on c.ClaimID = CDetails.ClaimID
-
-
-
-
-
-		
+	
 NextProdItems:
-		FETCH NEXT FROM PRODUCTLOOPITEMS INTO @ProdID,@RP_G,@RP_OP,@RP_IP,@CI
+		FETCH NEXT FROM PRODUCTLOOPITEMS INTO @ProdID,@RP_G,@RP_OP,@RP_IP,@CI, @Level1  , @SubLevel1 , @Level2  , @SubLevel2  , @Level3  , @SubLevel3 , @Level4 , @SubLevel4
 	END
 	CLOSE PRODUCTLOOPITEMS
 	DEALLOCATE PRODUCTLOOPITEMS

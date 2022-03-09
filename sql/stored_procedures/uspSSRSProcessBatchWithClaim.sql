@@ -76,7 +76,7 @@ CREATE PROCEDURE [dbo].[uspSSRSProcessBatchWithClaim]
 		FROM  (values ('H'), ('C'), ('D')) v(HFLevel)
 		JOIN tblHFSublevel  on 1=1
 		INNER JOIN tblProduct Prod on prodid = @ProdID
-		and (
+		and NOT (
 			    ((HF.HFLevel = prod.Level1) AND (HF.HFSublevel = Prod.SubLevel1 OR Prod.SubLevel1 IS NULL))
 			    OR ((HF.HFLevel = Prod.Level2 ) AND (HF.HFSublevel = Prod.SubLevel2 OR Prod.SubLevel2 IS NULL))
 			    OR ((HF.HFLevel = Prod.Level3) AND (HF.HFSublevel = Prod.SubLevel3 OR Prod.SubLevel3 IS NULL))

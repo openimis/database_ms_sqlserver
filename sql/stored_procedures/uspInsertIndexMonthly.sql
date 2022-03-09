@@ -23,7 +23,9 @@ BEGIN TRY
 	DECLARE @ClaimValueItems as decimal(18,2)
 	DECLARE @ClaimValueservices as decimal(18,2)
 	DECLARE @CI as varchar(1)
-	SELECT @CI = ISNULL(CeilingInterpretation,'H') FROM tblProduct WHERE ProdID = @ProductID
+	DECLARE @Level1  Char(1), @SubLevel1  Char(1), @Level2  Char(1), @SubLevel2  Char(1), @Level3  Char(1), @SubLevel3  Char(1), @Level4  Char(1), @SubLevel4  Char(1)
+	
+	SELECT @CI = ISNULL(CeilingInterpretation,'H'), @Level1 = Level1  , @SubLevel1 = SubLevel1 , @Level2 = Level2  , @SubLevel2 = SubLevel2  , @Level3 = Level3  , @SubLevel3 = SubLevel3 , @Level4 = Level4 , @SubLevel4 = SubLevel4 FROM tblProduct WHERE ProdID = @ProductID
 	DECLARE @RtnStatus int = 1
 	SELECT @DistrPerc = ISNULL(DistrPerc,1) FROM dbo.tblRelDistr WHERE ProdID = @ProductID AND Period = @Period AND DistrType = @RelType AND DistrCareType = @Type AND ValidityTo IS NULL
 	
@@ -31,32 +33,42 @@ BEGIN TRY
 	SELECT @ClaimValueItems =  SUM(ISNULL(d.PriceValuated,0) )
 	FROM 	tblClaimItems d 
 	INNER JOIN tblClaim  c ON c.ClaimID = d.ClaimID AND (c.ValidityTo IS NULL)
-	INNER JOIN tblHF ON c.HFID = tblHF.HfID
+	INNER JOIN tblHF HF ON c.HFID = HF.HfID
 	WHERE     (d.ClaimItemStatus = 1)   and  d.PriceOrigin = 'R'
 	AND (d.ValidityTo IS NULL) and ClaimStatus = 8
 	AND	(d.ProdID = @ProductID) 
 	AND(
 		(@TYPE =  'B' and (c.ProcessStamp BETWEEN @startDate AND  @endDate)    )
 		OR (@TYPE =  'I' and (c.ProcessStamp BETWEEN @startDate AND  @endDate) AND  
-			CASE WHEN  @CI='H' THEN  tblHF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END = 'H')
+			CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END = 'H')
 		OR (@TYPE =  'O'  and (c.ProcessStamp BETWEEN @startDate AND  @endDate) AND  
-			CASE WHEN  @CI='H' THEN  tblHF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END <> 'H')
-	)
+			CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END <> 'H')
+	)AND NOT (
+			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @SubLevel1 OR @SubLevel1 IS NULL))
+			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @SubLevel2 OR @SubLevel2 IS NULL))
+			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @SubLevel3 OR @SubLevel3 IS NULL))
+			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @SubLevel4 OR @SubLevel4 IS NULL))
+		      )
 	-- sum of service value
 	SELECT @ClaimValueservices = SUM(ISNULL(d.PriceValuated,0) )
 	FROM 	tblClaimServices d 
 	INNER JOIN tblClaim  c ON c.ClaimID = d.ClaimID AND (c.ValidityTo IS NULL)
-	INNER JOIN tblHF ON c.HFID = tblHF.HfID
+	INNER JOIN tblHF HF ON c.HFID = HF.HfID
 	WHERE     (d.ClaimServiceStatus = 1)    and  d.PriceOrigin = 'R'
 	AND (d.ValidityTo IS NULL) and ClaimStatus = 8
 	AND	(d.ProdID = @ProductID) 
 	AND(
 		(@TYPE =  'B' and (c.ProcessStamp BETWEEN @startDate AND  @endDate)    )
 		OR (@TYPE =  'I' and (c.ProcessStamp BETWEEN @startDate AND  @endDate) AND  
-			CASE WHEN  @CI='H' THEN  tblHF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END = 'H')
+			CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END = 'H')
 		OR (@TYPE =  'O'  and (c.ProcessStamp BETWEEN @startDate AND  @endDate) AND  
-			CASE WHEN  @CI='H' THEN  tblHF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END <> 'H')
-	)
+			CASE WHEN  @CI='H' THEN  HF.HFLevel WHEN DATEDIFF(d,c.DateFrom,ISNULL(c.DateTo,c.DateFrom))<1 THEN 'D' ELSE 'H' END <> 'H')
+	)AND NOT (
+			    ((HF.HFLevel = @Level1) AND (HF.HFSublevel = @SubLevel1 OR @SubLevel1 IS NULL))
+			    OR ((HF.HFLevel = @Level2 ) AND (HF.HFSublevel = @SubLevel2 OR @SubLevel2 IS NULL))
+			    OR ((HF.HFLevel = @Level3) AND (HF.HFSublevel = @SubLevel3 OR @SubLevel3 IS NULL))
+			    OR ((HF.HFLevel = @Level4) AND (HF.HFSublevel = @SubLevel4 OR @SubLevel4 IS NULL))
+		      )
 	
 	SET @ClaimValueItems =ISNULL(@ClaimValueItems,0)
 	SET @ClaimValueservices =ISNULL( @ClaimValueservices,0)

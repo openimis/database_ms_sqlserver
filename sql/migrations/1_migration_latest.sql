@@ -9781,9 +9781,7 @@ BEGIN
 
 	WHERE Pr.ReportingCommissionID = @ReportingId 
 	AND Pr.ValidityTo is null
-	GROUP BY Pr.PremiumId,Prod.ProductCode,Prod.ProdID,Prod.ProductName,prod.ProductCode +' ' + prod.ProductName , PL.PolicyID ,  F.FamilyID, D.LocationName,D.LocationID,o.OfficerID , Ins.CHFID, Ins.LastName + ' ' + Ins.OtherNames ,O.Code + ' ' + O.LastName , O.Code,
-		PL.EnrollDate,REP.ReportMode,Month(REP.StartDate), Pr.Paydate, Pr.Receipt,Pr.Amount,Pr.Amount, PD.Amount , PY.PaymentDate, PY.ExpectedAmount,OfficerCode,PL.PolicyStage,TransactionNo,CommissionRate,O.Phone
-
+	
 	ORDER BY PremiumId, O.OfficerID,F.FamilyID DESC;
 
 END

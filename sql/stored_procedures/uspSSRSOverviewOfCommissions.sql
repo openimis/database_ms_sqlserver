@@ -40,9 +40,7 @@ BEGIN
 		RETURN
 	END	
 	DECLARE @RecordFound INT = 0
-	DECLARE @Rate DECIMAL(18,2) 
-
-	SET @Rate = @CommissionRate / 100
+	
 	DECLARE @FirstDay DATE = CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Month AS VARCHAR(2)) + '-01'; 
 	DECLARE @LastDay DATE = EOMONTH(CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Month AS VARCHAR(2)) + '-01', 0)
 		-- check that end date is before today
@@ -62,7 +60,7 @@ BEGIN
 				BEGIN TRAN
 					-- if @Mode = 0 -- prescribed
 						INSERT INTO tblReporting(ReportingDate,LocationId, ProdId, PayerId, StartDate, EndDate, RecordFound,OfficerID,ReportType,CommissionRate,ReportMode,Scope)
-						SELECT GETDATE(),@LocationId,ISNULL(@ProdId,0), @PayerId, @FirstDay, @LastDay, 0,@OfficerId,2,@Rate,@Mode,@Scope; 
+						SELECT GETDATE(),@LocationId,ISNULL(@ProdId,0), @PayerId, @FirstDay, @LastDay, 0,@OfficerId,2,@CommissionRate * 0.01,@Mode,@Scope; 
 						--Get the last inserted reporting Id
 						SELECT @ReportingId =  SCOPE_IDENTITY();
 			
@@ -73,22 +71,19 @@ BEGIN
 						LEFT JOIN tblPaymentDetails PD ON PD.PremiumID = Pr.PremiumId
 						LEFT JOIN tblPayment PY ON PY.PaymentID = PD.PaymentID 
 						INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID
-						INNER JOIN tblFamilies F ON PL.FamilyID = F.FamilyID
-						INNER JOIN tblLocations V ON V.LocationId = F.LocationId
-						INNER JOIN tblLocations W ON W.LocationId = V.ParentLocationId
-						INNER JOIN tblLocations D ON D.LocationId = W.ParentLocationId
-						INNER JOIN tblOfficer O ON O.LocationId = D.LocationId AND O.ValidityTo IS NULL AND O.Officerid = PL.OfficerID
-						INNER JOIN tblInsuree Ins ON F.InsureeID = Ins.InsureeID  
+						INNER JOIN tblOfficer O ON O.Officerid = PL.OfficerID
+						INNER JOIN tblLocations D ON D.LocationId = O.LocationId
 						LEFT OUTER JOIN tblPayer Payer ON Pr.PayerId = Payer.PayerID 
-						WHERE( (@Mode = 1 and PY.MatchedDate IS NOT NULL ) OR  (PY.MatchedDate IS NULL AND @Mode = 0))
-						-- AND Year(Pr.PayDate) = @Year AND Month(Pr.paydate) = @Month -- To be change
-						and ((Year(Py.[PaymentDate]) = @Year AND Month(Py.[PaymentDate]) = @Month and @Mode = 1 ) OR (Year(Pr.ValidityFrom) = @Year AND Month(Pr.ValidityFrom) = @Month and @Mode = 0 ) )
-						AND D.LocationId = @LocationId	or D.ParentLocationId = @LocationId
+						WHERE((@Mode = 1 and PY.MatchedDate IS NOT NULL ) OR  (PY.MatchedDate IS NULL AND @Mode = 0))
+						and ((Year(Py.[PaymentDate]) = @Year AND Month(Py.[PaymentDate]) = @Month and @Mode = 1 ) 
+							OR (Year(Pr.PayDate) = @Year AND Month(Pr.PayDate) = @Month and @Mode = 0 ))
+						AND (D.LocationId = @LocationId	OR D.ParentLocationId = @LocationId)
 						AND (ISNULL(Prod.ProdID,0) = ISNULL(@ProdId,0) OR @ProdId is null)
 						AND (ISNULL(O.OfficerID,0) = ISNULL(@OfficerId,0) OR @OfficerId IS NULL)
 						AND (ISNULL(Payer.PayerID,0) = ISNULL(@PayerId,0) OR @PayerId IS NULL)
 						-- AND (Pr.ReportingId IS NULL OR Pr.ReportingId < 0 ) -- not matched will be with negative ID
 						AND PR.PayType <> N'F'
+						AND PR.ValidityTo IS NULL
 						AND (Pr.ReportingCommissionID IS NULL)
 						GROUP BY Pr.PremiumId
 						HAVING SUM(ISNULL(PD.Amount,0)) = MAX(ISNULL(PY.ExpectedAmount,0))
@@ -122,39 +117,32 @@ BEGIN
 	-- FETCHT THE DATA FOR THE REPORT		
 	-- OTC 70 - don-t put the familly details, insuree head, dob, pazer village and ward
 
-	SELECT  
+	SELECT 
 	Pr.PremiumId,Pr.Paydate, Pr.Receipt, ISNULL(Pr.Amount,0) PrescribedContribution, 
-	CASE WHEN @Mode=1 THEN  ISNULL(PD.Amount,0) ELSE ISNULL(Pr.Amount,0) END * @Rate as Commission,
+	CASE WHEN @Mode=1 THEN  ISNULL(PD.Amount,0) ELSE ISNULL(Pr.Amount,0) END * REP.CommissionRate as Commission,
 	Prod.ProductCode,Prod.ProdID,Prod.ProductName,prod.ProductCode +' ' + prod.ProductName Product,
 	PL.PolicyID, PL.EnrollDate,PL.PolicyStage,
 	F.FamilyID,
 	D.LocationName DistrictName,
-	--V.LocationName VillageName,W.LocationName  WardName,
-	o.OfficerID, O.Code + ' ' + O.LastName Officer, OfficerCode,O.Phone PhoneNumber,
-	-- Ins.DOB, Ins.IsHead, 
+	o.OfficerID, O.Code + ' ' + O.LastName Officer, O.Code OfficerCode,O.Phone PhoneNumber,
 	Ins.CHFID, Ins.LastName + ' ' + Ins.OtherNames InsName,	
 	REP.ReportMode,Month(REP.StartDate)  [Month], 
-	--CASE WHEN Ins.IsHead = 1 THEN ISNULL(Pr.Amount,0) ELSE NULL END Amount, CASE WHEN Ins.IsHead = 1 THEN Pr.Amount ELSE NULL END  PrescribedContribution,
-	-- CASE WHEN IsHead = 1 THEN SUM(ISNULL(Pr.Amount,0.00)) * ISNULL(rep.CommissionRate,0.00) ELSE NULL END  CommissionRate,CASE WHEN Ins.IsHead = 1 THEN ISNULL(PD.Amount,0) ELSE NULL END ActualPayment
 	PY.PaymentDate, ISNULL(PD.Amount,0) ActualPayment , PY.ExpectedAmount PaymentAmount, TransactionNo
-	-- Payer.PayerName
-	FROM tblPremium Pr INNER JOIN tblPolicy PL ON Pr.PolicyID = PL.PolicyID  AND PL.ValidityTo IS NULL
+
+	FROM tblPremium Pr 
+	INNER JOIN tblPolicy PL ON Pr.PolicyID = PL.PolicyID  AND PL.ValidityTo IS NULL
 	LEFT JOIN tblPaymentDetails PD ON PD.PremiumID = Pr.PremiumId AND PD.ValidityTo IS NULl AND PR.ValidityTo IS NULL
 	LEFT JOIN tblPayment PY ON PY.PaymentID = PD.PaymentID AND PY.ValidityTo IS NULL
 	INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID AND Prod.ValidityTo IS NULL
 	INNER JOIN tblFamilies F ON PL.FamilyID = F.FamilyID AND F.ValidityTo IS NULL
-	INNER JOIN tblLocations V ON V.LocationId = F.LocationId
-	INNER JOIN tblLocations W ON W.LocationId = V.ParentLocationId
-	INNER JOIN tblLocations D ON D.LocationId = W.ParentLocationId
-	INNER JOIN tblOfficer O ON O.Officerid = PL.OfficerID AND  O.LocationId = D.LocationId AND O.ValidityTo IS NULL
-	--  JUST the HEAD INNER JOIN tblInsuree Ins ON F.FamilyID = Ins.FamilyID  AND Ins.ValidityTo IS NULL
-	LEFT JOIN tblInsuree Ins ON F.InsureeID = Ins.InsureeID  
+	INNER JOIN tblOfficer O ON O.Officerid = PL.OfficerID
+	INNER JOIN tblLocations D ON D.LocationId = O.LocationId
+	INNER JOIN tblInsuree Ins ON F.InsureeID = Ins.InsureeID  
 	INNER JOIN tblReporting REP ON REP.ReportingId = @ReportingId
-	-- LEFT OUTER JOIN tblPayer Payer ON Pr.PayerId = Payer.PayerID
-	WHERE Pr.ReportingCommissionID = @ReportingId and Pr.ValidityTo is null
-	GROUP BY Pr.PremiumId,Prod.ProductCode,Prod.ProdID,Prod.ProductName,prod.ProductCode +' ' + prod.ProductName , PL.PolicyID ,  F.FamilyID, D.LocationName,D.LocationID,o.OfficerID , Ins.CHFID, Ins.LastName + ' ' + Ins.OtherNames ,O.Code + ' ' + O.LastName ,
-		PL.EnrollDate,REP.ReportMode,Month(REP.StartDate), Pr.Paydate, Pr.Receipt,Pr.Amount,Pr.Amount, PD.Amount , PY.PaymentDate, PY.ExpectedAmount,OfficerCode,PL.PolicyStage,TransactionNo,CommissionRate,O.Phone
-	--  Ins.IsHead,Payer.PayerName,Ins.DOB,V.LocationName,W.LocationName,
+
+	WHERE Pr.ReportingCommissionID = @ReportingId 
+	AND Pr.ValidityTo is null
+	
 	ORDER BY PremiumId, O.OfficerID,F.FamilyID DESC;
 
 END

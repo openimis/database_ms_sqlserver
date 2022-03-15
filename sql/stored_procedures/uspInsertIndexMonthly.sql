@@ -77,14 +77,14 @@ BEGIN TRY
 		--basically all 100% is available
 		SET @RtnStatus = 0 
 		SET @RelIndex = 1.0
-		INSERT INTO [tblRelIndex] ([ProdID],[RelType],[RelCareType],[RelYear],[RelPeriod],[CalcDate],[RelIndex],[AuditUserID],[LocationId],PrdValue )
-		VALUES (@ProductID,@RelType,@Type,YEAR(@startDate),@Period,GETDATE(),@RelIndex,@AuditUser,@LocationId, @PrdValue )
+		INSERT INTO [tblRelIndex] ([ProdID],[RelType],[RelCareType],[RelYear],[RelPeriod],[CalcDate],[RelIndex],[AuditUserID],[LocationId] )
+		VALUES (@ProductID,@RelType,@Type,YEAR(@startDate),@Period,GETDATE(),@RelIndex,@AuditUser,@LocationId )
 	END
 	ELSE
 	BEGIN
 		SET @RelIndex = CAST((@PrdValue * @DistrPerc) as Decimal(18,4)) / (@ClaimValueItems + @ClaimValueservices)
-		INSERT INTO [tblRelIndex] ([ProdID],[RelType],[RelCareType],[RelYear],[RelPeriod],[CalcDate],[RelIndex],[AuditUserID],[LocationId],PrdValue)
-		VALUES (@ProductID,@RelType,@Type,YEAR(@startDate),@Period,GETDATE(),@RelIndex,@AuditUser,@LocationId, @PrdValue )
+		INSERT INTO [tblRelIndex] ([ProdID],[RelType],[RelCareType],[RelYear],[RelPeriod],[CalcDate],[RelIndex],[AuditUserID],[LocationId])
+		VALUES (@ProductID,@RelType,@Type,YEAR(@startDate),@Period,GETDATE(),@RelIndex,@AuditUser,@LocationId)
 		SET @RtnStatus = 0
 	END
 	

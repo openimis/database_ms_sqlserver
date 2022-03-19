@@ -81,5 +81,5 @@ CREATE PROCEDURE [dbo].[uspSSRSProcessBatchWithClaim]
 	GROUP BY C.ClaimCode, C.DateClaimed, CA.OtherNames, CA.LastName , C.DateFrom, C.DateTo, I.CHFID, I.OtherNames,
 	I.LastName, C.HFID, HF.HFCode, HF.HFName, HF.AccCode, Prod.ProdID, Prod.ProductCode, Prod.ProductName, C.Claimed,
 	D.DistrictId, D.DistrictName, R.RegionId, R.RegionName
-EN
+END
 GO

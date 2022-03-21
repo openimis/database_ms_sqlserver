@@ -9479,3 +9479,7 @@ IF COL_LENGTH(N'tblPayment', N'PhoneNumber') IS NOT NULL
 	ALTER TABLE tblPayment
 	ALTER COLUMN PhoneNumber NVARCHAR(50) NULL
 GO
+
+--OTC-528
+UPDATE tblPLItems SET LocationId=NULL WHERE LocationId=0
+UPDATE tblPLServices SET LocationId=NULL WHERE LocationId=0

@@ -83,6 +83,7 @@ CREATE PROCEDURE [dbo].[uspSSRSGetClaimOverview]
 		LEFT OUTER JOIN tblServices S ON CS.ServiceID = S.ServiceID
 		--INNER JOIN tblProduct PROD ON PROD.ProdID = CS.ProdID AND PROD.ProdID = CI.ProdID
 		INNER JOIN tblHF HF ON C.HFID = HF.HfID
+		LEFT OUTER JOIN tblLocations L ON HF.LocationId = L.LocationId
 		LEFT OUTER JOIN tblClaimAdmin CA ON C.ClaimAdminId = CA.ClaimAdminId
 		INNER JOIN tblInsuree Ins ON C.InsureeId = Ins.InsureeId
 		LEFT OUTER JOIN TotalForItems TFI ON C.ClaimId = TFI.ClaimID
@@ -92,11 +93,13 @@ CREATE PROCEDURE [dbo].[uspSSRSGetClaimOverview]
 		LEFT JOIN @ClaimRejReason XCS ON XCS.ID = CS.RejectionReason
 		-- and all claims
 		WHERE C.ValidityTo IS NULL
+		AND L.ValidityTo IS NULL
+		AND HF.ValidityTo IS NULL
+		AND CA.ValidityTo IS NULL
 		AND ISNULL(C.DateTo,C.DateFrom) BETWEEN @StartDate AND @EndDate
 		AND (C.ClaimStatus = @ClaimStatus OR @ClaimStatus IS NULL)
-		AND (HF.LocationId = @LocationId OR @LocationId = 0)
+		AND (L.LocationId = @LocationId OR L.ParentLocationId = @LocationId OR @LocationId = 0)
 		AND (HF.HFID = @HFID OR @HFID = 0)
 		AND (CI.ProdID = @ProdId OR CS.ProdID = @ProdId  
 		OR COALESCE(CS.ProdID, CI.ProdId) IS NULL OR @ProdId = 0)
 	END
-Go

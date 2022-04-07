@@ -1945,7 +1945,7 @@ CREATE TABLE [dbo].[tblProduct](
 	[DateTo] [smalldatetime] NOT NULL,
 	[ConversionProdID] [int] NULL,
 	[LumpSum] [decimal](18, 2) NOT NULL,
-	[MemberCount] [smallint] NOT NULL,
+	[MemberCount] [int] NOT NULL,
 	[PremiumAdult] [decimal](18, 2) NULL,
 	[PremiumChild] [decimal](18, 2) NULL,
 	[DedInsuree] [decimal](18, 2) NULL,

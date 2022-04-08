@@ -1365,7 +1365,8 @@ CREATE TABLE [dbo].[tblIMISDefaults](
 	[AppVersionFeedbackRenewal] [decimal](3, 1) NULL,
 	[AppVersionImis] [decimal](3, 1) NULL,
 	[APIKey] [nvarchar](100) NULL,
-	[ActivationOption] tinyint NOT NULL 
+	[ActivationOption] tinyint NOT NULL,
+	[BypassReviewClaim] BIT NOT NULL
  CONSTRAINT [PK_tblIMISDefaults] PRIMARY KEY CLUSTERED 
 (
 	[DefaultID] ASC
@@ -1376,6 +1377,8 @@ GO
 ALTER TABLE [tblIMISDefaults] ADD CONSTRAINT ActivationOptionDefaultConstraint DEFAULT ((2)) FOR [ActivationOption]
 GO
 
+ALTER TABLE [tblIMISDefaults] ADD CONSTRAINT DF_BypassReviewClaim DEFAULT ((0)) FOR [BypassReviewClaim]
+GO
 
 SET ANSI_NULLS ON
 GO

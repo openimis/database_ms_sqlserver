@@ -9388,3 +9388,20 @@ IF (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'tblProduct' AND
 ALTER TABLE tblProduct
 ALTER COLUMN MemberCount Int NOT NULL
 GO
+
+--OTC-578
+IF COL_LENGTH(N'tblPayment', N'PayerPhoneNumber') IS NOT NULL
+	ALTER TABLE tblPayment ALTER COLUMN PayerPhoneNumber NVARCHAR(50)
+GO
+
+IF COL_LENGTH(N'tblOfficer', N'VEOPhone') IS NOT NULL
+	ALTER TABLE tblOfficer ALTER COLUMN VEOPhone NVARCHAR(50)
+GO
+
+IF COL_LENGTH(N'tblFeedbackPrompt', N'PhoneNumber') IS NOT NULL
+	ALTER TABLE tblFeedbackPrompt ALTER COLUMN PhoneNumber NVARCHAR(50)
+GO
+
+IF COL_LENGTH(N'tblPolicyRenewals', N'PhoneNumber') IS NOT NULL
+	ALTER TABLE tblPolicyRenewals ALTER COLUMN PhoneNumber NVARCHAR(50)
+GO

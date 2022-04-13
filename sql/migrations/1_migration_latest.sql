@@ -9405,3 +9405,7 @@ GO
 IF COL_LENGTH(N'tblPolicyRenewals', N'PhoneNumber') IS NOT NULL
 	ALTER TABLE tblPolicyRenewals ALTER COLUMN PhoneNumber NVARCHAR(50)
 GO
+
+IF COL_LENGTH(N'tblIMISDefaults', N'BypassReviewClaim') IS NULL
+	ALTER TABLE tblIMISDefaults ADD  [BypassReviewClaim] BIT NOT NULL DEFAULT (0)
+GO

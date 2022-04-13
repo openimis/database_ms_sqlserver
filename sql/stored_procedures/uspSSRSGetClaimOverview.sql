@@ -103,3 +103,4 @@ CREATE PROCEDURE [dbo].[uspSSRSGetClaimOverview]
 		AND (CI.ProdID = @ProdId OR CS.ProdID = @ProdId  
 		OR COALESCE(CS.ProdID, CI.ProdId) IS NULL OR @ProdId = 0)
 	END
+GO

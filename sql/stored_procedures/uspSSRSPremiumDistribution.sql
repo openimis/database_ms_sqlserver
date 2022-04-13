@@ -120,7 +120,7 @@ CREATE PROCEDURE [dbo].[uspSSRSPremiumDistribution]
 			SUM(ISNULL( CAST(1+DATEDIFF(DAY,
 			CASE WHEN @Date >  PR.PayDate and  @Date >  PL.EffectiveDate  THEN  @Date  WHEN PR.PayDate > PL.EffectiveDate THEN PR.PayDate ELSE  PL.EffectiveDate  END
 				,CASE WHEN PL.ExpiryDate < @EndDate THEN PL.ExpiryDate ELSE @EndDate END)
-				as decimal(18,4)) / DATEDIFF (DAY,(CASE WHEN PR.PayDate > PL.EffectiveDate THEN PR.PayDate ELSE  PL.EffectiveDate  END), PL.ExpiryDate ) * PR.Amount 
+				as decimal(18,4)) / NULLIF(DATEDIFF (DAY,(CASE WHEN PR.PayDate > PL.EffectiveDate THEN PR.PayDate ELSE  PL.EffectiveDate  END), PL.ExpiryDate ) * PR.Amount, 0)
 			 ,0)) Allocated
 			FROM tblPremium PR 
 			INNER JOIN tblPolicy PL ON PR.PolicyID = PL.PolicyID

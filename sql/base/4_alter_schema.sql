@@ -678,3 +678,9 @@ ALTER TABLE [dbo].[tblProduct]  WITH NOCHECK ADD  CONSTRAINT [CHK_Weight] CHECK 
 GO
 ALTER TABLE [dbo].[tblProduct] CHECK CONSTRAINT [CHK_Weight]
 GO
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name = N'IX_tblControlNumber_VT-PId-CN')
+BEGIN
+	CREATE NONCLUSTERED INDEX [IX_tblControlNumber_VT-PId-CN]
+	ON [dbo].[tblControlNumber] ([ValidityTo],[PaymentID],[ControlNumber])
+END
+GO

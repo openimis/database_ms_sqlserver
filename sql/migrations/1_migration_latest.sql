@@ -9409,3 +9409,8 @@ GO
 IF COL_LENGTH(N'tblIMISDefaults', N'BypassReviewClaim') IS NULL
 	ALTER TABLE tblIMISDefaults ADD  [BypassReviewClaim] BIT NOT NULL DEFAULT (0)
 GO
+
+--OP-248
+IF COL_LENGTH(N'tblEmailSettings', N'SenderDisplayName') IS NULL
+	ALTER TABLE tblEmailSettings ADD SenderDisplayName NVARCHAR(255) NULL
+GO

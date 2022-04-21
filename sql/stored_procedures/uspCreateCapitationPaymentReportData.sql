@@ -31,12 +31,56 @@ BEGIN
 			    @WeightInsuredPopulation DECIMAL(5, 2),
 			    @WeightNumberInsuredFamilies DECIMAL(5, 2),
 			    @WeightNumberVisits DECIMAL(5, 2),
-			    @WeightAdjustedAmount DECIMAL(5, 2)
+			    @WeightAdjustedAmount DECIMAL(5, 2),
+				@RP Char(1),
+				@TargetQuarter INT,
+				@startDateQuarter DATE,
+				@startDateYear DATE,
+				@startDateMonth DATE,
+				@FirstDay DATE,
+				@LastDay DATE
 
 
-	    DECLARE @FirstDay DATE = CAST(@Year AS VARCHAR(4)) + '-' + CAST(@Month AS VARCHAR(2)) + '-01'
-	    DECLARE @LastDay DATE = EOMONTH(@FirstDay, 0)
-	    DECLARE @DaysInMonth INT = DATEDIFF(DAY,@FirstDay,DATEADD(MONTH,1,@FirstDay))
+		-- get the product data
+	    SELECT @Level1 = Level1, 
+			@Sublevel1 = Sublevel1, 
+			@Level2 = Level2, 
+			@Sublevel2 = Sublevel2, 
+			@Level3 = Level3, 
+			@Sublevel3 = Sublevel3, 
+			@Level4 = Level4, 
+			@Sublevel4 = Sublevel4, 
+			@ShareContribution = ISNULL(ShareContribution, 0), 
+			@WeightPopulation = ISNULL(WeightPopulation, 0), 
+			@WeightNumberFamilies = ISNULL(WeightNumberFamilies, 0), 
+			@WeightInsuredPopulation = ISNULL(WeightInsuredPopulation, 0), 
+			@WeightNumberInsuredFamilies = ISNULL(WeightNumberInsuredFamilies, 0), 
+			@WeightNumberVisits = ISNULL(WeightNumberVisits, 0), 
+			@WeightAdjustedAmount = ISNULL(WeightAdjustedAmount, 0),
+			@RP =( CASE WHEN PeriodRelPrices is not NULL then PeriodRelPrices 
+				WHEN PeriodRelPricesOP is not NULL THEN PeriodRelPricesOP 
+				WHEN PeriodRelPricesIP is not NULL THEN PeriodRelPricesIP ELSE 'M' END)
+	    FROM tblProduct Prod 
+	    WHERE ProdId = @ProdId
+
+		set @startDateMonth  = DATEFROMPARTS(@Year, @Month ,'01')
+		set @startDateYear  = DATEFROMPARTS(@Year, '01' ,'01')
+		IF @Month = 3 or @Month = 6 OR @Month = 9 OR @Month = 12 
+		BEGIN
+			SET @TargetQuarter = @Month / 3
+			SET @startDateQuarter = DATEFROMPARTS(@Year, (@TargetQuarter -1)*3+1 ,'01')
+		END
+		ELSE
+			SET @startDateQuarter = NULL
+		
+
+	    set @LastDay  = EOMONTH(@startDateMonth, 0)
+		SELECT @FirstDay = CASE @RP WHEN 'M' THEN  @FirstDay
+			WHEN 'Q' THEN @startDateQuarter
+			WHEN 'Y' THEN @startDateYear END
+
+		if @FirstDay IS NULL
+			RETURN
 
 		 set @DistrictId = CASE @DistrictId WHEN 0 THEN NULL ELSE @DistrictId END
 
@@ -84,24 +128,7 @@ BEGIN
 		
 		declare @listOfHF table (id int)
 
-		-- get the product data
-	    SELECT @Level1 = Level1, 
-			@Sublevel1 = Sublevel1, 
-			@Level2 = Level2, 
-			@Sublevel2 = Sublevel2, 
-			@Level3 = Level3, 
-			@Sublevel3 = Sublevel3, 
-			@Level4 = Level4, 
-			@Sublevel4 = Sublevel4, 
-			@ShareContribution = ISNULL(ShareContribution, 0), 
-			@WeightPopulation = ISNULL(WeightPopulation, 0), 
-			@WeightNumberFamilies = ISNULL(WeightNumberFamilies, 0), 
-			@WeightInsuredPopulation = ISNULL(WeightInsuredPopulation, 0), 
-			@WeightNumberInsuredFamilies = ISNULL(WeightNumberInsuredFamilies, 0), 
-			@WeightNumberVisits = ISNULL(WeightNumberVisits, 0), 
-			@WeightAdjustedAmount = ISNULL(WeightAdjustedAmount, 0)
-	    FROM tblProduct Prod 
-	    WHERE ProdId = @ProdId
+
 
 				-- get the list of Hf part of the covered regions and config
 		IF  (@RegionId IS  NULL or @RegionId =0) AND (@DistrictId is NULL or @DistrictId =0)

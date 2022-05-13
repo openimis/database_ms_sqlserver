@@ -38,8 +38,10 @@ jobs:
       - name: install linux packages
         run: |
             mkdir ./oldMain 
-            wget https://raw.githubusercontent.com/openimis/database_ms_sqlserver/main/Empty%20databases/openIMIS_ONLINE.sql -O oldMain/openIMIS_ONLINE.sql
-            wget https://raw.githubusercontent.com/openimis/database_ms_sqlserver/main/Demo%20database/openIMIS_demo_ONLINE.sql -O oldMain/openIMIS_demo_ONLINE.sql
+            git clone --depth 1 --branch main https://github.com/openimis/database_ms_sqlserver ./oldMain
+            cd oldMain
+            bash concatenate_files.sh
+            cd ..
             mkdir ./1.42
             wget https://raw.githubusercontent.com/openimis/database_ms_sqlserver/v1.4.2/Empty%20databases/openIMIS_ONLINE.sql -O 1.42/openIMIS_ONLINE.sql        
             curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
@@ -47,7 +49,7 @@ jobs:
             sudo apt-get update
             sudo ACCEPT_EULA=Y apt-get install -y  mssql-tools build-essential dialog apt-utils unixodbc-dev jq -y
             python -m pip install --upgrade pip
-      - name: DB migration 1.42
+      - name: DB migration 1.4.2
         run: |
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'DROP DATABASE IF EXISTS imis_1_4_2'
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'CREATE DATABASE imis_1_4_2'
@@ -70,8 +72,7 @@ jobs:
         run: |
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'DROP DATABASE IF EXISTS imis_main'
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'CREATE DATABASE imis_main'
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_main -i oldMain/openIMIS_ONLINE.sql | grep . | uniq -c
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_main -i oldMain/openIMIS_demo_ONLINE.sql | grep . | uniq -c
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_main -i "oldMain/output/fullDemoDatabase.sql" | grep . | uniq -cc
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_main -i "new/output/fullMigrationScipt.sql" | grep . | uniq -c
 
 

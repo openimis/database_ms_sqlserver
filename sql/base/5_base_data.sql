@@ -64,6 +64,7 @@ INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Tot
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalDelivieriesLeft', N'O', N'Search Insurance Number/Enquiry')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalSurgeriesLeft', N'O', N'Search Insurance Number/Enquiry')
 INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'TotalVisitsLeft', N'O', N'Search Insurance Number/Enquiry')
+INSERT [dbo].[tblControls] ([FieldName], [Adjustibility], [Usage]) VALUES (N'Vulnerability', N'O', N'Insuree, Family')
 INSERT [dbo].[tblEducations] ([EducationId], [Education], [SortOrder], [AltLanguage]) VALUES (1, N'Nursery', NULL, N'Garderie')
 INSERT [dbo].[tblEducations] ([EducationId], [Education], [SortOrder], [AltLanguage]) VALUES (2, N'Primary school', NULL, N'École primaire')
 INSERT [dbo].[tblEducations] ([EducationId], [Education], [SortOrder], [AltLanguage]) VALUES (3, N'Secondary school', NULL, N'École secondaire')

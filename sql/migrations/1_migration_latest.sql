@@ -9503,3 +9503,37 @@ CREATE FUNCTION [dbo].[udfGetSnapshotIndicators](
 	END
 
 GO
+
+--OTC-616
+IF COL_LENGTH(N'tblFamilies', N'Source') IS NULL
+	ALTER TABLE tblFamilies ADD Source NVARCHAR(50) NULL
+GO
+
+IF COL_LENGTH(N'tblFamilies', N'SourceVersion') IS NULL
+	ALTER TABLE tblFamilies ADD SourceVersion NVARCHAR(15) NULL
+GO
+
+IF COL_LENGTH(N'tblInsuree', N'Source') IS NULL
+	ALTER TABLE tblInsuree ADD Source NVARCHAR(50) NULL
+GO
+
+IF COL_LENGTH(N'tblInsuree', N'SourceVersion') IS NULL
+	ALTER TABLE tblInsuree ADD SourceVersion NVARCHAR(15) NULL
+GO
+
+IF COL_LENGTH(N'tblPolicy', N'Source') IS NULL
+	ALTER TABLE tblPolicy ADD Source NVARCHAR(50) NULL
+GO
+
+IF COL_LENGTH(N'tblPolicy', N'SourceVersion') IS NULL
+	ALTER TABLE tblPolicy ADD SourceVersion NVARCHAR(15) NULL
+GO
+
+IF COL_LENGTH(N'tblPremium', N'Source') IS NULL
+	ALTER TABLE tblPremium ADD Source NVARCHAR(50) NULL
+GO
+
+IF COL_LENGTH(N'tblPremium', N'SourceVersion') IS NULL
+	ALTER TABLE tblPremium ADD SourceVersion NVARCHAR(15) NULL
+GO
+

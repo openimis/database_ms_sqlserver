@@ -1078,7 +1078,9 @@ CREATE TABLE [dbo].[tblFamilies](
 	[isOffline] [bit] NULL,
 	[Ethnicity] [nvarchar](1) NULL,
 	[ConfirmationNo] [nvarchar](12) NULL,
-	[ConfirmationType] [nvarchar](3) NULL
+	[ConfirmationType] [nvarchar](3) NULL,
+	[Source] [nvarchar](50) NULL,
+	[SourceVersion] [nvarchar](15) NULL
  CONSTRAINT [PK_tblFamilies] PRIMARY KEY CLUSTERED 
 (
 	[FamilyID] ASC
@@ -1427,6 +1429,8 @@ CREATE TABLE [dbo].[tblInsuree](
 	[GeoLocation] [nvarchar](250) NULL,
 	[CurrentVillage] [int] NULL,
 	[Vulnerability] [bit] NOT NULL DEFAULT 0,
+	[Source] [nvarchar](50) NULL,
+	[SourceVersion] [nvarchar](15) NULL
  CONSTRAINT [PK_tblInsuree] PRIMARY KEY CLUSTERED 
 (
 	[InsureeID] ASC
@@ -1845,7 +1849,9 @@ CREATE TABLE [dbo].[tblPolicy](
 	[RowID] [timestamp] NULL,
 	[isOffline] [bit] NULL,
 	[RenewalOrder] [int] NULL,
-	[SelfRenewed] [bit] NOT NULL DEFAULT 0
+	[SelfRenewed] [bit] NOT NULL DEFAULT 0,
+	[Source] [nvarchar](50) NULL,
+	[SourceVersion] [nvarchar](15) NULL
  CONSTRAINT [PK_tblPolicy] PRIMARY KEY CLUSTERED 
 (
 	[PolicyID] ASC
@@ -1925,7 +1931,9 @@ CREATE TABLE [dbo].[tblPremium](
 	[OverviewCommissionReport] datetime NULL,
 	[AllDetailsCommissionReport] datetime NULL,
 	[ReportingCommissionID] [int] NULL,
-	[CreatedDate] [datetime] NULL CONSTRAINT DF_tblPremium_CreatedDate DEFAULT GETDATE()
+	[CreatedDate] [datetime] NULL CONSTRAINT DF_tblPremium_CreatedDate DEFAULT GETDATE(),
+	[Source] [nvarchar](50) NULL,
+	[SourceVersion] [nvarchar](15) NULL
  CONSTRAINT [PK_tblPremium] PRIMARY KEY CLUSTERED 
 (
 	[PremiumId] ASC

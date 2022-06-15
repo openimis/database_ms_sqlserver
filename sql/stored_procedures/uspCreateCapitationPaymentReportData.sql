@@ -75,7 +75,7 @@ BEGIN
 		
 
 	    set @LastDay  = EOMONTH(@startDateMonth, 0)
-		SELECT @FirstDay = CASE @RP WHEN 'M' THEN  @FirstDay
+		SELECT @FirstDay = CASE @RP WHEN 'M' THEN  @startDateMonth
 			WHEN 'Q' THEN @startDateQuarter
 			WHEN 'Y' THEN @startDateYear END
 

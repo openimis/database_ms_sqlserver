@@ -1,3 +1,10 @@
+USE [IMIS]
+GO
+/****** Object:  StoredProcedure [dbo].[uspSSRSGetClaimOverview]    Script Date: 30.05.2022 12:44:26 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 
 IF OBJECT_ID('uspSSRSGetClaimOverview', 'P') IS NOT NULL
     DROP PROCEDURE uspSSRSGetClaimOverview
@@ -41,6 +48,8 @@ CREATE PROCEDURE [dbo].[uspSSRSGetClaimOverview]
 			WHERE C.ValidityTo IS NULL
 			AND CS.ValidityTo IS NULL
 			GROUP BY C.ClaimID
+		), ClaimLocationChildren AS(
+			select LocationId from tblLocations L where L.ParentLocationId = @LocationId AND ValidityTo is null
 		)
 
 		SELECT C.DateClaimed, C.ClaimID, I.ItemId, S.ServiceID, HF.HFCode, HF.HFName, C.ClaimCode, C.DateClaimed, CA.LastName + ' ' + CA.OtherNames ClaimAdminName,
@@ -60,12 +69,14 @@ CREATE PROCEDURE [dbo].[uspSSRSGetClaimOverview]
 		CASE WHEN @Scope =2 OR CS.QtyProvided <> COALESCE(CS.QtyApproved ,CS.QtyProvided)   THEN ISNULL(CS.QtyApproved,0) ELSE NULL END AdjQtyService,
 		C.Explanation,
 		-- ALL claims
-		 CASE WHEN @Scope = 2 THEN CS.QtyApproved ELSE NULL END ServiceQtyApproved, 
-		 CASE WHEN @Scope = 2 THEN CI.QtyApproved ELSE NULL END ItemQtyApproved,
+		 CASE WHEN @Scope = 2 THEN (CASE WHEN cs.RejectionReason = 0 THEN ISNULL(cs.QtyApproved, cs.QtyProvided) ELSE 0 END) ELSE 0 END ServiceQtyApproved, 
+		 CASE WHEN @Scope = 2 THEN (CASE WHEN cs.RejectionReason = 0 THEN ISNULL(ci.QtyApproved, ci.QtyProvided) ELSE 0 END) ELSE 0 END ItemQtyApproved,
 		 CASE WHEN @Scope = 2 THEN cs.PriceAsked ELSE NULL END ServicePrice, 
 		 CASE WHEN @Scope = 2 THEN CI.PriceAsked ELSE NULL END ItemPrice,
-		 CASE WHEN @Scope = 2 THEN ISNULL(cs.PriceApproved,0) ELSE NULL END ServicePriceApproved,
-		 CASE WHEN @Scope = 2 THEN ISNULL(ci.PriceApproved,0) ELSE NULL END ItemPriceApproved, 
+		 CASE WHEN @Scope = 2 THEN (CASE WHEN cs.RejectionReason = 0 THEN ISNULL(cs.PriceApproved, cs.PriceAsked) ELSE NULL END) ELSE NULL END ServicePriceApproved,
+		 CASE WHEN @Scope = 2 THEN (CASE WHEN ci.RejectionReason = 0 THEN ISNULL(ci.PriceApproved, ci.PriceAsked) ELSE NULL END) ELSE NULL END ItemPriceApproved,
+		 CASE WHEN @Scope = 2 THEN ISNULL(cs.PriceValuated, cs.PriceAdjusted) ELSE NULL END ServicePriceValuated,
+		 CASE WHEN @Scope = 2 THEN ISNULL(ci.PriceValuated, ci.PriceAdjusted) ELSE NULL END ItemPriceValuated, 
 		 CASE WHEN @Scope = 2 THEN ISNULL(cs.Justification,NULL) ELSE NULL END ServiceJustification,
 		 CASE WHEN @Scope = 2 THEN ISNULL(CI.Justification,NULL) ELSE NULL END ItemJustification,
 		 CASE WHEN @Scope = 2 THEN cs.ClaimServiceID ELSE NULL END ClaimServiceID,
@@ -98,7 +109,7 @@ CREATE PROCEDURE [dbo].[uspSSRSGetClaimOverview]
 		AND CA.ValidityTo IS NULL
 		AND ISNULL(C.DateTo,C.DateFrom) BETWEEN @StartDate AND @EndDate
 		AND (C.ClaimStatus = @ClaimStatus OR @ClaimStatus IS NULL)
-		AND (L.LocationId = @LocationId OR L.ParentLocationId = @LocationId OR @LocationId = 0)
+		AND (L.LocationId = @LocationId OR L.ParentLocationId = @LocationId OR @LocationId = 0 OR L.ParentLocationId in (SELECT LocationId from ClaimLocationChildren))
 		AND (HF.HFID = @HFID OR @HFID = 0)
 		AND (CI.ProdID = @ProdId OR CS.ProdID = @ProdId  
 		OR COALESCE(CS.ProdID, CI.ProdId) IS NULL OR @ProdId = 0)

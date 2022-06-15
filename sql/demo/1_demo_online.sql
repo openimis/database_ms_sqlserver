@@ -87,13 +87,14 @@ VALUES (1, N'en', N'Admin', N'Admin', N'', N'Admin', 1023, 0, CURRENT_TIMESTAMP,
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(@AdminPassword,CONVERT(varchar(max),HASHBYTES('SHA2_256',@AdminPrivateKey),2))),2), 
 	NULL, NULL)
 
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (9, N'fr', N'Admin_Fr', N'Admin_Fr', N'', N'Admin_Fr', 1023, 0, CAST(N'2019-03-07T06:31:28.027' AS DateTime), NULL, NULL, 1, NULL, NULL, N'test@testing.com', 
--- [StoredPassword]
-	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'admin123_fr') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
--- PrivateKey
-	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
-	, NULL, NULL, NEWID())
-
+INSERT [dbo].[tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom],
+	[ValidityTo], [LegacyID], [AuditUserID], [PrivateKey], [StoredPassword], [PasswordValidity], [IsAssociated]) 
+VALUES (9, N'fr', N'Admin_Fr', N'Admin_Fr', N'', N'Admin_Fr', 1023, 0, CURRENT_TIMESTAMP, NULL, NULL, 1,  
+	-- PrivateKey
+	CONVERT(varchar(max),HASHBYTES('SHA2_256', N'Admin_Fr'),2), 
+	-- [StoredPassword]
+	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(N'admin123_fr',CONVERT(varchar(max),HASHBYTES('SHA2_256', N'Admin_Fr'),2))),2), 
+	NULL, NULL)
 
 INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (17, N'en', N'Johilk', N'Kuna', N'', N'JHOS0011', 256, 1, CAST(N'2019-08-16T07:34:38.880' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]

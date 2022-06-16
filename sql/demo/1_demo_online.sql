@@ -89,11 +89,11 @@ VALUES (1, N'en', N'Admin', N'Admin', N'', N'Admin', 1023, 0, CURRENT_TIMESTAMP,
 
 INSERT [dbo].[tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom],
 	[ValidityTo], [LegacyID], [AuditUserID], [PrivateKey], [StoredPassword], [PasswordValidity], [IsAssociated]) 
-VALUES (9, N'fr', N'Admin_Fr', N'Admin_Fr', N'', N'Admin_Fr', 1023, 0, CURRENT_TIMESTAMP, NULL, NULL, 1,  
+VALUES (9, 'fr', 'Admin_Fr', 'Admin_Fr', '', 'Admin_Fr', 1023, 0, CURRENT_TIMESTAMP, NULL, NULL, 1,  
 	-- PrivateKey
-	CONVERT(varchar(max),HASHBYTES('SHA2_256', N'Admin_Fr'),2), 
+	CONVERT(varchar(max),HASHBYTES('SHA2_256', 'Admin_Fr'),2), 
 	-- [StoredPassword]
-	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(N'admin123_fr',CONVERT(varchar(max),HASHBYTES('SHA2_256', N'Admin_Fr'),2))),2), 
+	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT('admin123_fr',CONVERT(varchar(max),HASHBYTES('SHA2_256', 'Admin_Fr'),2))),2), 
 	NULL, NULL)
 
 INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (17, N'en', N'Johilk', N'Kuna', N'', N'JHOS0011', 256, 1, CAST(N'2019-08-16T07:34:38.880' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 

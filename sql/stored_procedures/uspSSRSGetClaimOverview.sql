@@ -1,5 +1,3 @@
-USE [IMIS]
-GO
 /****** Object:  StoredProcedure [dbo].[uspSSRSGetClaimOverview]    Script Date: 30.05.2022 12:44:26 ******/
 SET ANSI_NULLS ON
 GO

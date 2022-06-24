@@ -9537,3 +9537,14 @@ IF COL_LENGTH(N'tblPremium', N'SourceVersion') IS NULL
 	ALTER TABLE tblPremium ADD SourceVersion NVARCHAR(15) NULL
 GO
 
+--OTC-406
+IF TYPE_ID('xBulkControlNumbers') IS NULL
+BEGIN
+	CREATE TYPE xBulkControlNumbers AS TABLE(
+	BillId INT, 
+	ProdId INT,
+	OfficerId INT, 
+	Amount DECIMAL(18,2)
+)
+END
+GO

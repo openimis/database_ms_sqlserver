@@ -690,6 +690,14 @@ CREATE TYPE [dbo].[xWards] AS TABLE(
 )
 GO
 
+CREATE TYPE [dbo].[xBulkControlNumbers] AS TABLE(
+	BillId INT, 
+	ProdId INT,
+	OfficerId INT, 
+	Amount DECIMAL(18,2)
+)
+GO
+
 
 SET ANSI_NULLS ON
 GO

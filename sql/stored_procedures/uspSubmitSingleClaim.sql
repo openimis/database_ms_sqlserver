@@ -1,7 +1,11 @@
-IF NOT OBJECT_ID('uspSubmitSingleClaim') IS NULL
-DROP PROCEDURE uspSubmitSingleClaim
+IF NOT OBJECT_ID('[dbo].[uspSubmitSingleClaim]') IS NULL
+	DROP PROCEDURE [dbo].[uspSubmitSingleClaim]
 GO
 
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
 CREATE PROCEDURE [dbo].[uspSubmitSingleClaim]
 	
 	@AuditUser as int = 0,
@@ -909,31 +913,7 @@ UPDATECLAIM:
 			--no rejections 
 			UPDATE tblClaim SET ClaimStatus = 4, AuditUserIDSubmit = @AuditUser , SubmitStamp = GETDATE() ,  ClaimCategory = @BaseCategory WHERE ClaimID = @ClaimID 
 		END
-		SET @RtnStatus = 1;
-		
-		--Check the default settings, if the review is bypassed process the claim
-		DECLARE @BypassReviewClaim BIT;
-		SELECT @BypassReviewClaim = ISNULL(BypassReviewClaim, 0) FROM tblIMISDefaults;
-		
-		IF @BypassReviewClaim = 1
-		BEGIN
-			DECLARE @xtClaimSubmit dbo.xClaimSubmit;
-			INSERT INTO @xtClaimSubmit(ClaimId, RowID)
-			SELECT ClaimId, RowID FROM tblClaim WHERE ClaimID = @ClaimID;
-
-			DECLARE @RC int
-			DECLARE @Submitted int
-			DECLARE @Processed int
-			DECLARE @Valuated int
-			DECLARE @Changed int
-			DECLARE @Rejected int
-			DECLARE @Failed int
-			
-
-			EXEC @oReturnValue =  uspProcessClaims @AuditUser, @xtClaimSubmit, @Submitted OUTPUT, @Processed OUTPUT, @Valuated OUTPUT, @Changed OUTPUT, @Rejected OUTPUT, @Failed OUTPUT, @oReturnValue OUTPUT
-			
-		END
-
+		SET @RtnStatus = 1 
 	END
 	ELSE
 	BEGIN
@@ -947,7 +927,7 @@ FINISH:
 	END TRY
 	
 	BEGIN CATCH
-		SELECT ERROR_MESSAGE()
+		SELECT 'Unexpected error encountered'
 		SET @oReturnValue = 1 
 		RETURN @oReturnValue
 		

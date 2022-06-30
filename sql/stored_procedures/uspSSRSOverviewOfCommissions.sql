@@ -1,5 +1,5 @@
-IF OBJECT_ID('uspSSRSOverviewOfCommissions', 'P') IS NOT NULL
-    DROP PROCEDURE uspSSRSOverviewOfCommissions
+IF OBJECT_ID('[dbo].[uspSSRSOverviewOfCommissions]', 'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[uspSSRSOverviewOfCommissions]
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSOverviewOfCommissions]

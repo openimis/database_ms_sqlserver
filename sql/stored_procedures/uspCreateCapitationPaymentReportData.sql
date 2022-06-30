@@ -1,10 +1,12 @@
 
--- OTC-10: Changing the logic of user Roles
-IF OBJECT_ID('uspCreateCapitationPaymentReportData', 'P') IS NOT NULL
-    DROP PROCEDURE uspCreateCapitationPaymentReportData
+IF OBJECT_ID('[dbo].[uspCreateCapitationPaymentReportData]', 'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[uspCreateCapitationPaymentReportData]
 GO
 
-
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 CREATE PROCEDURE [dbo].[uspCreateCapitationPaymentReportData]
 (
 	@RegionId INT = NULL,

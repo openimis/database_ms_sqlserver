@@ -1,9 +1,11 @@
-/****** Object:  StoredProcedure [dbo].[uspRelativeIndexCalculationMonthly]    Script Date: 2/4/2022 8:10:59 PM ******/
-IF OBJECT_ID('uspRelativeIndexCalculationMonthly', 'P') IS NOT NULL
-    DROP PROCEDURE uspRelativeIndexCalculationMonthly
+IF OBJECT_ID('[dbo].[uspRelativeIndexCalculationMonthly]', 'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[uspRelativeIndexCalculationMonthly]
 GO
 
-
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 CREATE PROCEDURE [dbo].[uspRelativeIndexCalculationMonthly]
 (
 @RelType INT,   --1 ,4 12  

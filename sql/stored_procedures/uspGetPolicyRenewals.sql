@@ -1,5 +1,5 @@
-IF OBJECT_ID('[uspGetPolicyRenewals]', 'P') IS NOT NULL
-    DROP PROCEDURE [uspGetPolicyRenewals]
+IF OBJECT_ID('[dbo].[uspGetPolicyRenewals]', 'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[uspGetPolicyRenewals]
 GO
 
 SET ANSI_NULLS ON

@@ -1,5 +1,5 @@
-IF OBJECT_ID('[uspInsertFeedback]', 'P') IS NOT NULL
-    DROP PROCEDURE [uspInsertFeedback]
+IF OBJECT_ID('[dbo].[uspInsertFeedback]', 'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[uspInsertFeedback]
 GO
 
 SET ANSI_NULLS ON

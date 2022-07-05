@@ -1,13 +1,13 @@
-IF NOT OBJECT_ID('[dbo].[uspSubmitSingleClaim]') IS NULL
-	DROP PROCEDURE [dbo].[uspSubmitSingleClaim]
+IF OBJECT_ID('[dbo].[uspRestAPISubmitSingleClaim]', 'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[uspRestAPISubmitSingleClaim]
 GO
 
-SET QUOTED_IDENTIFIER ON
-GO
 SET ANSI_NULLS ON
 GO
-CREATE PROCEDURE [dbo].[uspSubmitSingleClaim]
-	
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [dbo].[uspRestAPISubmitSingleClaim]
+	(
 	@AuditUser as int = 0,
 	@ClaimID as int,
 	@RowID as bigint = 0,
@@ -16,7 +16,7 @@ CREATE PROCEDURE [dbo].[uspSubmitSingleClaim]
 	@RtnServicesPassed as int = 0 OUTPUT,
 	@RtnItemsRejected as int = 0 OUTPUT,
 	@RtnServicesRejected as int = 0 OUTPUT
-	
+	)
 	
 	/*
 	Rejection reasons:

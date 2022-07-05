@@ -1,7 +1,11 @@
-IF OBJECT_ID('uspSSRSCapitationPayment', 'P') IS NOT NULL
-    DROP PROCEDURE uspSSRSCapitationPayment
+IF OBJECT_ID('[dbo].[uspSSRSCapitationPayment]', 'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[uspSSRSCapitationPayment]
 GO
 
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 CREATE PROCEDURE [dbo].[uspSSRSCapitationPayment]
 (
 	@RegionId INT = NULL,

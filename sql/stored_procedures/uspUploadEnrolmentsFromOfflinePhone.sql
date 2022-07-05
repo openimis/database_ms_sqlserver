@@ -1,12 +1,14 @@
-IF OBJECT_ID(N'uspUploadEnrolments') IS NOT NULL
-	DROP PROCEDURE uspUploadEnrolments
+IF OBJECT_ID('[dbo].[uspUploadEnrolmentsFromOfflinePhone]', 'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[uspUploadEnrolmentsFromOfflinePhone]
 GO
 
-CREATE PROCEDURE [dbo].[uspUploadEnrolments](
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [dbo].[uspUploadEnrolmentsFromOfflinePhone](
 	--@File NVARCHAR(300),
 	@XML XML,
-	@Source NVARCHAR(50),
-	@SourceVersion NVARCHAR(15),
 	@FamilySent INT = 0 OUTPUT,
 	@InsureeSent INT = 0 OUTPUT,
 	@PolicySent INT = 0 OUTPUT,
@@ -18,16 +20,17 @@ CREATE PROCEDURE [dbo].[uspUploadEnrolments](
 )
 AS
 BEGIN
+
 	DECLARE @Query NVARCHAR(500)
 	--DECLARE @XML XML
 	DECLARE @tblFamilies TABLE(FamilyId INT,InsureeId INT, CHFID nvarchar(50),  LocationId INT,Poverty NVARCHAR(1),FamilyType NVARCHAR(2),FamilyAddress NVARCHAR(200), Ethnicity NVARCHAR(1), ConfirmationNo NVARCHAR(12), NewFamilyId INT)
-	DECLARE @tblInsuree TABLE(InsureeId INT,FamilyId INT,CHFID NVARCHAR(50),LastName NVARCHAR(100),OtherNames NVARCHAR(100),DOB DATE,Gender CHAR(1),Marital CHAR(1),IsHead BIT,Passport NVARCHAR(25),Phone NVARCHAR(50),CardIssued BIT,Relationship SMALLINT,Profession SMALLINT,Education SMALLINT,Email NVARCHAR(100), TypeOfId NVARCHAR(1), HFID INT,EffectiveDate DATE, NewFamilyId INT, NewInsureeId INT)
+	DECLARE @tblInsuree TABLE(InsureeId INT,FamilyId INT,CHFID NVARCHAR(50),LastName NVARCHAR(100),OtherNames NVARCHAR(100),DOB DATE,Gender CHAR(1),Marital CHAR(1),IsHead BIT,Passport NVARCHAR(25),Phone NVARCHAR(50),CardIssued BIT,Relationship SMALLINT,Profession SMALLINT,Education SMALLINT,Email NVARCHAR(100), TypeOfId NVARCHAR(1), HFID INT,CurrentAddress NVARCHAR(200),GeoLocation NVARCHAR(200),CurVillage INT,isOffline BIT,PhotoPath NVARCHAR(100), NewFamilyId INT, NewInsureeId INT)
 	DECLARE @tblPolicy TABLE(PolicyId INT,FamilyId INT,EnrollDate DATE,StartDate DATE,EffectiveDate DATE,ExpiryDate DATE,PolicyStatus TINYINT,PolicyValue DECIMAL(18,2),ProdId INT,OfficerId INT,PolicyStage CHAR(1), NewFamilyId INT, NewPolicyId INT)
+	DECLARE @tblInureePolicy TABLE(PolicyId INT,InsureeId INT,EffectiveDate DATE, NewInsureeId INT, NewPolicyId INT)
 	DECLARE @tblPremium TABLE(PremiumId INT,PolicyId INT,PayerId INT,Amount DECIMAL(18,2),Receipt NVARCHAR(50),PayDate DATE,PayType CHAR(1),isPhotoFee BIT, NewPolicyId INT)
 
 	DECLARE @tblResult TABLE(Result NVARCHAR(Max))
 	DECLARE @tblIds TABLE(OldId INT, [NewId] INT)
-	DECLARE @AuditUserId INT =-1
 
 	BEGIN TRY
 
@@ -41,40 +44,45 @@ BEGIN
 		SELECT 
 		T.F.value('(FamilyId)[1]','INT'),
 		T.F.value('(InsureeId)[1]','INT'),
-		T.F.value('(CHFID)[1]','NVARCHAR(50)'),
+		T.F.value('(HOFCHFID)[1]','NVARCHAR(50)'),
 		T.F.value('(LocationId)[1]','INT'),
 		T.F.value('(Poverty)[1]','BIT'),
-		T.F.value('(FamilyType)[1]','NVARCHAR(2)'),
+		NULLIF(T.F.value('(FamilyType)[1]','NVARCHAR(2)'),''),
 		T.F.value('(FamilyAddress)[1]','NVARCHAR(200)'),
 		T.F.value('(Ethnicity)[1]','NVARCHAR(1)'),
 		T.F.value('(ConfirmationNo)[1]','NVARCHAR(12)')
 		FROM @XML.nodes('Enrolment/Families/Family') AS T(F)
-		
+
+
 		--Get total number of families sent via XML
 		SELECT @FamilySent = COUNT(*) FROM @tblFamilies
 
 		--GET ALL THE INSUREES FROM XML
-		INSERT INTO @tblInsuree(InsureeId,FamilyId,CHFID,LastName,OtherNames,DOB,Gender,Marital,IsHead,Passport,Phone,CardIssued,Relationship,Profession,Education,Email, TypeOfId, HFID,EffectiveDate)
+		INSERT INTO @tblInsuree(InsureeId,FamilyId,CHFID,LastName,OtherNames,DOB,Gender,Marital,IsHead,Passport,Phone,CardIssued,Relationship,Profession,Education,Email, TypeOfId, HFID, CurrentAddress, GeoLocation, CurVillage, isOffline,PhotoPath)
 		SELECT
-		T.I.value('(InsureeID)[1]','INT'),
-		T.I.value('(FamilyID)[1]','INT'),
+		T.I.value('(InsureeId)[1]','INT'),
+		T.I.value('(FamilyId)[1]','INT'),
 		T.I.value('(CHFID)[1]','NVARCHAR(50)'),
 		T.I.value('(LastName)[1]','NVARCHAR(100)'),
 		T.I.value('(OtherNames)[1]','NVARCHAR(100)'),
 		T.I.value('(DOB)[1]','DATE'),
 		T.I.value('(Gender)[1]','CHAR(1)'),
 		T.I.value('(Marital)[1]','CHAR(1)'),
-		T.I.value('(IsHead)[1]','BIT'),
-		T.I.value('(passport)[1]','NVARCHAR(25)'),
+		T.I.value('(isHead)[1]','BIT'),
+		T.I.value('(IdentificationNumber)[1]','NVARCHAR(25)'),
 		T.I.value('(Phone)[1]','NVARCHAR(50)'),
 		T.I.value('(CardIssued)[1]','BIT'),
-		T.I.value('(Relationship)[1]','SMALLINT'),
-		T.I.value('(Profession)[1]','SMALLINT'),
-		T.I.value('(Education)[1]','SMALLINT'),
+		NULLIF(T.I.value('(Relationship)[1]','SMALLINT'),''),
+		NULLIF(T.I.value('(Profession)[1]','SMALLINT'),''),
+		NULLIF(T.I.value('(Education)[1]','SMALLINT'),''),
 		T.I.value('(Email)[1]','NVARCHAR(100)'),
-		T.I.value('(TypeOfId)[1]','NVARCHAR(1)'),
-		T.I.value('(HFID)[1]','INT'),
-		T.I.value('(EffectiveDate)[1]','DATE')  
+		NULLIF(T.I.value('(TypeOfId)[1]','NVARCHAR(1)'),''),
+		NULLIF(T.I.value('(HFID)[1]','INT'),''),
+		T.I.value('(CurrentAddress)[1]','NVARCHAR(200)'),
+		T.I.value('(GeoLocation)[1]','NVARCHAR(200)'),
+		NULLIF(T.I.value('(CurVillage)[1]','INT'),''),
+		T.I.value('(isOffline)[1]','BIT'),
+		T.I.value('(PhotoPath)[1]','NVARCHAR(100)')
 		FROM @XML.nodes('Enrolment/Insurees/Insuree') AS T(I)
 
 		--Get total number of Insurees sent via XML
@@ -83,28 +91,36 @@ BEGIN
 		--GET ALL THE POLICIES FROM XML
 		INSERT INTO @tblPolicy(PolicyId,FamilyId,EnrollDate,StartDate,EffectiveDate,ExpiryDate,PolicyStatus,PolicyValue,ProdId,OfficerId,PolicyStage)
 		SELECT 
-		T.P.value('(PolicyID)[1]','INT'),
-		T.P.value('(FamilyID)[1]','INT'),
+		T.P.value('(PolicyId)[1]','INT'),
+		T.P.value('(FamilyId)[1]','INT'),
 		T.P.value('(EnrollDate)[1]','DATE'),
 		T.P.value('(StartDate)[1]','DATE'),
 		T.P.value('(EffectiveDate)[1]','DATE'),
 		T.P.value('(ExpiryDate)[1]','DATE'),
 		T.P.value('(PolicyStatus)[1]','TINYINT'),
 		T.P.value('(PolicyValue)[1]','DECIMAL(18,2)'),
-		T.P.value('(ProdID)[1]','INT'),
-		T.P.value('(OfficerID)[1]','INT'),
+		T.P.value('(ProdId)[1]','INT'),
+		T.P.value('(OfficerId)[1]','INT'),
 		T.P.value('(PolicyStage)[1]','CHAR(1)')
 		FROM @XML.nodes('Enrolment/Policies/Policy') AS T(P)
 
 		--Get total number of Policies sent via XML
 		SELECT @PolicySent = COUNT(*) FROM @tblPolicy
 			
+		--GET INSUREEPOLICY
+		INSERT INTO @tblInureePolicy(PolicyId,InsureeId,EffectiveDate)
+		SELECT 
+		T.P.value('(PolicyId)[1]','INT'),
+		T.P.value('(InsureeId)[1]','INT'),
+		NULLIF(T.P.value('(EffectiveDate)[1]','DATE'),'')
+		FROM @XML.nodes('Enrolment/InsureePolicies/InsureePolicy') AS T(P)
+
 		--GET ALL THE PREMIUMS FROM XML
 		INSERT INTO @tblPremium(PremiumId,PolicyId,PayerId,Amount,Receipt,PayDate,PayType,isPhotoFee)
 		SELECT
 		T.PR.value('(PremiumId)[1]','INT'),
-		T.PR.value('(PolicyID)[1]','INT'),
-		T.PR.value('(PayerID)[1]','INT'),
+		T.PR.value('(PolicyId)[1]','INT'),
+		NULLIF(T.PR.value('(PayerId)[1]','INT'),0),
 		T.PR.value('(Amount)[1]','DECIMAL(18,2)'),
 		T.PR.value('(Receipt)[1]','NVARCHAR(50)'),
 		T.PR.value('(PayDate)[1]','DATE'),
@@ -115,35 +131,14 @@ BEGIN
 		--Get total number of premium sent via XML
 		SELECT @PremiumSent = COUNT(*) FROM @tblPremium;
 
-		--Get total number of premium sent via XML
-		--SELECT @PremiumSent = COUNT(*) FROM @tblPremium;
+			DECLARE @AuditUserId INT =-1,@AssociatedPhotoFolder NVARCHAR(255)
+			IF ( @XML.exist('(Enrolment/FileInfo)')=1 )
+				SET	@AuditUserId= (SELECT T.PR.value('(UserId)[1]','INT') FROM @XML.nodes('Enrolment/FileInfo') AS T(PR))
+				SET @AssociatedPhotoFolder=(SELECT FTPEnrollmentFolder FROM tblIMISDefaults)
 
-		--IF NOT OBJECT_ID('tempFamilies') IS NULL DROP TABLE tempFamilies
-		--SELECT * INTO tempFamilies FROM @tblFamilies
-		
-		--IF NOT OBJECT_ID('tempInsuree') IS NULL DROP TABLE tempInsuree
-		--SELECT * INTO tempInsuree FROM @tblInsuree
-		
-		--IF NOT OBJECT_ID('tempPolicy') IS NULL DROP TABLE tempPolicy
-		--SELECT * INTO tempPolicy FROM @tblPolicy
-		
-		--IF NOT OBJECT_ID('tempPremium') IS NULL DROP TABLE tempPremium
-		--SELECT * INTO tempPremium FROM @tblPremium
-		--RETURN
-		--DECLARE @AuditUserId INT 
-		--	IF ( @XML.exist('(Enrolment/UserId)')=1 )
-		--		SET	@AuditUserId= (SELECT T.PR.value('(UserId)[1]','INT') FROM @XML.nodes('Enrolment/UserId') AS T(PR))
-		--	ELSE
-		--		SET @AuditUserId=-1
-		
-
-		--DELETE ALL INSUREE WITH EFFECTIVE DATE
-		SELECT 1 FROM @tblInsuree I
-			LEFT OUTER JOIN (SELECT  CHFID  FROM @tblInsuree GROUP BY CHFID HAVING COUNT(CHFID) > 1) TI ON I.CHFID =TI.CHFID
-			WHERE  TI.CHFID IS NOT NULL AND EffectiveDate IS NOT NULL
-			
-
-
+		/********************************************************************************************************
+										VALIDATING FILE				
+		********************************************************************************************************/
 		IF EXISTS(
 		--Insuree without family
 		SELECT 1 
@@ -163,6 +158,20 @@ BEGIN
 		SELECT 1
 		FROM @tblPremium PR LEFT OUTER JOIN @tblPolicy P ON PR.PolicyId = P.PolicyId
 		WHERE P.PolicyId  IS NULL
+
+		UNION ALL
+
+		---Invalid Family type field
+		SELECT 1 FROM @tblFamilies F 
+		LEFT OUTER JOIN tblFamilyTypes FT ON F.FamilyType=FT.FamilyTypeCode
+		WHERE FT.FamilyType IS NULL AND F.FamilyType IS NOT NULL
+
+		UNION ALL
+
+		---Invalid IdentificationType
+		SELECT 1 FROM @tblInsuree I
+		LEFT OUTER JOIN tblIdentificationTypes IT ON I.TypeOfId = IT.IdentificationCode
+		WHERE IT.IdentificationCode IS NULL AND I.TypeOfId IS NOT NULL
 		)
 		BEGIN
 			INSERT INTO @tblResult VALUES
@@ -171,6 +180,12 @@ BEGIN
 			RAISERROR (N'<h1 style="color:red;">Wrong format of the extract found. <br />Please contact your IT manager for further assistant.</h1>', 16, 1);
 		END
 
+		--SELECT * INTO tempFamilies FROM @tblFamilies
+		--SELECT * INTO tempInsuree FROM @tblInsuree
+		--SELECT * INTO tempPolicy FROM @tblPolicy
+		--SELECT * INTO tempInsureePolicy FROM @tblInureePolicy
+		--SELECT * INTO tempPolicy FROM @tblPolicy
+		--RETURN
 
 		BEGIN TRAN ENROLL;
 
@@ -203,17 +218,20 @@ BEGIN
 			FROM @tblFamilies TF
 			INNER JOIN @tblPolicy TP ON TF.FamilyId = TP.FamilyId;
 
-		
+			--Delete existing families from temp table, we don't need them anymore
+			DELETE FROM @tblFamilies WHERE NewFamilyId IS NOT NULL;
+
+
 			--Insert new Families
 			MERGE INTO tblFamilies 
 			USING @tblFamilies AS TF ON 1 = 0 
 			WHEN NOT MATCHED THEN 
-				INSERT (InsureeId, LocationId, Poverty, ValidityFrom, AuditUserId, FamilyType, FamilyAddress, Ethnicity, ConfirmationNo, [Source], SourceVersion) 
-				VALUES(0 , TF.LocationId, TF.Poverty, GETDATE() , @AuditUserId , TF.FamilyType, TF.FamilyAddress, TF.Ethnicity, TF.ConfirmationNo, @Source, @SourceVersion)
+				INSERT (InsureeId, LocationId, Poverty, ValidityFrom, AuditUserId, FamilyType, FamilyAddress, Ethnicity, ConfirmationNo) 
+				VALUES(0 , TF.LocationId, TF.Poverty, GETDATE() , @AuditUserId , TF.FamilyType, TF.FamilyAddress, TF.Ethnicity, TF.ConfirmationNo)
 				OUTPUT TF.FamilyId, inserted.FamilyId INTO @tblIds;
 		
 
-			SELECT @FamilyImported = ISNULL(@@ROWCOUNT,0);
+			SELECT @FamilyImported = @@ROWCOUNT;
 
 			--Update Family, Insuree and Policy with newly inserted FamilyId
 			UPDATE TF SET NewFamilyId = ID.[NewId]
@@ -238,25 +256,35 @@ BEGIN
 			INNER JOIN tblInsuree I ON TI.CHFID = I.CHFID
 			WHERE I.ValidityTo IS NULL;
 
+			--Delete duplicate insurees from insureePolicy Also
+			DELETE IP FROM @tblInureePolicy IP
+			LEFT OUTER JOIN @tblInsuree I ON IP.InsureeId=I.InsureeId
+			WHERE I.InsureeId IS NULL
+
 			--Insert new insurees 
 			MERGE tblInsuree
-			USING (SELECT DISTINCT InsureeId, NewFamilyId, CHFID, LastName, OtherNames, DOB, Gender, Marital, IsHead, Passport, Phone, CardIssued, Relationship, Profession, Education, Email, TypeOfId, HFID FROM @tblInsuree ) TI ON 1 = 0
+			USING @tblInsuree TI ON 1 = 0
 			WHEN NOT MATCHED THEN
-				INSERT(FamilyID,CHFID,LastName,OtherNames,DOB,Gender,Marital,IsHead,passport,Phone,CardIssued,ValidityFrom,AuditUserID,Relationship,Profession,Education,Email,TypeOfId, HFID, [Source], SourceVersion)
-				VALUES(TI.NewFamilyId, TI.CHFID, TI.LastName, TI.OtherNames, TI.DOB, TI.Gender, TI.Marital, TI.IsHead, TI.Passport, TI.Phone, TI.CardIssued, GETDATE(), @AuditUserId, TI.Relationship, TI.Profession, TI.Education, TI.Email, TI.TypeOfId, TI.HFID, @Source, @SourceVersion)
+				INSERT(FamilyID,CHFID,LastName,OtherNames,DOB,Gender,Marital,IsHead,passport,Phone,CardIssued,ValidityFrom,AuditUserID,Relationship,Profession,Education,Email,TypeOfId, HFID)
+				VALUES(TI.NewFamilyId, TI.CHFID, TI.LastName, TI.OtherNames, TI.DOB, TI.Gender, TI.Marital, TI.IsHead, TI.Passport, TI.Phone, TI.CardIssued, GETDATE(), @AuditUserId, TI.Relationship, TI.Profession, TI.Education, TI.Email, TI.TypeOfId, TI.HFID)
 				OUTPUT TI.InsureeId, inserted.InsureeId INTO @tblIds;
 
 
-			SELECT @InsureeImported = ISNULL(@@ROWCOUNT,0);
+			SELECT @InsureeImported = @@ROWCOUNT;
 
 			--Update Ids of newly inserted insurees 
 			UPDATE TI SET NewInsureeId = Id.[NewId]
 			FROM @tblInsuree TI 
 			INNER JOIN @tblIds Id ON TI.InsureeId = Id.OldId;
 
+			--Update insureeId in @tbltempInsuree 
+			UPDATE IP SET IP.NewInsureeId=I.NewInsureeId 
+			FROM @tblInureePolicy IP 
+			INNER JOIN @tblInsuree I ON IP.InsureeId=I.InsureeId
+
 			--Insert Photos
 			INSERT INTO tblPhotos(InsureeID,CHFID,PhotoFolder,PhotoFileName,OfficerID,PhotoDate,ValidityFrom,AuditUserID)
-			SELECT NewInsureeId,CHFID,'','',0,GETDATE(),GETDATE() ValidityFrom, @AuditUserId AuditUserID 
+			SELECT NewInsureeId,CHFID,@AssociatedPhotoFolder + '\\' PhotoFolder, PhotoPath,0,GETDATE(),GETDATE() ValidityFrom, @AuditUserId AuditUserID 
 			FROM @tblInsuree TI; 
 		
 			--Update tblInsuree with newly inserted PhotoId
@@ -312,15 +340,115 @@ BEGIN
 			DELETE FROM @tblIds;
 
 			--Insert new policies
-			MERGE tblPolicy
-			USING @tblPolicy TP ON 1 = 0
-			WHEN NOT MATCHED THEN
-				INSERT(FamilyID,EnrollDate,StartDate,EffectiveDate,ExpiryDate,PolicyStatus,PolicyValue,ProdID,OfficerID,PolicyStage,ValidityFrom,AuditUserID, [Source], SourceVersion)
-				VALUES(TP.NewFamilyID,EnrollDate,StartDate,EffectiveDate,ExpiryDate,PolicyStatus,PolicyValue,ProdID,OfficerID,PolicyStage,GETDATE(),@AuditUserId, @Source, @SourceVersion)
-			OUTPUT TP.PolicyId, inserted.PolicyId INTO @tblIds;
-		
-			SELECT @PolicyImported = ISNULL(@@ROWCOUNT,0);
+				DECLARE @FamilyId INT = 0,
+				@HOFId INT = 0,
+				@PolicyValue DECIMAL(18, 4),
+				@ProdId INT,
+				@PolicyStage CHAR(1),
+				@StartDate DATE,
+				@ExpiryDate DATE,
+				@EnrollDate DATE,
+				@EffectiveDate DATE,
+				@ErrorCode INT,
+				@PolicyStatus INT,
+				@PolicyId TINYINT,
+				@PolicyValueFromPhone DECIMAL(18, 4),
+				@ContributionAmount DECIMAL(18, 4),
+				@Active TINYINT=2,
+				@Idle TINYINT=1,
+				@NewPolicyId INT
 
+
+			DECLARE CurPolicies CURSOR FOR SELECT PolicyId, ProdId, ISNULL(PolicyStage, N'N') PolicyStage, StartDate, EnrollDate,ExpiryDate, PolicyStatus, PolicyValue, NewFamilyId FROM @tblPolicy 
+			OPEN CurPolicies;
+			FETCH NEXT FROM CurPolicies INTO @PolicyId, @ProdId, @PolicyStage, @StartDate, @EnrollDate, @ExpiryDate,  @PolicyStatus, @PolicyValueFromPhone, @FamilyId;
+			WHILE @@FETCH_STATUS = 0
+			BEGIN
+				EXEC @PolicyValue = uspPolicyValue @FamilyId, @ProdId, 0, @PolicyStage, @EnrollDate, 0, @ErrorCode OUTPUT;
+				SELECT @ContributionAmount = SUM(Amount) FROM @tblPremium WHERE PolicyId = @PolicyId
+					IF ((@PolicyValueFromPhone = @PolicyValue))
+						BEGIN
+							SELECT @PolicyStatus = PolicyStatus FROM @tblPolicy WHERE PolicyId=@PolicyId
+							SELECT @EffectiveDate=EffectiveDate FROM @tblPolicy WHERE PolicyId=@PolicyId
+
+							INSERT INTO tblPolicy(FamilyID,EnrollDate,StartDate,EffectiveDate,ExpiryDate,PolicyStatus,PolicyValue,ProdID,OfficerID,PolicyStage,ValidityFrom,AuditUserID)
+							SELECT	 NewFamilyID,EnrollDate,StartDate,@EffectiveDate,ExpiryDate,@PolicyStatus,@PolicyValue,ProdID,OfficerID,PolicyStage,GETDATE(),@AuditUserId FROM @tblPolicy WHERE PolicyId=@PolicyId
+							SELECT @NewPolicyId = SCOPE_IDENTITY()
+							INSERT INTO @tblIds(OldId, [NewId]) VALUES(@PolicyId, @NewPolicyId)
+							
+							IF @@ROWCOUNT > 0
+							SET @PolicyImported = ISNULL(@PolicyImported,0) +1
+
+							UPDATE @tblInureePolicy SET NewPolicyId = @NewPolicyId WHERE PolicyId=@PolicyId
+							
+							INSERT INTO tblInsureePolicy
+								([InsureeId],[PolicyId],[EnrollmentDate],[StartDate],[EffectiveDate],[ExpiryDate],[ValidityFrom],[AuditUserId]) 
+							SELECT
+								 NewInsureeId,IP.NewPolicyId,@EnrollDate,@StartDate,IP.[EffectiveDate],@ExpiryDate,GETDATE(),@AuditUserId FROM @tblInureePolicy IP
+							     WHERE IP.PolicyId=@PolicyId
+						END
+					ELSE
+						BEGIN
+							IF @ContributionAmount >= @PolicyValue
+								BEGIN
+									SELECT @PolicyStatus = @Active
+									--Checking the Effectice Date
+										DECLARE @Amount DECIMAL(10,0), @TotalAmount DECIMAL(10,0), @PaymentDate DATE 
+										DECLARE CurPremiumPayment CURSOR FOR SELECT PayDate, Amount FROM @tblPremium WHERE PolicyId = @PolicyId;
+										OPEN CurPremiumPayment;
+										FETCH NEXT FROM CurPremiumPayment INTO @PaymentDate,@Amount;
+										WHILE @@FETCH_STATUS = 0
+										BEGIN
+											SELECT @TotalAmount = ISNULL(@TotalAmount,0) + @Amount;
+												IF(@TotalAmount >= @PolicyValue)
+													BEGIN
+														SELECT @EffectiveDate = @PaymentDate
+														BREAK;
+													END
+												ELSE
+														SELECT @EffectiveDate = NULL
+											FETCH NEXT FROM CurPremiumPayment INTO @PaymentDate,@Amount;
+										END
+										CLOSE CurPremiumPayment;
+										DEALLOCATE CurPremiumPayment; 
+								END
+							ELSE
+								BEGIN
+									SELECT @PolicyStatus = @Idle
+									SELECT @EffectiveDate = NULL
+								END
+							
+							INSERT INTO tblPolicy(FamilyID,EnrollDate,StartDate,EffectiveDate,ExpiryDate,PolicyStatus,PolicyValue,ProdID,OfficerID,PolicyStage,ValidityFrom,AuditUserID)
+							SELECT	 NewFamilyID,EnrollDate,StartDate,@EffectiveDate,ExpiryDate,@PolicyStatus,@PolicyValue,ProdID,OfficerID,PolicyStage,GETDATE(),@AuditUserId FROM @tblPolicy WHERE PolicyId=@PolicyId
+							SELECT @NewPolicyId = SCOPE_IDENTITY()
+							INSERT INTO @tblIds(OldId, [NewId]) VALUES(@PolicyId, @NewPolicyId)
+							
+							IF @@ROWCOUNT > 0
+							SET @PolicyImported = ISNULL(@PolicyImported,0) +1
+
+							UPDATE @tblInureePolicy SET NewPolicyId = @NewPolicyId WHERE PolicyId=@PolicyId
+
+							DECLARE @InsureeId INT
+							DECLARE CurIns CURSOR FOR SELECT NewInsureeId FROM @tblInureePolicy WHERE PolicyId = @PolicyId
+							OPEN CurIns;
+							FETCH NEXT FROM CurIns INTO @InsureeId;
+							WHILE @@FETCH_STATUS = 0
+							BEGIN
+								EXEC uspAddInsureePolicy @InsureeId;
+								FETCH NEXT FROM CurIns INTO @InsureeId;
+							END
+							CLOSE CurIns;
+							DEALLOCATE CurIns; 
+
+						END
+
+				
+
+				FETCH NEXT FROM CurPolicies INTO @PolicyId, @ProdId, @PolicyStage, @StartDate, @EnrollDate, @ExpiryDate,  @PolicyStatus, @PolicyValueFromPhone, @FamilyId;
+			END
+			CLOSE CurPolicies;
+			DEALLOCATE CurPolicies; 
+			
 
 			--Update new PolicyId
 			UPDATE TP SET NewPolicyId = Id.[NewId]
@@ -344,27 +472,12 @@ BEGIN
 			WHERE PR.ValidityTo IS NULL
 		
 			--Insert Premium
-			INSERT INTO tblPremium(PolicyID,PayerID,Amount,Receipt,PayDate,PayType,ValidityFrom,AuditUserID,isPhotoFee, [Source], [SourceVersion])
-			SELECT NewPolicyId,PayerID,Amount,Receipt,PayDate,PayType,GETDATE(),@AuditUserId,isPhotoFee, @Source, @SourceVersion 
+			INSERT INTO tblPremium(PolicyID,PayerID,Amount,Receipt,PayDate,PayType,ValidityFrom,AuditUserID,isPhotoFee)
+			SELECT NewPolicyId,PayerID,Amount,Receipt,PayDate,PayType,GETDATE(),@AuditUserId,isPhotoFee 
 			FROM @tblPremium
 		
-			SELECT @PremiumImported = ISNULL(@@ROWCOUNT,0);
+			SELECT @PremiumImported = @@ROWCOUNT;
 
-
-			--TODO: Insert the InsureePolicy Table 
-			--Create a cursor and loop through each new insuree 
-	
-			DECLARE @InsureeId INT
-			DECLARE CurIns CURSOR FOR SELECT NewInsureeId FROM @tblInsuree;
-			OPEN CurIns;
-			FETCH NEXT FROM CurIns INTO @InsureeId;
-			WHILE @@FETCH_STATUS = 0
-			BEGIN
-				EXEC uspAddInsureePolicy @InsureeId;
-				FETCH NEXT FROM CurIns INTO @InsureeId;
-			END
-			CLOSE CurIns;
-			DEALLOCATE CurIns; 
 	
 	IF EXISTS(SELECT COUNT(1) 
 			FROM tblInsuree 
@@ -372,7 +485,6 @@ BEGIN
 			AND IsHead = 1
 			GROUP BY FamilyID
 			HAVING COUNT(1) > 1)
-	
 			
 			--Added by Amani
 			BEGIN

@@ -1,52 +1,56 @@
-IF OBJECT_ID('uspSSRSProcessBatch', 'P') IS NOT NULL
-    DROP PROCEDURE uspSSRSProcessBatch
+IF OBJECT_ID('[dbo].[uspSSRSProcessBatch]', 'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[uspSSRSProcessBatch]
 GO
 
-CREATE PROCEDURE [dbo].[uspSSRSProcessBatch] 
-	(
-		@LocationId INT = 0,
-		@ProdID INT = 0,
-		@RunID INT = 0,
-		@HFID INT = 0,
-		@HFLevel as Char(1) = '',
-		@DateFrom DATE = '',
-		@DateTo DATE = '',
-		@MinRemunerated as decimal(18,2) = 0 
-	)
-	AS
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [dbo].[uspSSRSProcessBatch]
+(
+	@LocationId INT = 0,
+	@ProdID INT = 0,
+	@RunID INT = 0,
+	@HFID INT = 0,
+	@HFLevel as Char(1) = '',
+	@DateFrom DATE = '',
+	@DateTo DATE = '',
+	@MinRemunerated as decimal(18,2) = 0 
+)
+AS
+BEGIN
+	IF @LocationId=-1
 	BEGIN
-		IF @LocationId=-1
-        BEGIN
-        	SET @LocationId = NULL
-        END
+		SET @LocationId = NULL
+	END
 
-        IF @DateFrom = '' OR @DateFrom IS NULL OR @DateTo = '' OR @DateTo IS NULL
-        BEGIN
-	        SET @DateFrom = N'1900-01-01'
-	        SET @DateTo = N'3000-12-31'
-        END
+	IF @DateFrom = '' OR @DateFrom IS NULL OR @DateTo = '' OR @DateTo IS NULL
+	BEGIN
+		SET @DateFrom = N'1900-01-01'
+		SET @DateTo = N'3000-12-31'
+	END
 
 
     ;WITH CDetails AS
-	    (
-		    SELECT CI.ClaimId, CI.ProdId,
-		    SUM(ISNULL(CI.PriceApproved, CI.PriceAsked) * ISNULL(CI.QtyApproved, CI.QtyProvided)) PriceApproved,
-		    SUM(CI.PriceValuated) PriceAdjusted, SUM(CI.RemuneratedAmount)RemuneratedAmount
-		    FROM tblClaimItems CI
-		    WHERE CI.ValidityTo IS NULL
-		    AND CI.ClaimItemStatus = 1
-		    GROUP BY CI.ClaimId, CI.ProdId
-		    UNION ALL
+	(
+		SELECT CI.ClaimId, CI.ProdId,
+		SUM(ISNULL(CI.PriceApproved, CI.PriceAsked) * ISNULL(CI.QtyApproved, CI.QtyProvided)) PriceApproved,
+		SUM(CI.PriceValuated) PriceAdjusted, SUM(CI.RemuneratedAmount)RemuneratedAmount
+		FROM tblClaimItems CI
+		WHERE CI.ValidityTo IS NULL
+		AND CI.ClaimItemStatus = 1
+		GROUP BY CI.ClaimId, CI.ProdId
+		UNION ALL
 
-		    SELECT CS.ClaimId, CS.ProdId,
-		    SUM(ISNULL(CS.PriceApproved, CS.PriceAsked) * ISNULL(CS.QtyApproved, CS.QtyProvided)) PriceApproved,
-		    SUM(CS.PriceValuated) PriceValuated, SUM(CS.RemuneratedAmount) RemuneratedAmount
+		SELECT CS.ClaimId, CS.ProdId,
+		SUM(ISNULL(CS.PriceApproved, CS.PriceAsked) * ISNULL(CS.QtyApproved, CS.QtyProvided)) PriceApproved,
+		SUM(CS.PriceValuated) PriceValuated, SUM(CS.RemuneratedAmount) RemuneratedAmount
 
-		    FROM tblClaimServices CS
-		    WHERE CS.ValidityTo IS NULL
-		    AND CS.ClaimServiceStatus = 1
-		    GROUP BY CS.CLaimId, CS.ProdId
-	    )
+		FROM tblClaimServices CS
+		WHERE CS.ValidityTo IS NULL
+		AND CS.ClaimServiceStatus = 1
+		GROUP BY CS.CLaimId, CS.ProdId
+	)
 	SELECT R.RegionName, D.DistrictName, HF.HFCode, HF.HFName, Prod.ProductCode, Prod.ProductName, SUM(CDetails.RemuneratedAmount)Remunerated, Prod.AccCodeRemuneration, HF.AccCode
 
 	FROM tblClaim C

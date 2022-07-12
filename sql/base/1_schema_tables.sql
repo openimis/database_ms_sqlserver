@@ -1939,7 +1939,7 @@ CREATE TABLE [dbo].[tblPremium](
 	[OverviewCommissionReport] datetime NULL,
 	[AllDetailsCommissionReport] datetime NULL,
 	[ReportingCommissionID] [int] NULL,
-	[CreatedDate] [datetime] NULL CONSTRAINT DF_tblPremium_CreatedDate DEFAULT GETDATE(),
+	[CreatedDate] [datetime] NOT NULL DEFAULT GETDATE(),
 	[Source] [nvarchar](50) NULL,
 	[SourceVersion] [nvarchar](15) NULL
  CONSTRAINT [PK_tblPremium] PRIMARY KEY CLUSTERED 

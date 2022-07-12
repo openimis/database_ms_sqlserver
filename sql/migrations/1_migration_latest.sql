@@ -3188,8 +3188,8 @@ IF OBJECT_ID('FK_tblPaymentDetails_tblPayment') IS NULL
 --OTC-511
 IF COL_LENGTH(N'tblPremium', N'CreatedDate') IS NULL
 	ALTER TABLE tblPremium 
-	ADD [CreatedDate] DATETIME NULL CONSTRAINT DF_tblPremium_CreatedDate DEFAULT GETDATE()
-
+	ADD [CreatedDate] DATETIME NOT NULL DEFAULT GETDATE()
+	UPDATE tblPremium SET CreatedDate = ValidityFrom
 GO
 
 --OTC-520

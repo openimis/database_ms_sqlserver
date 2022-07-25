@@ -1453,7 +1453,7 @@ GO
 CREATE TABLE [dbo].[tblInsureePolicy](
 	[InsureePolicyId] [int] IDENTITY(1,1) NOT NULL,
 	[InsureeId] [int] NOT NULL,
-	[PolicyId] [int] NULL,
+	[PolicyId] [int] NOT NULL,
 	[EnrollmentDate] [date] NULL,
 	[StartDate] [date] NULL,
 	[EffectiveDate] [date] NULL,

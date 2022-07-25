@@ -1452,7 +1452,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[tblInsureePolicy](
 	[InsureePolicyId] [int] IDENTITY(1,1) NOT NULL,
-	[InsureeId] [int] NULL,
+	[InsureeId] [int] NOT NULL,
 	[PolicyId] [int] NULL,
 	[EnrollmentDate] [date] NULL,
 	[StartDate] [date] NULL,

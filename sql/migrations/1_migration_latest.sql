@@ -3397,3 +3397,94 @@ BEGIN
 	ALTER TABLE [tblSubmittedPhotos] ALTER COLUMN [CHFID] NVARCHAR(50)
 END
 GO
+
+--OTC-568
+DROP INDEX [missing_index_181] ON [dbo].[tblInsureePolicy]
+GO
+
+DROP INDEX [missing_index_250] ON [dbo].[tblInsureePolicy]
+GO
+
+DROP INDEX [NCI_tblInsureePolicy_InsureeID] ON [dbo].[tblInsureePolicy]
+GO
+
+DROP INDEX [tblInsureePolicy_ValidityTo_EffectiveDate_ExpiryDate] ON [dbo].[tblInsureePolicy]
+GO
+
+DROP INDEX [missing_index_203] ON [dbo].[tblInsureePolicy]
+GO
+
+DROP INDEX [missing_index_356] ON [dbo].[tblInsureePolicy]
+GO
+
+DROP INDEX [NCI_tblInsureePolicy_PolicyID] ON [dbo].[tblInsureePolicy]
+GO
+
+--Delete all dirty data where InsureeId is null
+DELETE FROM tblInsureePolicy WHERE InsureeId IS NULL
+GO
+
+IF COL_LENGTH(N'tblInsureePolicy', N'InsureeId') IS NOT NULL
+ALTER TABLE tblInsureePolicy 
+ALTER COLUMN InsureeId INT NOT NULL
+GO
+
+IF COL_LENGTH(N'tblInsureePolicy', N'PolicyId') IS NOT NULL
+ALTER TABLE tblInsureePolicy 
+ALTER COLUMN PolicyId INT NOT NULL
+GO
+
+CREATE NONCLUSTERED INDEX [missing_index_181] ON [dbo].[tblInsureePolicy]
+(
+	[InsureeId] ASC,
+	[PolicyId] ASC
+)
+INCLUDE([EffectiveDate],[ExpiryDate],[ValidityTo]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+GO
+
+CREATE NONCLUSTERED INDEX [missing_index_250] ON [dbo].[tblInsureePolicy]
+(
+	[InsureeId] ASC,
+	[ValidityTo] ASC,
+	[EffectiveDate] ASC,
+	[ExpiryDate] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+GO
+
+CREATE NONCLUSTERED INDEX [NCI_tblInsureePolicy_InsureeID] ON [dbo].[tblInsureePolicy]
+(
+	[InsureeId] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+GO
+
+CREATE NONCLUSTERED INDEX [tblInsureePolicy_ValidityTo_EffectiveDate_ExpiryDate] ON [dbo].[tblInsureePolicy]
+(
+	[ValidityTo] ASC,
+	[EffectiveDate] ASC,
+	[ExpiryDate] ASC
+)
+INCLUDE([InsureeId],[PolicyId]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF)
+GO
+
+CREATE NONCLUSTERED INDEX [missing_index_203] ON [dbo].[tblInsureePolicy]
+(
+	[EffectiveDate] ASC,
+	[ValidityTo] ASC
+)
+INCLUDE([PolicyId]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+GO
+
+CREATE NONCLUSTERED INDEX [missing_index_356] ON [dbo].[tblInsureePolicy]
+(
+	[PolicyId] ASC,
+	[ValidityTo] ASC,
+	[EffectiveDate] ASC,
+	[ExpiryDate] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+GO
+
+CREATE NONCLUSTERED INDEX [NCI_tblInsureePolicy_PolicyID] ON [dbo].[tblInsureePolicy]
+(
+	[PolicyId] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+GO

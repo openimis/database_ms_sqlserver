@@ -3488,3 +3488,9 @@ CREATE NONCLUSTERED INDEX [NCI_tblInsureePolicy_PolicyID] ON [dbo].[tblInsureePo
 	[PolicyId] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
 GO
+
+-- OTC-643 Update all idle policies (before payment/contribution) effective date from 1900-01-01 to NULL
+UPDATE tblPolicy
+SET EffectiveDate = NULL
+WHERE ValidityTo IS NULL AND EffectiveDate = '1900-01-01' and PolicyStatus = 1
+GO

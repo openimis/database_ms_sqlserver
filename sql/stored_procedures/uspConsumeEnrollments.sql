@@ -125,7 +125,7 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 		T.P.value('(FamilyId)[1]','INT'),
 		T.P.value('(EnrollDate)[1]','DATE'),
 		T.P.value('(StartDate)[1]','DATE'),
-		T.P.value('(EffectiveDate)[1]','DATE'),
+		NULLIF(T.P.value('(EffectiveDate)[1]','DATE'),''),
 		T.P.value('(ExpiryDate)[1]','DATE'),
 		IIF(T.P.value('(PolicyStatus)[1]','TINYINT') = @ActiveStatus AND @ActivationOption = 3, @ReadyStatus, T.P.value('(PolicyStatus)[1]','TINYINT')),
 		T.P.value('(PolicyValue)[1]','DECIMAL(18,2)'),

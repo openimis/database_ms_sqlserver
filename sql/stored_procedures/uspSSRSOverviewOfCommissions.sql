@@ -1,7 +1,11 @@
-IF OBJECT_ID('uspSSRSOverviewOfCommissions', 'P') IS NOT NULL
-    DROP PROCEDURE uspSSRSOverviewOfCommissions
+IF OBJECT_ID('[dbo].[uspSSRSOverviewOfCommissions]', 'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[uspSSRSOverviewOfCommissions]
 GO
 
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 CREATE PROCEDURE [dbo].[uspSSRSOverviewOfCommissions]
 (
 	@Month INT,

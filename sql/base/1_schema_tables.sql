@@ -690,6 +690,14 @@ CREATE TYPE [dbo].[xWards] AS TABLE(
 )
 GO
 
+CREATE TYPE [dbo].[xBulkControlNumbers] AS TABLE(
+	BillId INT, 
+	ProdId INT,
+	OfficerId INT, 
+	Amount DECIMAL(18,2)
+)
+GO
+
 
 SET ANSI_NULLS ON
 GO
@@ -736,7 +744,7 @@ CREATE TABLE [dbo].[tblClaim](
 	[ClaimID] [int] IDENTITY(1,1) NOT NULL,
 	[ClaimUUID] [uniqueidentifier] NOT NULL,
 	[InsureeID] [int] NOT NULL,
-	[ClaimCode] [nvarchar](8) NOT NULL,
+	[ClaimCode] [nvarchar](50) NOT NULL,
 	[DateFrom] [smalldatetime] NOT NULL,
 	[DateTo] [smalldatetime] NULL,
 	[ICDID] [int] NOT NULL,
@@ -1078,7 +1086,9 @@ CREATE TABLE [dbo].[tblFamilies](
 	[isOffline] [bit] NULL,
 	[Ethnicity] [nvarchar](1) NULL,
 	[ConfirmationNo] [nvarchar](12) NULL,
-	[ConfirmationType] [nvarchar](3) NULL
+	[ConfirmationType] [nvarchar](3) NULL,
+	[Source] [nvarchar](50) NULL,
+	[SourceVersion] [nvarchar](15) NULL
  CONSTRAINT [PK_tblFamilies] PRIMARY KEY CLUSTERED 
 (
 	[FamilyID] ASC
@@ -1175,7 +1185,7 @@ CREATE TABLE [dbo].[tblFromPhone](
 	[DocStatus] [nvarchar](3) NULL,
 	[LandedDate] [datetime] NOT NULL,
 	[OfficerCode] [nvarchar](8) NULL,
-	[CHFID] [nvarchar](12) NULL,
+	[CHFID] [nvarchar](50) NULL,
 	[PhotoSumittedDate] [datetime] NULL,
 	[ClaimId] [int] NULL,
  CONSTRAINT [PK_tblFromPhone] PRIMARY KEY CLUSTERED 
@@ -1399,7 +1409,7 @@ CREATE TABLE [dbo].[tblInsuree](
 	[InsureeID] [int] IDENTITY(1,1) NOT NULL,
 	[InsureeUUID] [uniqueidentifier] NOT NULL,
 	[FamilyID] [int] NULL,
-	[CHFID] [nvarchar](12) NULL,
+	[CHFID] [nvarchar](50) NULL,
 	[LastName] [nvarchar](100) NOT NULL,
 	[OtherNames] [nvarchar](100) NOT NULL,
 	[DOB] [date] NOT NULL,
@@ -1427,6 +1437,8 @@ CREATE TABLE [dbo].[tblInsuree](
 	[GeoLocation] [nvarchar](250) NULL,
 	[CurrentVillage] [int] NULL,
 	[Vulnerability] [bit] NOT NULL DEFAULT 0,
+	[Source] [nvarchar](50) NULL,
+	[SourceVersion] [nvarchar](15) NULL
  CONSTRAINT [PK_tblInsuree] PRIMARY KEY CLUSTERED 
 (
 	[InsureeID] ASC
@@ -1440,8 +1452,8 @@ SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[tblInsureePolicy](
 	[InsureePolicyId] [int] IDENTITY(1,1) NOT NULL,
-	[InsureeId] [int] NULL,
-	[PolicyId] [int] NULL,
+	[InsureeId] [int] NOT NULL,
+	[PolicyId] [int] NOT NULL,
 	[EnrollmentDate] [date] NULL,
 	[StartDate] [date] NULL,
 	[EffectiveDate] [date] NULL,
@@ -1719,7 +1731,7 @@ CREATE TABLE [dbo].[tblPhotos](
 	[PhotoID] [int] IDENTITY(1,1) NOT NULL,
 	[PhotoUUID] [uniqueidentifier] NOT NULL,
 	[InsureeID] [int] NULL,
-	[CHFID] [nvarchar](12) NULL,
+	[CHFID] [nvarchar](50) NULL,
 	[PhotoFolder] [nvarchar](255) NOT NULL,
 	[PhotoFileName] [nvarchar](250) NULL,
 	[OfficerID] [int] NOT NULL,
@@ -1845,7 +1857,9 @@ CREATE TABLE [dbo].[tblPolicy](
 	[RowID] [timestamp] NULL,
 	[isOffline] [bit] NULL,
 	[RenewalOrder] [int] NULL,
-	[SelfRenewed] [bit] NOT NULL DEFAULT 0
+	[SelfRenewed] [bit] NOT NULL DEFAULT 0,
+	[Source] [nvarchar](50) NULL,
+	[SourceVersion] [nvarchar](15) NULL
  CONSTRAINT [PK_tblPolicy] PRIMARY KEY CLUSTERED 
 (
 	[PolicyID] ASC
@@ -1925,7 +1939,9 @@ CREATE TABLE [dbo].[tblPremium](
 	[OverviewCommissionReport] datetime NULL,
 	[AllDetailsCommissionReport] datetime NULL,
 	[ReportingCommissionID] [int] NULL,
-	[CreatedDate] [datetime] NULL CONSTRAINT DF_tblPremium_CreatedDate DEFAULT GETDATE()
+	[CreatedDate] [datetime] NOT NULL DEFAULT GETDATE(),
+	[Source] [nvarchar](50) NULL,
+	[SourceVersion] [nvarchar](15) NULL
  CONSTRAINT [PK_tblPremium] PRIMARY KEY CLUSTERED 
 (
 	[PremiumId] ASC
@@ -2297,7 +2313,7 @@ GO
 CREATE TABLE [dbo].[tblSubmittedPhotos](
 	[PhotoId] [int] IDENTITY(1,1) NOT NULL,
 	[ImageName] [nvarchar](50) NULL,
-	[CHFID] [nvarchar](12) NULL,
+	[CHFID] [nvarchar](50) NULL,
 	[OfficerCode] [nvarchar](8) NULL,
 	[PhotoDate] [date] NULL,
 	[RegisterDate] [datetime] NULL,

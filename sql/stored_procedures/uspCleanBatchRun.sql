@@ -1,8 +1,11 @@
-/****** Object:  StoredProcedure [dbo].[uspCleanBatchRun]    Script Date: 2/6/2022 12:22:44 AM ******/
-IF OBJECT_ID('uspCleanBatchRun', 'P') IS NOT NULL
-    DROP PROCEDURE uspCleanBatchRun
+IF OBJECT_ID('[dbo].[uspCleanBatchRun]', 'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[uspCleanBatchRun]
 GO
 
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 CREATE PROCEDURE [dbo].[uspCleanBatchRun]( @runid int ) AS
 BEGIN
 	declare @ClaimID TABLE (ClaimID int)

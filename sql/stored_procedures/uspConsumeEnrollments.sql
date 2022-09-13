@@ -1007,38 +1007,6 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 		END
 
 		SELECT @PolicyImported = ISNULL(COUNT(1),0) FROM @tblPolicy WHERE isOffline = 1
-			
-			
-
-		
-
-	
-	IF EXISTS(SELECT COUNT(1) 
-			FROM tblInsuree 
-			WHERE ValidityTo IS NULL
-			AND IsHead = 1
-			GROUP BY FamilyID
-			HAVING COUNT(1) > 1)
-			
-			--Added by Amani
-			BEGIN
-					DELETE FROM @tblResult;
-					SET @FamilyImported = 0;
-					SET @FamilyRejected =0;
-					SET @FamiliesUpd =0;
-					SET @InsureeImported  = 0;
-					SET @InsureeUpd =0;
-					SET @PolicyImported  = 0;
-					SET @PolicyImported  = 0;
-					SET @PolicyRejected  = 0;
-					SET @PremiumImported  = 0 
-					INSERT INTO @tblResult VALUES
-						(N'<h3 style="color:red;">Double HOF Found. <br />Please contact your IT manager for further assistant.</h3>')
-						--GOTO EndOfTheProcess;
-
-						RAISERROR(N'-5',16,1)
-					END
-
 
 		COMMIT TRAN ENROLL;
 

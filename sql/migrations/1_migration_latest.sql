@@ -3494,3 +3494,29 @@ UPDATE tblPolicy
 SET EffectiveDate = NULL
 WHERE ValidityTo IS NULL AND EffectiveDate = '1900-01-01' and PolicyStatus = 1
 GO
+
+--OTC-687
+
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_248' AND object_id = OBJECT_ID('tblClaimServices'))
+ALTER INDEX  [missing_index_248] ON [dbo].[tblClaimServices] DISABLE
+GO
+
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_275' AND object_id = OBJECT_ID('tblClaimServices'))
+ALTER INDEX  [missing_index_275] ON [dbo].[tblClaimServices] DISABLE
+GO
+
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_278' AND object_id = OBJECT_ID('tblClaimServices'))
+ALTER INDEX  [missing_index_278] ON [dbo].[tblClaimServices] DISABLE
+GO
+
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_323' AND object_id = OBJECT_ID('tblClaimServices'))
+ALTER INDEX  [missing_index_323] ON [dbo].[tblClaimServices] DISABLE
+GO
+
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_354' AND object_id = OBJECT_ID('tblClaimServices'))
+ALTER INDEX  [missing_index_354] ON [dbo].[tblClaimServices] DISABLE
+GO
+
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_384' AND object_id = OBJECT_ID('tblClaimServices'))
+ALTER INDEX  [missing_index_384] ON [dbo].[tblClaimServices] DISABLE
+GO

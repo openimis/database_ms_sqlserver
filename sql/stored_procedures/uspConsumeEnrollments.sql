@@ -584,6 +584,33 @@ CREATE PROCEDURE [dbo].[uspConsumeEnrollments](
 					WHERE I.ValidityTo IS NULL AND I.IsHead = 1 AND I.CHFID IS NULL)
 					RAISERROR(N'-1',16,1)
 
+                    IF EXISTS(SELECT COUNT(1) 
+                        FROM @tblInsuree TI
+                        LEFT OUTER JOIN tblInsuree I ON TI.CHFID = I.CHFID
+                        WHERE I.ValidityTo IS NULL
+                        AND I.IsHead = 1
+                        GROUP BY TI.FamilyID
+                        HAVING COUNT(1) > 1)
+                        
+                        --Added by Amani
+                        BEGIN
+                                DELETE FROM @tblResult;
+                                SET @FamilyImported = 0;
+                                SET @FamilyRejected =0;
+                                SET @FamiliesUpd =0;
+                                SET @InsureeImported  = 0;
+                                SET @InsureeUpd =0;
+                                SET @PolicyImported  = 0;
+                                SET @PolicyImported  = 0;
+                                SET @PolicyRejected  = 0;
+                                SET @PremiumImported  = 0 
+                                INSERT INTO @tblResult VALUES
+                                    (N'<h3 style="color:red;">Double HOF Found. <br />Please contact your IT manager for further assistant.</h3>')
+                                    --GOTO EndOfTheProcess;
+
+                                    RAISERROR(N'-5',16,1)
+                                END
+								
 					--Duplicate Receipt
 					IF EXISTS(SELECT 1 FROM @tblPremium TPR
 					INNER JOIN tblPremium PR ON PR.PolicyID = TPR.PolicyID AND TPR.Amount = PR.Amount AND TPR.Receipt = PR.Receipt

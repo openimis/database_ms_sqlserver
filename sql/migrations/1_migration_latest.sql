@@ -3520,3 +3520,103 @@ GO
 IF EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_384' AND object_id = OBJECT_ID('tblClaimServices'))
 ALTER INDEX  [missing_index_384] ON [dbo].[tblClaimServices] DISABLE
 GO
+
+--OTC 697
+DROP INDEX [missing_index_215] ON [dbo].[tblClaim]
+GO
+
+DROP INDEX [missing_index_218] ON [dbo].[tblClaim]
+GO
+
+DROP INDEX [missing_index_242] ON [dbo].[tblClaim]
+GO
+
+DROP INDEX [missing_index_245] ON [dbo].[tblClaim]
+GO
+
+DROP INDEX [missing_index_306] ON [dbo].[tblClaim]
+GO
+
+DROP INDEX [missing_index_4896] ON [dbo].[tblClaim]
+GO
+
+DROP INDEX [missing_index_50] ON [dbo].[tblClaim]
+GO
+
+DROP INDEX [NCI_tblClaim_DateProcessed] ON [dbo].[tblClaim]
+GO
+
+IF COL_LENGTH(N'tblClaim', N'DateProcessed') IS NOT NULL
+ALTER TABLE tbLClaim
+ALTER COLUMN DateProcessed DATE NULL
+GO
+
+CREATE NONCLUSTERED INDEX [missing_index_215] ON [dbo].[tblClaim]
+(
+	[ClaimStatus] ASC,
+	[ValidityTo] ASC,
+	[DateProcessed] ASC
+)
+INCLUDE([ClaimCode]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+GO
+
+CREATE NONCLUSTERED INDEX [missing_index_218] ON [dbo].[tblClaim]
+(
+	[ClaimStatus] ASC,
+	[ReviewStatus] ASC,
+	[ValidityTo] ASC,
+	[DateProcessed] ASC
+)
+INCLUDE([ClaimCode]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+GO
+
+CREATE NONCLUSTERED INDEX [missing_index_242] ON [dbo].[tblClaim]
+(
+	[ClaimStatus] ASC,
+	[ValidityTo] ASC,
+	[HFID] ASC,
+	[DateProcessed] ASC
+)
+INCLUDE([ClaimCode]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+GO
+
+CREATE NONCLUSTERED INDEX [missing_index_245] ON [dbo].[tblClaim]
+(
+	[ClaimStatus] ASC,
+	[ValidityTo] ASC,
+	[HFID] ASC,
+	[DateProcessed] ASC
+)
+INCLUDE([ClaimCode],[Claimed]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+GO
+
+/****** Object:  Index [missing_index_306]    Script Date: 16/09/2022 12:37:04 ******/
+CREATE NONCLUSTERED INDEX [missing_index_306] ON [dbo].[tblClaim]
+(
+	[ClaimStatus] ASC,
+	[ValidityTo] ASC,
+	[DateProcessed] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+GO
+
+CREATE NONCLUSTERED INDEX [missing_index_4896] ON [dbo].[tblClaim]
+(
+	[ClaimStatus] ASC,
+	[DateProcessed] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+GO
+
+CREATE NONCLUSTERED INDEX [missing_index_50] ON [dbo].[tblClaim]
+(
+	[ClaimStatus] ASC,
+	[ValidityTo] ASC,
+	[DateProcessed] ASC
+)
+INCLUDE([ICDID]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+GO
+
+CREATE NONCLUSTERED INDEX [NCI_tblClaim_DateProcessed] ON [dbo].[tblClaim]
+(
+	[DateProcessed] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+GO

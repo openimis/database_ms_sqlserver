@@ -756,7 +756,7 @@ CREATE TABLE [dbo].[tblClaim](
 	[Reinsured] [decimal](18, 2) NULL,
 	[Valuated] [decimal](18, 2) NULL,
 	[DateClaimed] [date] NOT NULL,
-	[DateProcessed] [smalldatetime] NULL,
+	[DateProcessed] [date] NULL,
 	[Feedback] [bit] NOT NULL,
 	[FeedbackID] [int] NULL,
 	[Explanation] [ntext] NULL,

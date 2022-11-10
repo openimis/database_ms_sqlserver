@@ -1,7 +1,11 @@
-IF OBJECT_ID('uspBatchProcess', 'P') IS NOT NULL
-    DROP PROCEDURE uspBatchProcess
+IF OBJECT_ID('[dbo].[uspBatchProcess]', 'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[uspBatchProcess]
 GO
 
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 CREATE PROCEDURE [dbo].[uspBatchProcess]
 	
 	@AuditUser as int = 0,
@@ -279,6 +283,5 @@ FINISH:
 				ERROR_MESSAGE() AS ErrorMessage
 	IF @InTopIsolation = 0 ROLLBACK TRANSACTION PROCESSCLAIMS
 	RETURN @oReturnValue
-
 END
-Go
+GO

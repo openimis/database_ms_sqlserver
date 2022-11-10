@@ -1,8 +1,12 @@
-IF OBJECT_ID('uspInsertIndexMonthly', 'P') IS NOT NULL
-    DROP PROCEDURE uspInsertIndexMonthly
+IF OBJECT_ID('[dbo].[uspInsertIndexMonthly]', 'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[uspInsertIndexMonthly]
 GO
 
-CREATE  PROCEDURE [dbo].[uspInsertIndexMonthly]
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [dbo].[uspInsertIndexMonthly]
 (
 @Type varchar(1), -- I O B
 @RelType INT, -- M 12, Q 4, Y 1 
@@ -102,8 +106,5 @@ BEGIN TRY
 		SET @RelIndex = 0.0
 		RETURN @RtnStatus
 	END CATCH 
-
-
-	
 END
 GO

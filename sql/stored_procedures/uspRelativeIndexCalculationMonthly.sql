@@ -1,9 +1,11 @@
-/****** Object:  StoredProcedure [dbo].[uspRelativeIndexCalculationMonthly]    Script Date: 2/4/2022 8:10:59 PM ******/
-IF OBJECT_ID('uspRelativeIndexCalculationMonthly', 'P') IS NOT NULL
-    DROP PROCEDURE uspRelativeIndexCalculationMonthly
+IF OBJECT_ID('[dbo].[uspRelativeIndexCalculationMonthly]', 'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[uspRelativeIndexCalculationMonthly]
 GO
 
-
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 CREATE PROCEDURE [dbo].[uspRelativeIndexCalculationMonthly]
 (
 @RelType INT,   --1 ,4 12  
@@ -30,7 +32,7 @@ BEGIN
 	CAST(1+DATEDIFF(DAY,
 		CASE WHEN @startDate >  PR.PayDate and  @startDate >  PL.EffectiveDate  THEN  @startDate  WHEN PR.PayDate > PL.EffectiveDate THEN PR.PayDate ELSE  PL.EffectiveDate  END
 		,CASE WHEN PL.ExpiryDate < @EndDate THEN PL.ExpiryDate ELSE @EndDate END)
-		as decimal(18,4)) / NULLIF(DATEDIFF (DAY,(CASE WHEN PR.PayDate > PL.EffectiveDate THEN PR.PayDate ELSE  PL.EffectiveDate  END), PL.ExpiryDate ) * PR.Amount, 0)
+		as decimal(18,4)) * PR.Amount / NULLIF(DATEDIFF (DAY,(CASE WHEN PR.PayDate > PL.EffectiveDate THEN PR.PayDate ELSE  PL.EffectiveDate  END), PL.ExpiryDate ), 0)
 	 ,0))
 	FROM tblPremium PR INNER JOIN tblPolicy PL ON PR.PolicyID = PL.PolicyID
 	INNER JOIN tblProduct Prod ON PL.ProdID = Prod.ProdID 

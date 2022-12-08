@@ -13,10 +13,34 @@ CREATE PROCEDURE [dbo].[uspAPIGetClaims]
 	@EndDate DATE = NULL,
 	@DateProcessedFrom DATE = NULL,
 	@DateProcessedTo DATE = NULL,
-	@ClaimStatus INT= NULL
+	@ClaimStatus INT = NULL,
+	@InsureeNumber NVARCHAR(50) = NULL,
+	@LastUpdateDate DATETIME = NULL
 )
 AS
 BEGIN
+	SELECT
+		ClaimID
+	INTO #tempClaimIDs
+	FROM
+	(
+		SELECT DISTINCT
+			c.ClaimId
+		FROM tblClaim c
+			JOIN tblClaimAdmin ca ON ca.ClaimAdminId = c.ClaimAdminId
+			JOIN tblInsuree i ON c.InsureeId = i.InsureeId
+			JOIN tblClaimItems ci on c.ClaimID = ci.ClaimID
+			JOIN tblClaimServices cs on c.ClaimID = cs.ClaimID
+		WHERE
+			c.ValidityTo IS NULL AND i.ValidityTo IS NULL AND ca.ValidityTo IS NULL
+			AND ca.ClaimAdminCode = @ClaimAdminCode
+			AND i.CHFID = ISNULL(@InsureeNumber, i.CHFID)
+			AND C.ClaimStatus = ISNULL(@ClaimStatus, c.ClaimStatus)
+			AND ISNULL(C.DateTo, C.DateFrom) BETWEEN ISNULL(@StartDate, ISNULL(C.DateTo, C.DateFrom)) AND ISNULL(@EndDate, ISNULL(C.DateTo, C.DateFrom))
+			AND (C.DateProcessed BETWEEN ISNULL(@DateProcessedFrom, C.DateProcessed) AND ISNULL(@DateProcessedTo, C.DateProcessed) OR C.DateProcessed IS NULL)
+			AND (c.ValidityFrom >= ISNULL(@LastUpdateDate, c.ValidityFrom) OR ci.ValidityFrom >= ISNULL(@LastUpdateDate, ci.ValidityFrom) OR cs.ValidityFrom >= ISNULL(@LastUpdateDate, cs.ValidityFrom))
+	) ClaimIds
+
 	SELECT 
 		C.ClaimUUID claim_uuid,
 		C.ClaimCode claim_number,
@@ -33,12 +57,8 @@ BEGIN
 	FROM tblClaimItems CI
 		join tblClaim C ON C.ClaimID=CI.ClaimID
 		join tblItems I ON I.ItemID=CI.ItemID
-		join tblClaimAdmin CA ON CA.ClaimAdminId=C.ClaimAdminId
-	WHERE C.ValidityTo IS NULL AND CI.ValidityTo IS NULL AND I.ValidityTo IS NULL
-		AND CA.ValidityTo IS NULL AND CA.ClaimAdminCode = @ClaimAdminCode
-		AND(C.ClaimStatus = @ClaimStatus OR @ClaimStatus IS NULL)
-		AND ISNULL(C.DateTo, C.DateFrom) BETWEEN ISNULL(@StartDate, (SELECT CAST(-53690 AS DATETIME))) AND ISNULL(@EndDate, GETDATE())
-		AND(C.DateProcessed BETWEEN ISNULL(@DateProcessedFrom, CAST('1753-01-01' AS DATE)) AND ISNULL(@DateProcessedTo, GETDATE()) OR C.DateProcessed IS NULL);
+	WHERE
+		C.ValidityTo IS NULL AND CI.ValidityTo IS NULL AND I.ValidityTo IS NULL AND C.ClaimID in (SELECT * FROM #tempClaimIDs)
 
 	SELECT 
 		C.ClaimUUID claim_uuid,
@@ -56,14 +76,10 @@ BEGIN
 	FROM tblClaimServices CS
 		join tblClaim C ON C.ClaimID=CS.ClaimID
 		join tblServices S ON S.ServiceID=CS.ServiceID
-		join tblClaimAdmin CA ON CA.ClaimAdminId=C.ClaimAdminId
-	WHERE C.ValidityTo IS NULL AND CS.ValidityTo IS NULL AND S.ValidityTo IS NULL
-		AND CA.ValidityTo IS NULL AND CA.ClaimAdminCode = @ClaimAdminCode
-		AND(C.ClaimStatus = @ClaimStatus OR @ClaimStatus IS NULL)
-		AND ISNULL(C.DateTo, C.DateFrom) BETWEEN ISNULL(@StartDate, (SELECT CAST(-53690 AS DATETIME))) AND ISNULL(@EndDate, GETDATE())
-		AND(C.DateProcessed BETWEEN ISNULL(@DateProcessedFrom, CAST('1753-01-01' AS DATE)) AND ISNULL(@DateProcessedTo, GETDATE()) OR C.DateProcessed IS NULL);
+	WHERE
+		C.ValidityTo IS NULL AND CS.ValidityTo IS NULL AND S.ValidityTo IS NULL AND C.ClaimID in (SELECT * FROM #tempClaimIDs)
 
-	WITH TotalForItems AS
+	;WITH TotalForItems AS
 	(
 		SELECT C.ClaimId, SUM(CI.PriceAsked * CI.QtyProvided)Claimed,
 			SUM(ISNULL(CI.PriceApproved, ISNULL(CI.PriceAsked, 0)) * ISNULL(CI.QtyApproved, ISNULL(CI.QtyProvided, 0))) Approved,
@@ -110,7 +126,6 @@ BEGIN
 		C.GuaranteeId guarantee_number
 	FROM
 		TBLClaim C
-		join tblClaimAdmin CA ON CA.ClaimAdminId=C.ClaimAdminId
 		LEFT JOIN tblHF HF ON C.HFID = HF.HfID
 		LEFT JOIN tblInsuree INS ON C.InsureeId = INS.InsureeId
 		LEFT JOIN TotalForItems TFI ON C.ClaimID = TFI.ClaimID
@@ -123,9 +138,8 @@ BEGIN
 	WHERE
 		C.ValidityTo IS NULL AND HF.ValidityTo IS NULL AND INS.ValidityTo IS NULL AND ICD.ValidityTo IS NULL
 		AND ICD1.ValidityTo IS NULL AND ICD2.ValidityTo IS NULL AND ICD3.ValidityTo IS NULL AND ICD4.ValidityTo IS NULL
-		AND CA.ValidityTo IS NULL AND CA.ClaimAdminCode = @ClaimAdminCode
-		AND(C.ClaimStatus = @ClaimStatus OR @ClaimStatus IS NULL)
-		AND ISNULL(C.DateTo, C.DateFrom) BETWEEN ISNULL(@StartDate, (SELECT CAST(-53690 AS DATETIME))) AND ISNULL(@EndDate, GETDATE())
-		AND(C.DateProcessed BETWEEN ISNULL(@DateProcessedFrom, CAST('1753-01-01' AS DATE)) AND ISNULL(@DateProcessedTo, GETDATE()) OR C.DateProcessed IS NULL)	
+		AND C.ClaimID in (SELECT * FROM #tempClaimIDs)
+
+	DROP TABLE #tempClaimIDs
 END
 GO

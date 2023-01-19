@@ -268,21 +268,23 @@ BEGIN
 	UPDATE tblClaimItems SET tblClaimItems.RejectionReason = 2
 	FROM dbo.tblClaimItems 
 	LEFT OUTER JOIN 
-	(SELECT     tblPLItemsDetail.ItemID
-	FROM         tblHF INNER JOIN
-						  tblPLItems ON tblHF.PLItemID = tblPLItems.PLItemID INNER JOIN
-						  tblPLItemsDetail ON tblPLItems.PLItemID = tblPLItemsDetail.PLItemID
-	WHERE     (tblHF.HfID = @HFID) AND (tblPLItems.ValidityTo IS NULL) AND (tblPLItemsDetail.ValidityTo IS NULL)) PLItems 
+	(SELECT tblPLItemsDetail.ItemID
+	FROM tblHF 
+	INNER JOIN tblPLItems ON tblHF.PLItemID = tblPLItems.PLItemID 
+	INNER JOIN tblPLItemsDetail ON tblPLItems.PLItemID = tblPLItemsDetail.PLItemID
+								AND @TargetDate BETWEEN tblPLItemsDetail.ValidityFrom AND ISNULL(tblPLItemsDetail.ValidityTo, GETDATE())
+	WHERE tblHF.HFID = @HFID) PLItems 
 	ON tblClaimItems.ItemID = PLItems.ItemID 
 	WHERE tblClaimItems.ClaimID = @ClaimID AND tblClaimItems.ValidityTo IS NULL AND PLItems.ItemID IS NULL
 	
 	UPDATE tblClaimServices SET tblClaimServices.RejectionReason = 2 
 	FROM dbo.tblClaimServices 
 	LEFT OUTER JOIN 
-	(SELECT     tblPLServicesDetail.ServiceID 
-	FROM         tblHF INNER JOIN
-						  tblPLServicesDetail ON tblHF.PLServiceID = tblPLServicesDetail.PLServiceID
-	WHERE     (tblHF.HfID = @HFID) AND (tblPLServicesDetail.ValidityTo IS NULL) AND (tblPLServicesDetail.ValidityTo IS NULL)) PLServices 
+	(SELECT   tblPLServicesDetail.ServiceID 
+	FROM tblHF 
+	INNER JOIN tblPLServicesDetail ON tblHF.PLServiceID = tblPLServicesDetail.PLServiceID
+								AND @TargetDate BETWEEN tblPLServicesDetail.ValidityFrom AND ISNULL(tblPLServicesDetail.ValidityTo, GETDATE())
+	WHERE tblHF.HfID = @HFID) PLServices 
 	ON tblClaimServices.ServiceID = PLServices.ServiceID  
 	WHERE tblClaimServices.ClaimID = @ClaimID AND tblClaimServices.ValidityTo IS NULL AND PLServices.ServiceID  IS NULL
 	

@@ -270,8 +270,7 @@ BEGIN
 	LEFT OUTER JOIN 
 	(SELECT tblPLItemsDetail.ItemID
 	FROM tblHF 
-	INNER JOIN tblPLItems ON tblHF.PLItemID = tblPLItems.PLItemID 
-	INNER JOIN tblPLItemsDetail ON tblPLItems.PLItemID = tblPLItemsDetail.PLItemID
+	INNER JOIN tblPLItemsDetail ON tblHF.PLItemID = tblPLItemsDetail.PLItemID
 								AND @TargetDate BETWEEN tblPLItemsDetail.ValidityFrom AND ISNULL(tblPLItemsDetail.ValidityTo, GETDATE())
 	WHERE tblHF.HFID = @HFID) PLItems 
 	ON tblClaimItems.ItemID = PLItems.ItemID 

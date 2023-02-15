@@ -40,7 +40,7 @@ BEGIN
 		INSERT INTO @tblService
 		SELECT IP.EffectiveDate, PL.ProdID,
 		DATEADD(MONTH,CASE WHEN @Age >= 18 THEN  PS.WaitingPeriodAdult ELSE PS.WaitingPeriodChild END,IP.EffectiveDate) MinDate,
-		(CASE WHEN @Age >= 18 THEN NULLIF(PS.LimitNoAdult,0) ELSE NULLIF(PS.LimitNoChild,0) END) - SUM(CASE WHEN CS.QtyApproved IS NULL THEN CS.QtyProvided ELSE CS.QtyApproved END) ServicesLeft
+		(CASE WHEN @Age >= 18 THEN NULLIF(PS.LimitNoAdult,0) ELSE NULLIF(PS.LimitNoChild,0) END) - SUM(COALESCE(CS.QtyApproved, CS.QtyProvided)) ServicesLeft
 		FROM tblInsureePolicy IP INNER JOIN tblPolicy PL ON IP.PolicyId = PL.PolicyID
 		INNER JOIN tblProductServices PS ON PL.ProdID = PS.ProdID
 		LEFT OUTER JOIN tblClaim C ON IP.InsureeId = C.InsureeID
@@ -78,7 +78,7 @@ BEGIN
 		INSERT INTO @tblItem
 		SELECT IP.EffectiveDate, PL.ProdID,
 		DATEADD(MONTH,CASE WHEN @Age >= 18 THEN  PItem.WaitingPeriodAdult ELSE PItem.WaitingPeriodChild END,IP.EffectiveDate) MinDate,
-		(CASE WHEN @Age >= 18 THEN NULLIF(PItem.LimitNoAdult,0) ELSE NULLIF(PItem.LimitNoChild,0) END) - SUM(CASE WHEN CI.QtyApproved IS NULL THEN CI.QtyProvided ELSE CI.QtyApproved END) ItemsLeft
+		(CASE WHEN @Age >= 18 THEN NULLIF(PItem.LimitNoAdult,0) ELSE NULLIF(PItem.LimitNoChild,0) END) - SUM(COALESCE(CI.QtyApproved, CI.QtyProvided)) ItemsLeft
 		FROM tblInsureePolicy IP INNER JOIN tblPolicy PL ON IP.PolicyId = PL.PolicyID
 		INNER JOIN tblProductItems PItem ON PL.ProdID = PItem.ProdID
 		LEFT OUTER JOIN tblClaim C ON IP.InsureeId = C.InsureeID

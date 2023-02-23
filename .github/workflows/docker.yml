@@ -1,0 +1,19 @@
+name: publish
+on:   
+  tags:
+jobs:
+  publish-docker-image:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v1
+      with:
+        registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Build the docker Docker image
+      run: |
+         docker build . --tag ghcr.io/openimis/openimis-be:${GITHUB_REF##*/}
+         docker run ghcr.io/openimis/openimis-be:${GITHUB_REF##*/}
+         docker push ghcr.io/openimis/openimis-be:${GITHUB_REF##*/}

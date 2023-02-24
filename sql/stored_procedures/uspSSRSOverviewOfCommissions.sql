@@ -1,8 +1,8 @@
 /****** Object:  StoredProcedure [dbo].[uspSSRSOverviewOfCommissions]    Script Date: 02/09/2022 17:03:08 ******/
-SET ANSI_NULLS ON
+IF OBJECT_ID('[dbo].[uspSSRSOverviewOfCommissions]', 'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[uspSSRSOverviewOfCommissions]
 GO
-SET QUOTED_IDENTIFIER ON
-GO
+
 ALTER PROCEDURE [dbo].[uspSSRSOverviewOfCommissions]
 (
 	@Month INT,

@@ -19,6 +19,6 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Build the hello-docker Docker image
       run: |
-         docker build . --tag ghcr.io/openimis/openimis-mssql:${{ github.event.inputs.tag }}
-         docker run ghcr.io/openimis/openimis-mssql:${{ github.event.inputs.tag }}
-         docker push ghcr.io/openimis/openimis-mssql:${{ github.event.inputs.tag }}
+         docker build . --tag ghcr.io/openimis/openimis-mssql:${{ github.event.inputs.tag:-latest }}
+         docker run ghcr.io/openimis/openimis-mssql:${{ github.event.inputs.tag:-latest }}
+         docker push ghcr.io/openimis/openimis-mssql:${{ github.event.inputs.tag:-latest }}

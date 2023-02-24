@@ -22,7 +22,7 @@ if [ ${data} -eq "0" ]; then
         echo 'create database'
         #/opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P $SA_PASSWORD -Q "DROP DATABASE IF EXISTS $DB_NAME"
         /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P $SA_PASSWORD -Q "CREATE DATABASE $DB_NAME"
-        if [ ${INIT_MODE} -eq "demo" ]; then
+        if [ "${INIT_MODE}" = "demo" ]; then
                 /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P $SA_PASSWORD -i /app/fullDemoDatabase.sql -d $DB_NAME | grep . | uniq -c
         else
                 /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P $SA_PASSWORD -i /app/fullEmptyDatabase.sql -d $DB_NAME | grep . | uniq -c

@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Merge me!
-        run : bash concatenate_files.sh
+        run : bash script/concatenate_files.sh
       - name: Publish artifact
         uses: actions/upload-artifact@master
         with:

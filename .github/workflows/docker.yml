@@ -22,5 +22,4 @@ jobs:
       run: |
          TAG_INPUT=${{ github.event.inputs.name }}
          docker build . --tag ghcr.io/openimis/openimis-mssql:${TAG_INPUT:-"latest"}
-         docker run ghcr.io/openimis/openimis-mssql:${TAG_INPUT:-"latest"}
          docker push ghcr.io/openimis/openimis-mssql:${TAG_INPUT:-"latest"}

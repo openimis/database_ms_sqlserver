@@ -8,10 +8,8 @@ ENV DB_NAME=IMIS
 ENV DB_USER=IMISUser
 RUN mkdir -p /app
 COPY script/* /app/
+COPY sql/* /app/sql/
 WORKDIR /app
-
-ENV SQL_SCRIPT_URL="https://github.com/openimis/database_ms_sqlserver/releases/latest/download/sql-files.zip"
 ENV INIT_MODE='empty'
-RUN apt-get update && apt-get install unzip -y && rm -rf /var/lib/apt/lists/*
 RUN chmod a+x /app/*.sh
 CMD /bin/bash ./entrypoint.sh

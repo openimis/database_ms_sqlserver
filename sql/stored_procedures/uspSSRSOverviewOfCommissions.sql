@@ -1,5 +1,3 @@
-USE [CH_CENTRAL]
-GO
 /****** Object:  StoredProcedure [dbo].[uspSSRSOverviewOfCommissions]    Script Date: 02/09/2022 17:03:08 ******/
 SET ANSI_NULLS ON
 GO

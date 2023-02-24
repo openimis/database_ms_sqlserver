@@ -8,7 +8,7 @@ ENV DB_NAME=IMIS
 ENV DB_USER=IMISUser
 RUN mkdir -p /app
 COPY script/* /app/
-COPY sql/* /app/sql/
+COPY sql /app/sql
 WORKDIR /app
 ENV INIT_MODE='empty'
 RUN chmod a+x /app/*.sh

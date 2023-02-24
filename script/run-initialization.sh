@@ -17,7 +17,7 @@ if [ ${data} -eq "0" ]; then
         echo 'create database user'
         /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P $SA_PASSWORD -Q "CREATE LOGIN $DB_USER WITH PASSWORD='${SA_PASSWORD}', CHECK_POLICY = OFF"
         echo "merging files"
-        /app/script/concatenate_files.sh
+        ./concatenate_files.sh
         echo 'create database'
         #/opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P $SA_PASSWORD -Q "DROP DATABASE IF EXISTS $DB_NAME"
         /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P $SA_PASSWORD -Q "CREATE DATABASE $DB_NAME"

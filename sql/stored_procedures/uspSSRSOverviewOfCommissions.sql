@@ -3,7 +3,7 @@ IF OBJECT_ID('[dbo].[uspSSRSOverviewOfCommissions]', 'P') IS NOT NULL
     DROP PROCEDURE [dbo].[uspSSRSOverviewOfCommissions]
 GO
 
-ALTER PROCEDURE [dbo].[uspSSRSOverviewOfCommissions]
+CREATE PROCEDURE [dbo].[uspSSRSOverviewOfCommissions]
 (
 	@Month INT,
 	@Year INT, 

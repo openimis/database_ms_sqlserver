@@ -59,7 +59,7 @@ BEGIN
 
 	DECLARE @startDateMonth date = DATEFROMPARTS(@Year, @Period ,'01')
 	DECLARE @startDateYear date = DATEFROMPARTS(@Year, '01' ,'01')
-	DECLARE @endDate date = EOMONTH(@startDateMonth)
+	DECLARE @endDate date = DATEADD(day, 1, EOMONTH(@startDateMonth))
 
 
     -- if   @endDate >  GETDATE()

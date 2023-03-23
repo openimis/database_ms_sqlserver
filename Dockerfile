@@ -10,6 +10,6 @@ RUN mkdir -p /app
 COPY script/* /app/
 COPY sql /app/sql
 WORKDIR /app
-ENV INIT_MODE='empty'
+ENV INIT_MODE=empty
 RUN chmod a+x /app/*.sh
 CMD /bin/bash ./entrypoint.sh

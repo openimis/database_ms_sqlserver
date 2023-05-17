@@ -20,6 +20,6 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Build the hello-docker Docker image
       run: |
-         TAG_INPUT=${{ github.event.inputs.name }}
+         TAG_INPUT=${{ github.event.inputs.tag }}
          docker build . --tag ghcr.io/openimis/openimis-mssql:${TAG_INPUT:-"latest"}
          docker push ghcr.io/openimis/openimis-mssql:${TAG_INPUT:-"latest"}

@@ -11,7 +11,7 @@ on:
 
 jobs:
   run_test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     services:
       mssql:
         image: mcr.microsoft.com/mssql/server:2017-latest
@@ -34,7 +34,7 @@ jobs:
           path: './new'
       - name: generate new files
         working-directory: ./new
-        run: bash concatenate_files.sh
+        run: bash script/concatenate_files.sh
       - name: install linux packages
         run: |
             mkdir ./oldMain 

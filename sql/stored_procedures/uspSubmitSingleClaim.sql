@@ -268,21 +268,22 @@ BEGIN
 	UPDATE tblClaimItems SET tblClaimItems.RejectionReason = 2
 	FROM dbo.tblClaimItems 
 	LEFT OUTER JOIN 
-	(SELECT     tblPLItemsDetail.ItemID
-	FROM         tblHF INNER JOIN
-						  tblPLItems ON tblHF.PLItemID = tblPLItems.PLItemID INNER JOIN
-						  tblPLItemsDetail ON tblPLItems.PLItemID = tblPLItemsDetail.PLItemID
-	WHERE     (tblHF.HfID = @HFID) AND (tblPLItems.ValidityTo IS NULL) AND (tblPLItemsDetail.ValidityTo IS NULL)) PLItems 
+	(SELECT tblPLItemsDetail.ItemID
+	FROM tblHF 
+	INNER JOIN tblPLItemsDetail ON tblHF.PLItemID = tblPLItemsDetail.PLItemID
+								AND @TargetDate BETWEEN tblPLItemsDetail.ValidityFrom AND ISNULL(tblPLItemsDetail.ValidityTo, GETDATE())
+	WHERE tblHF.HFID = @HFID) PLItems 
 	ON tblClaimItems.ItemID = PLItems.ItemID 
 	WHERE tblClaimItems.ClaimID = @ClaimID AND tblClaimItems.ValidityTo IS NULL AND PLItems.ItemID IS NULL
 	
 	UPDATE tblClaimServices SET tblClaimServices.RejectionReason = 2 
 	FROM dbo.tblClaimServices 
 	LEFT OUTER JOIN 
-	(SELECT     tblPLServicesDetail.ServiceID 
-	FROM         tblHF INNER JOIN
-						  tblPLServicesDetail ON tblHF.PLServiceID = tblPLServicesDetail.PLServiceID
-	WHERE     (tblHF.HfID = @HFID) AND (tblPLServicesDetail.ValidityTo IS NULL) AND (tblPLServicesDetail.ValidityTo IS NULL)) PLServices 
+	(SELECT   tblPLServicesDetail.ServiceID 
+	FROM tblHF 
+	INNER JOIN tblPLServicesDetail ON tblHF.PLServiceID = tblPLServicesDetail.PLServiceID
+								AND @TargetDate BETWEEN tblPLServicesDetail.ValidityFrom AND ISNULL(tblPLServicesDetail.ValidityTo, GETDATE())
+	WHERE tblHF.HfID = @HFID) PLServices 
 	ON tblClaimServices.ServiceID = PLServices.ServiceID  
 	WHERE tblClaimServices.ClaimID = @ClaimID AND tblClaimServices.ValidityTo IS NULL AND PLServices.ServiceID  IS NULL
 	
@@ -333,28 +334,44 @@ BEGIN
 					IF @Adult = 1 
 							DECLARE PRODSERVICELOOP CURSOR LOCAL FORWARD_ONLY FOR 
 							SELECT  TblProduct.ProdID , tblProductServices.ProdServiceID , tblInsureePolicy.EffectiveDate,  tblPolicy.EffectiveDate, tblInsureePolicy.ExpiryDate  , tblPolicy.PolicyStage
-							FROM         tblFamilies INNER JOIN
-												  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
-												  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
-												  tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID INNER JOIN
-												  tblInsureePolicy ON tblPolicy.PolicyID = tblInsureePolicy.PolicyId
-							WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductServices.ValidityTo IS NULL) AND 
-												  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductServices.ServiceID = @ServiceID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL) AND 
-												  (tblInsureePolicy.EffectiveDate <= @TargetDate) AND (tblInsureePolicy.ExpiryDate >= @TargetDate) AND (tblInsureePolicy.InsureeId = @InsureeID) AND 
-												  (tblInsureePolicy.ValidityTo IS NULL)
+							FROM tblFamilies 
+							INNER JOIN tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID 
+							INNER JOIN tblProduct ON tblPolicy.ProdID = tblProduct.ProdID 
+							INNER JOIN tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID 
+														AND @TargetDate BETWEEN tblProductServices.ValidityFrom AND ISNULL(tblProductServices.ValidityTo, GETDATE())
+							INNER JOIN tblInsureePolicy ON tblPolicy.PolicyID = tblInsureePolicy.PolicyId
+							WHERE tblPolicy.EffectiveDate <= @TargetDate 
+							AND tblPolicy.ExpiryDate >= @TargetDate 
+							AND tblPolicy.ValidityTo IS NULL 
+							AND (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) 
+							AND tblProductServices.ServiceID = @ServiceID 
+							AND tblFamilies.FamilyID = @FamilyID 
+							AND tblProduct.ValidityTo IS NULL 
+							AND tblInsureePolicy.EffectiveDate <= @TargetDate 
+							AND tblInsureePolicy.ExpiryDate >= @TargetDate 
+							AND tblInsureePolicy.InsureeId = @InsureeID 
+							AND tblInsureePolicy.ValidityTo IS NULL
 							ORDER BY DATEADD(m,ISNULL(tblProductServices.WaitingPeriodAdult, 0), tblInsureePolicy.EffectiveDate)
 					ELSE
 							DECLARE PRODSERVICELOOP CURSOR LOCAL FORWARD_ONLY FOR 
 							SELECT  TblProduct.ProdID , tblProductServices.ProdServiceID , tblInsureePolicy.EffectiveDate,  tblPolicy.EffectiveDate, tblInsureePolicy.ExpiryDate  , tblPolicy.PolicyStage
-							FROM         tblFamilies INNER JOIN
-												  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
-												  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
-												  tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID INNER JOIN
-												  tblInsureePolicy ON tblPolicy.PolicyID = tblInsureePolicy.PolicyId
-							WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductServices.ValidityTo IS NULL) AND 
-												  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductServices.ServiceID = @ServiceID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL) AND 
-												  (tblInsureePolicy.EffectiveDate <= @TargetDate) AND (tblInsureePolicy.ExpiryDate >= @TargetDate) AND (tblInsureePolicy.InsureeId = @InsureeID) AND 
-												  (tblInsureePolicy.ValidityTo IS NULL)
+							FROM tblFamilies 
+							INNER JOIN tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID 
+							INNER JOIN tblProduct ON tblPolicy.ProdID = tblProduct.ProdID 
+							INNER JOIN tblProductServices ON tblProduct.ProdID = tblProductServices.ProdID 
+														AND @TargetDate BETWEEN tblProductServices.ValidityFrom AND ISNULL(tblProductServices.ValidityTo, GETDATE())
+							INNER JOIN tblInsureePolicy ON tblPolicy.PolicyID = tblInsureePolicy.PolicyId
+							WHERE tblPolicy.EffectiveDate <= @TargetDate 
+							AND tblPolicy.ExpiryDate >= @TargetDate 
+							AND tblPolicy.ValidityTo IS NULL 
+							AND (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) 
+							AND tblProductServices.ServiceID = @ServiceID 
+							AND tblFamilies.FamilyID = @FamilyID 
+							AND tblProduct.ValidityTo IS NULL 
+							AND tblInsureePolicy.EffectiveDate <= @TargetDate 
+							AND tblInsureePolicy.ExpiryDate >= @TargetDate 
+							AND tblInsureePolicy.InsureeId = @InsureeID
+							AND tblInsureePolicy.ValidityTo IS NULL
 							ORDER BY DATEADD(m,ISNULL(tblProductServices.WaitingPeriodChild, 0), tblInsureePolicy.EffectiveDate)
 
 		
@@ -703,28 +720,45 @@ BEGIN
 		IF @Adult = 1 
 				DECLARE PRODITEMLOOP CURSOR LOCAL FORWARD_ONLY FOR 
 				SELECT  TblProduct.ProdID , tblProductItems.ProdItemID , tblInsureePolicy.EffectiveDate,  tblPolicy.EffectiveDate, tblInsureePolicy.ExpiryDate  , tblPolicy.PolicyStage
-				FROM         tblFamilies INNER JOIN
-									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
-									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
-									  tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID INNER JOIN
-									  tblInsureePolicy ON tblPolicy.PolicyID = tblInsureePolicy.PolicyId
-				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductItems.ValidityTo IS NULL) AND 
-									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductItems.ItemID = @ItemID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL) AND 
-									  (tblInsureePolicy.EffectiveDate <= @TargetDate) AND (tblInsureePolicy.ExpiryDate >= @TargetDate) AND (tblInsureePolicy.InsureeId = @InsureeID) AND 
-									  (tblInsureePolicy.ValidityTo IS NULL)
+				FROM tblFamilies 
+				INNER JOIN tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID 
+				INNER JOIN tblProduct ON tblPolicy.ProdID = tblProduct.ProdID 
+				INNER JOIN tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID
+											AND @TargetDate BETWEEN tblProductItems.ValidityFrom AND ISNULL(tblProductItems.ValidityTo, GETDATE())
+				INNER JOIN tblInsureePolicy ON tblPolicy.PolicyID = tblInsureePolicy.PolicyId
+				WHERE tblPolicy.EffectiveDate <= @TargetDate 
+				AND tblPolicy.ExpiryDate >= @TargetDate
+				AND tblPolicy.ValidityTo IS NULL
+				--AND tblProductItems.ValidityTo IS NULL
+				AND (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8)
+				AND tblProductItems.ItemID = @ItemID 
+				AND tblFamilies.FamilyID = @FamilyID 
+				AND tblProduct.ValidityTo IS NULL
+				AND tblInsureePolicy.EffectiveDate <= @TargetDate
+				AND tblInsureePolicy.ExpiryDate >= @TargetDate 
+				AND tblInsureePolicy.InsureeId = @InsureeID
+				AND tblInsureePolicy.ValidityTo IS NULL
 				ORDER BY DATEADD(m,ISNULL(tblProductItems.WaitingPeriodAdult, 0), tblInsureePolicy.EffectiveDate)
 		ELSE
 				DECLARE PRODITEMLOOP CURSOR LOCAL FORWARD_ONLY FOR 
 				SELECT  TblProduct.ProdID , tblProductItems.ProdItemID , tblInsureePolicy.EffectiveDate,  tblPolicy.EffectiveDate, tblInsureePolicy.ExpiryDate  , tblPolicy.PolicyStage
-				FROM         tblFamilies INNER JOIN
-									  tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID INNER JOIN
-									  tblProduct ON tblPolicy.ProdID = tblProduct.ProdID INNER JOIN
-									  tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID INNER JOIN
-									  tblInsureePolicy ON tblPolicy.PolicyID = tblInsureePolicy.PolicyId
-				WHERE     (tblPolicy.EffectiveDate <= @TargetDate) AND (tblPolicy.ExpiryDate >= @TargetDate) AND (tblPolicy.ValidityTo IS NULL) AND (tblProductItems.ValidityTo IS NULL) AND 
-									  (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) AND (tblProductItems.ItemID = @ItemID) AND (tblFamilies.FamilyID = @FamilyID) AND (tblProduct.ValidityTo IS NULL) AND 
-									  (tblInsureePolicy.EffectiveDate <= @TargetDate) AND (tblInsureePolicy.ExpiryDate >= @TargetDate) AND (tblInsureePolicy.InsureeId = @InsureeID) AND 
-									  (tblInsureePolicy.ValidityTo IS NULL)
+				FROM tblFamilies 
+				INNER JOIN tblPolicy ON tblFamilies.FamilyID = tblPolicy.FamilyID 
+				INNER JOIN tblProduct ON tblPolicy.ProdID = tblProduct.ProdID 
+				INNER JOIN tblProductItems ON tblProduct.ProdID = tblProductItems.ProdID 
+										AND @TargetDate BETWEEN tblProductItems.ValidityFrom AND ISNULL(tblProductItems.ValidityTo, GETDATE())
+				INNER JOIN tblInsureePolicy ON tblPolicy.PolicyID = tblInsureePolicy.PolicyId
+				WHERE tblPolicy.EffectiveDate <= @TargetDate 
+				AND tblPolicy.ExpiryDate >= @TargetDate 
+				AND tblPolicy.ValidityTo IS NULL
+				AND (tblPolicy.PolicyStatus = 2 OR tblPolicy.PolicyStatus = 8) 
+				AND tblProductItems.ItemID = @ItemID 
+				AND tblFamilies.FamilyID = @FamilyID 
+				AND (tblProduct.ValidityTo IS NULL) 
+				AND tblInsureePolicy.EffectiveDate <= @TargetDate 
+				AND tblInsureePolicy.ExpiryDate >= @TargetDate 
+				AND tblInsureePolicy.InsureeId = @InsureeID 
+				AND tblInsureePolicy.ValidityTo IS NULL
 				ORDER BY DATEADD(m,ISNULL(tblProductItems.WaitingPeriodChild, 0), tblInsureePolicy.EffectiveDate)
 
 		

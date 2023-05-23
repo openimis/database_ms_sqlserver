@@ -1,11 +1,7 @@
-IF OBJECT_ID('[dbo].[uspSSRSCapitationPayment]', 'P') IS NOT NULL
-    DROP PROCEDURE [dbo].[uspSSRSCapitationPayment]
+IF NOT OBJECT_ID('uspSSRSCapitationPayment') IS NULL
+DROP PROCEDURE uspSSRSCapitationPayment
 GO
 
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 CREATE PROCEDURE [dbo].[uspSSRSCapitationPayment]
 (
 	@RegionId INT = NULL,
@@ -220,7 +216,7 @@ BEGIN
 			SELECT Prod.ProdId, SUM(ISNULL( CAST(1+DATEDIFF(DAY,
 			CASE WHEN @FirstDay >  PR.PayDate and  @FirstDay >  PL.EffectiveDate  THEN  @FirstDay  WHEN PR.PayDate > PL.EffectiveDate THEN PR.PayDate ELSE  PL.EffectiveDate  END
 				,CASE WHEN PL.ExpiryDate < @LastDay THEN PL.ExpiryDate ELSE @LastDay END)
-				as decimal(18,4)) / DATEDIFF (DAY,(CASE WHEN PR.PayDate > PL.EffectiveDate THEN PR.PayDate ELSE  PL.EffectiveDate  END), PL.ExpiryDate ) * PR.Amount 
+				as decimal(18,4)) / ISNULL(NULLIF(DATEDIFF (DAY,(CASE WHEN PR.PayDate > PL.EffectiveDate THEN PR.PayDate ELSE  PL.EffectiveDate  END), PL.ExpiryDate ) * PR.Amount, 0), 1)
 			 ,0)) Allocated
 			FROM tblPremium PR 
 			INNER JOIN tblPolicy PL ON PR.PolicyID = PL.PolicyID
@@ -402,5 +398,3 @@ BEGIN
 
 	 GROUP BY HFCode
 END 
-GO
- 

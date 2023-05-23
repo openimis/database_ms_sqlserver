@@ -1,12 +1,7 @@
-
-IF OBJECT_ID('[dbo].[uspCreateCapitationPaymentReportData]', 'P') IS NOT NULL
-    DROP PROCEDURE [dbo].[uspCreateCapitationPaymentReportData]
+IF OBJECT_ID('uspCreateCapitationPaymentReportData') IS NOT NULL
+	DROP PROCEDURE uspCreateCapitationPaymentReportData
 GO
 
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 CREATE PROCEDURE [dbo].[uspCreateCapitationPaymentReportData]
 (
 	@RegionId INT = NULL,
@@ -248,7 +243,7 @@ BEGIN
 			SELECT Prod.ProdId, SUM(ISNULL( CAST(1+DATEDIFF(DAY,
 			CASE WHEN @FirstDay >  PR.PayDate and  @FirstDay >  PL.EffectiveDate  THEN  @FirstDay  WHEN PR.PayDate > PL.EffectiveDate THEN PR.PayDate ELSE  PL.EffectiveDate  END
 				,CASE WHEN PL.ExpiryDate < @LastDay THEN PL.ExpiryDate ELSE @LastDay END)
-				as decimal(18,4)) / DATEDIFF (DAY,(CASE WHEN PR.PayDate > PL.EffectiveDate THEN PR.PayDate ELSE  PL.EffectiveDate  END), PL.ExpiryDate ) * PR.Amount 
+				as decimal(18,4)) * PR.Amount/ ISNULL(NULLIF(DATEDIFF (DAY,(CASE WHEN PR.PayDate > PL.EffectiveDate THEN PR.PayDate ELSE  PL.EffectiveDate  END), PL.ExpiryDate ), 0), 1)
 			 ,0)) Allocated
 			FROM tblPremium PR 
 			INNER JOIN tblPolicy PL ON PR.PolicyID = PL.PolicyID
@@ -432,4 +427,3 @@ BEGIN
 						ISNULL(SUM(UPAdjustedAmount),0)UPAdjustedAmount, ISNULL(SUM(PaymentCathment),0)PaymentCathment, ISNULL(SUM(TotalAdjusted),0)TotalAdjusted	
 					FROM @ReportData GROUP BY HFCode) r
 END
-GO

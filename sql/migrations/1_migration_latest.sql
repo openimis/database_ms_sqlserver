@@ -755,7 +755,8 @@ END
 
 BEGIN TRY
 	BEGIN TRANSACTION; 
-	CREATE NONCLUSTERED INDEX NCI_HF_ValidityTo ON tblHF(ValidityTo)
+		IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'NCI_HF_ValidityTo' AND object_id = OBJECT_ID('tblHF'))
+			CREATE NONCLUSTERED INDEX NCI_HF_ValidityTo ON tblHF(ValidityTo)
 	COMMIT TRANSACTION;  
 END TRY
 BEGIN CATCH  
@@ -801,14 +802,21 @@ BEGIN TRY
 	ALTER TABLE tblFeedback DROP CONSTRAINT [FK_tblFeedback_tblClaim-ClaimID]
 	
 	ALTER TABLE [tblClaim] DROP CONSTRAINT [PK_tblClaim]
-	CREATE UNIQUE CLUSTERED INDEX CI_tblClaimValid ON tblClaim (ClaimID,ValidityTo)
-	WITH
-	(	PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
-		IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON
-	) ON liveArchive(ValidityTo)
-	
+	IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'CI_tblClaimValid' AND object_id = OBJECT_ID('tblClaim'))
+	BEGIN
+		CREATE UNIQUE CLUSTERED INDEX CI_tblClaimValid ON tblClaim (ClaimID,ValidityTo)
+		WITH
+		(	PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
+			IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON
+		) ON liveArchive(ValidityTo)
+	END
+
 	ALTER TABLE tblClaim ADD CONSTRAINT PK_tblClaim PRIMARY KEY NONCLUSTERED (ClaimID) ON [PRIMARY];
-	CREATE INDEX NCI_tblClaim_DateClaimed ON [tblClaim](DateClaimed);
+	IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'NCI_tblClaim_DateClaimed' AND object_id = OBJECT_ID('tblClaim'))
+	BEGIN
+		CREATE INDEX NCI_tblClaim_DateClaimed ON [tblClaim](DateClaimed);
+	END
+	
 	ALTER TABLE [tblClaimItems] ADD CONSTRAINT [FK_tblClaimItems_tblClaim-ClaimID] FOREIGN KEY(ClaimID) REFERENCES [tblClaim] (ClaimID) 
 	ALTER TABLE [tblClaimServices] ADD CONSTRAINT [FK_tblClaimServices_tblClaim-ClaimID]  FOREIGN KEY(ClaimID) REFERENCES [tblClaim] (ClaimID)
 	ALTER TABLE [tblFeedback] ADD CONSTRAINT [FK_tblFeedback_tblClaim-ClaimID] FOREIGN KEY(ClaimID) REFERENCES [tblClaim] (ClaimID)
@@ -821,11 +829,16 @@ END CATCH
 BEGIN TRY
 	BEGIN TRANSACTION; 
 	ALTER TABLE [tblClaimItems] DROP CONSTRAINT [PK_tblClaimItems]
-	CREATE UNIQUE CLUSTERED INDEX CI_tblClaimItemsValid ON tblClaimItems (ClaimItemID,ValidityTo)
-	WITH
-	(	PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
-		IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON
-	) ON liveArchive(ValidityTo)
+
+	IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'CI_tblClaimItemsValid' AND object_id = OBJECT_ID('tblClaimItems'))
+	BEGIN
+		CREATE UNIQUE CLUSTERED INDEX CI_tblClaimItemsValid ON tblClaimItems (ClaimItemID,ValidityTo)
+		WITH
+		(	PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
+			IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON
+		) ON liveArchive(ValidityTo)
+	END
+
 	ALTER TABLE tblClaimItems ADD CONSTRAINT PK_tblClaimItems PRIMARY KEY NONCLUSTERED (ClaimItemID) ON [PRIMARY];
 	COMMIT TRANSACTION;  
 END TRY
@@ -836,12 +849,15 @@ END CATCH
 BEGIN TRY
 	BEGIN TRANSACTION; 
 	ALTER TABLE [tblClaimServices] DROP CONSTRAINT [PK_tblClaimServices]
-		
-	CREATE UNIQUE CLUSTERED INDEX CI_tblClaimServicesValid ON  tblClaimServices (ClaimServiceID,ValidityTo)
-	WITH
-	(	PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
-		IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON
-	) ON liveArchive(ValidityTo)
+	
+	IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'CI_tblClaimServicesValid' AND object_id = OBJECT_ID('tblClaimServices'))
+	BEGIN
+		CREATE UNIQUE CLUSTERED INDEX CI_tblClaimServicesValid ON  tblClaimServices (ClaimServiceID,ValidityTo)
+		WITH
+		(	PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
+			IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON
+		) ON liveArchive(ValidityTo)
+	END
 
 	ALTER TABLE tblClaimServices ADD CONSTRAINT PK_tblClaimServices PRIMARY KEY NONCLUSTERED (ClaimServiceID) ON [PRIMARY];
 	COMMIT TRANSACTION;  
@@ -856,11 +872,16 @@ BEGIN TRY
 	ALTER TABLE tblPolicy DROP CONSTRAINT [FK_tblPolicy_tblFamilies-FamilyID]
 		
 	ALTER TABLE [tblFamilies] DROP CONSTRAINT [PK_tblFamilies]
-	CREATE UNIQUE CLUSTERED INDEX CI_tblFamiliesValid ON tblFamilies (FamilyID,ValidityTo)
-	WITH
-	(	PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
-		IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON
-	) ON liveArchive(ValidityTo)
+
+	IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'CI_tblFamiliesValid' AND object_id = OBJECT_ID('CI_tblFamiliesValid'))
+	BEGIN
+		CREATE UNIQUE CLUSTERED INDEX CI_tblFamiliesValid ON CI_tblFamiliesValid (FamilyID,ValidityTo)
+		WITH
+		(	PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
+			IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON
+		) ON liveArchive(ValidityTo)
+	END
+
 	ALTER TABLE tblFamilies ADD CONSTRAINT PK_tblFamilies PRIMARY KEY NONCLUSTERED (FamilyID) ON [PRIMARY];
 	
 	ALTER TABLE [tblInsuree] ADD CONSTRAINT [FK_tblInsuree_tblFamilies1-FamilyID] FOREIGN KEY(FamilyID) REFERENCES [tblFamilies] (FamilyID)
@@ -882,12 +903,15 @@ BEGIN TRY
 	ALTER TABLE tblPolicyRenewals DROP CONSTRAINT FK_tblPolicyRenewals_tblInsuree
 	ALTER TABLE [tblInsuree] DROP CONSTRAINT [PK_tblInsuree]
 
-	CREATE UNIQUE CLUSTERED INDEX CI_tblInsureeValid ON tblInsuree (InsureeID,ValidityTo)
-	WITH
-	(	PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
-		IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON
-	) ON liveArchive(ValidityTo)
-	
+	IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'CI_tblInsureeValid' AND object_id = OBJECT_ID('tblInsuree'))
+	BEGIN
+		CREATE UNIQUE CLUSTERED INDEX CI_tblInsureeValid ON tblInsuree (InsureeID,ValidityTo)
+		WITH
+		(	PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
+			IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON
+		) ON liveArchive(ValidityTo)
+	END
+
 	ALTER TABLE tblInsuree ADD CONSTRAINT PK_tblInsuree PRIMARY KEY NONCLUSTERED (InsureeID) ON [PRIMARY];
 	ALTER TABLE [tblClaim] ADD CONSTRAINT [FK_tblClaim_tblInsuree-InsureeID] FOREIGN KEY(InsureeID) REFERENCES [tblInsuree] (InsureeID)
 	ALTER TABLE [tblClaimDedRem] ADD CONSTRAINT [FK_tblClaimDedRem_tblInsuree-InsureeID]  FOREIGN KEY(InsureeID) REFERENCES [tblInsuree] (InsureeID)
@@ -920,16 +944,18 @@ BEGIN TRY
 	ALTER TABLE tblFamilies DROP CONSTRAINT FK_tblFamilies_tblLocations
 	ALTER TABLE [tblLocations] DROP CONSTRAINT [PK_tblLocations]
 
-	CREATE UNIQUE CLUSTERED INDEX CI_tblLocations ON tblLocations (
-		[ValidityTo] ASC,
-		[LocationType] ASC,
-		[LocationId] ASC
-		)
-	WITH
-		( PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
-		IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON
-		) ON liveArchive(ValidityTo)
-
+	IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'CI_tblLocations' AND object_id = OBJECT_ID('tblLocations'))
+	BEGIN
+		CREATE UNIQUE CLUSTERED INDEX CI_tblLocations ON tblLocations (
+			[ValidityTo] ASC,
+			[LocationType] ASC,
+			[LocationId] ASC
+			)
+		WITH
+			( PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, 
+			IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON
+			) ON liveArchive(ValidityTo)
+	END
 
 	ALTER TABLE [tblLocations] ADD CONSTRAINT PK_tblLocations PRIMARY KEY NONCLUSTERED (LocationId) ON [PRIMARY];
 	ALTER TABLE tblHFCatchment ADD CONSTRAINT [FK_tblHFCatchment_tblLocation] FOREIGN KEY(LocationId) REFERENCES [tblLocations] (LocationId)
@@ -951,51 +977,63 @@ END CATCH
 
 -- add partial indexes
 BEGIN TRY
-	CREATE NONCLUSTERED INDEX NCI_R_tblLocations ON tblLocations (
-		[LocationId] ASC,
-		[LocationCode] ASC)
-	INCLUDE(
-		[LocationName],
-		[ParentLocationId]
-		)
-	WHERE [ValidityTo] is NULL and [LocationType] = 'R'
+	IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'NCI_R_tblLocations' AND object_id = OBJECT_ID('tblLocations'))
+	BEGIN
+		CREATE NONCLUSTERED INDEX NCI_R_tblLocations ON tblLocations (
+			[LocationId] ASC,
+			[LocationCode] ASC)
+		INCLUDE(
+			[LocationName],
+			[ParentLocationId]
+			)
+		WHERE [ValidityTo] is NULL and [LocationType] = 'R'
+	END
 END TRY
 BEGIN CATCH  
 END CATCH  
 BEGIN TRY 
-	CREATE NONCLUSTERED INDEX NCI_V_tblLocations ON tblLocations (
-		[LocationId] ASC,
-		[LocationCode] ASC)
-	INCLUDE(
-		[LocationName],
-		[ParentLocationId]
-		)
-	WHERE [ValidityTo] is NULL and [LocationType] = 'V'
+	IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'NCI_V_tblLocations' AND object_id = OBJECT_ID('tblLocations'))
+	BEGIN
+		CREATE NONCLUSTERED INDEX NCI_V_tblLocations ON tblLocations (
+			[LocationId] ASC,
+			[LocationCode] ASC)
+		INCLUDE(
+			[LocationName],
+			[ParentLocationId]
+			)
+		WHERE [ValidityTo] is NULL and [LocationType] = 'V'
+	END
 END TRY
 BEGIN CATCH  
 END CATCH  
 BEGIN TRY
-	CREATE NONCLUSTERED INDEX NCI_W_tblLocations ON tblLocations (
-		[LocationId] ASC,
-		[LocationCode] ASC)
-	INCLUDE(
-		[LocationName],
-		[ParentLocationId]
-		)
-	WHERE [ValidityTo] is NULL and [LocationType] = 'W'
+	IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'NCI_W_tblLocations' AND object_id = OBJECT_ID('tblLocations'))
+	BEGIN
+		CREATE NONCLUSTERED INDEX NCI_W_tblLocations ON tblLocations (
+			[LocationId] ASC,
+			[LocationCode] ASC)
+		INCLUDE(
+			[LocationName],
+			[ParentLocationId]
+			)
+		WHERE [ValidityTo] is NULL and [LocationType] = 'W'
+	END
 END TRY
 BEGIN CATCH  
 END CATCH  
 
 BEGIN TRY
-	CREATE NONCLUSTERED INDEX NCI_M_tblLocations ON tblLocations (
-		[LocationId] ASC,
-		[LocationCode] ASC)
-	INCLUDE(
-		[LocationName],
-		[ParentLocationId]
-		)
-	WHERE [ValidityTo] is NULL and [LocationType] = 'M'
+	IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'NCI_M_tblLocations' AND object_id = OBJECT_ID('tblLocations'))
+	BEGIN
+		CREATE NONCLUSTERED INDEX NCI_M_tblLocations ON tblLocations (
+			[LocationId] ASC,
+			[LocationCode] ASC)
+		INCLUDE(
+			[LocationName],
+			[ParentLocationId]
+			)
+		WHERE [ValidityTo] is NULL and [LocationType] = 'M'
+	END
 END TRY
 BEGIN CATCH  
 
@@ -1004,9 +1042,15 @@ END CATCH
 
 BEGIN TRY
 	BEGIN TRANSACTION; 
-	CREATE NONCLUSTERED INDEX NCI_tblUserDistrict_UserID ON tblUsersDistricts (ValidityTo,UserID)
-	CREATE NONCLUSTERED INDEX NCI_tblUsers_UserUUID ON tblUsers (ValidityTo,UserUUID)
-	CREATE NONCLUSTERED INDEX NCI_tblUserRoles_UserID ON tblUserRole (ValidityTo,UserID)
+	IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'NCI_tblUserDistrict_UserID' AND object_id = OBJECT_ID('tblUsersDistricts'))
+		CREATE NONCLUSTERED INDEX NCI_tblUserDistrict_UserID ON tblUsersDistricts (ValidityTo,UserID);
+
+	IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'NCI_tblUsers_UserUUID' AND object_id = OBJECT_ID('tblUsers'))
+		CREATE NONCLUSTERED INDEX NCI_tblUsers_UserUUID ON tblUsers (ValidityTo,UserUUID);
+
+	IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'NCI_tblUserRoles_UserID' AND object_id = OBJECT_ID('tblUserRole'))
+		CREATE NONCLUSTERED INDEX NCI_tblUserRoles_UserID ON tblUserRole (ValidityTo,UserID);
+	
 	COMMIT TRANSACTION;  
 END TRY
 BEGIN CATCH  
@@ -1058,18 +1102,24 @@ GO
 
 BEGIN TRY
 -- partial index for user district
-	CREATE NONCLUSTERED INDEX NCI_A_tblUsersDistricts
-	ON [dbo].[tblUsersDistricts] ([UserID],[LocationId])
-	WHERE ValidityTo is null
+	IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'NCI_A_tblUsersDistricts' AND object_id = OBJECT_ID('tblUsersDistricts'))
+	BEGIN
+		CREATE NONCLUSTERED INDEX NCI_A_tblUsersDistricts
+		ON [dbo].[tblUsersDistricts] ([UserID],[LocationId])
+		WHERE ValidityTo is null
+	END
 END TRY
 BEGIN CATCH  
 END CATCH  
 
 BEGIN TRY
 -- userdistrict index as sugested by ssms 
-	CREATE NONCLUSTERED INDEX NCI_tblUserDistrict_locationId
-	ON [dbo].[tblUsersDistricts] ([LocationId],[ValidityTo])
-	INCLUDE ([UserID])
+	IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'NCI_tblUserDistrict_locationId' AND object_id = OBJECT_ID('tblUsersDistricts'))
+	BEGIN
+		CREATE NONCLUSTERED INDEX NCI_tblUserDistrict_locationId
+		ON [dbo].[tblUsersDistricts] ([LocationId],[ValidityTo])
+		INCLUDE ([UserID])
+	END
 END TRY
 BEGIN CATCH  
 END CATCH  
@@ -3399,25 +3449,32 @@ END
 GO
 
 --OTC-568
-DROP INDEX [missing_index_181] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_181' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [missing_index_181] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [missing_index_250] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_250' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [missing_index_250] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [NCI_tblInsureePolicy_InsureeID] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'NCI_tblInsureePolicy_InsureeID' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [NCI_tblInsureePolicy_InsureeID] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [tblInsureePolicy_ValidityTo_EffectiveDate_ExpiryDate] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'tblInsureePolicy_ValidityTo_EffectiveDate_ExpiryDate' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [tblInsureePolicy_ValidityTo_EffectiveDate_ExpiryDate] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [missing_index_203] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_203' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [missing_index_203] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [missing_index_356] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_356' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [missing_index_356] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [NCI_tblInsureePolicy_PolicyID] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'NCI_tblInsureePolicy_PolicyID' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [NCI_tblInsureePolicy_PolicyID] ON [dbo].[tblInsureePolicy]
 GO
 
 --Delete all dirty data where InsureeId is null
@@ -3434,59 +3491,80 @@ ALTER TABLE tblInsureePolicy
 ALTER COLUMN PolicyId INT NOT NULL
 GO
 
-CREATE NONCLUSTERED INDEX [missing_index_181] ON [dbo].[tblInsureePolicy]
-(
-	[InsureeId] ASC,
-	[PolicyId] ASC
-)
-INCLUDE([EffectiveDate],[ExpiryDate],[ValidityTo]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+IF NOT EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_181' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+BEGIN
+	CREATE NONCLUSTERED INDEX [missing_index_181] ON [dbo].[tblInsureePolicy]
+	(
+		[InsureeId] ASC,
+		[PolicyId] ASC
+	)
+	INCLUDE([EffectiveDate],[ExpiryDate],[ValidityTo]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+END
 GO
 
-CREATE NONCLUSTERED INDEX [missing_index_250] ON [dbo].[tblInsureePolicy]
-(
-	[InsureeId] ASC,
-	[ValidityTo] ASC,
-	[EffectiveDate] ASC,
-	[ExpiryDate] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+IF NOT EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_250' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+BEGIN
+	CREATE NONCLUSTERED INDEX [missing_index_250] ON [dbo].[tblInsureePolicy]
+	(
+		[InsureeId] ASC,
+		[ValidityTo] ASC,
+		[EffectiveDate] ASC,
+		[ExpiryDate] ASC
+	)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+END
 GO
 
-CREATE NONCLUSTERED INDEX [NCI_tblInsureePolicy_InsureeID] ON [dbo].[tblInsureePolicy]
-(
-	[InsureeId] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+IF NOT EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'NCI_tblInsureePolicy_InsureeID' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+BEGIN
+	CREATE NONCLUSTERED INDEX [NCI_tblInsureePolicy_InsureeID] ON [dbo].[tblInsureePolicy]
+	(
+		[InsureeId] ASC
+	)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+END
 GO
 
-CREATE NONCLUSTERED INDEX [tblInsureePolicy_ValidityTo_EffectiveDate_ExpiryDate] ON [dbo].[tblInsureePolicy]
-(
-	[ValidityTo] ASC,
-	[EffectiveDate] ASC,
-	[ExpiryDate] ASC
-)
-INCLUDE([InsureeId],[PolicyId]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF)
+IF NOT EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'tblInsureePolicy_ValidityTo_EffectiveDate_ExpiryDate' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+BEGIN
+	CREATE NONCLUSTERED INDEX [tblInsureePolicy_ValidityTo_EffectiveDate_ExpiryDate] ON [dbo].[tblInsureePolicy]
+	(
+		[ValidityTo] ASC,
+		[EffectiveDate] ASC,
+		[ExpiryDate] ASC
+	)
+	INCLUDE([InsureeId],[PolicyId]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF)
+END
 GO
 
-CREATE NONCLUSTERED INDEX [missing_index_203] ON [dbo].[tblInsureePolicy]
-(
-	[EffectiveDate] ASC,
-	[ValidityTo] ASC
-)
-INCLUDE([PolicyId]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+IF NOT EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_203' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+BEGIN
+	CREATE NONCLUSTERED INDEX [missing_index_203] ON [dbo].[tblInsureePolicy]
+	(
+		[EffectiveDate] ASC,
+		[ValidityTo] ASC
+	)
+	INCLUDE([PolicyId]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+END
 GO
 
-CREATE NONCLUSTERED INDEX [missing_index_356] ON [dbo].[tblInsureePolicy]
-(
-	[PolicyId] ASC,
-	[ValidityTo] ASC,
-	[EffectiveDate] ASC,
-	[ExpiryDate] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+IF NOT EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_356' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+BEGIN
+	CREATE NONCLUSTERED INDEX [missing_index_356] ON [dbo].[tblInsureePolicy]
+	(
+		[PolicyId] ASC,
+		[ValidityTo] ASC,
+		[EffectiveDate] ASC,
+		[ExpiryDate] ASC
+	)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+END
 GO
 
-CREATE NONCLUSTERED INDEX [NCI_tblInsureePolicy_PolicyID] ON [dbo].[tblInsureePolicy]
-(
-	[PolicyId] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+IF NOT EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'NCI_tblInsureePolicy_PolicyID' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+BEGIN
+	CREATE NONCLUSTERED INDEX [NCI_tblInsureePolicy_PolicyID] ON [dbo].[tblInsureePolicy]
+	(
+		[PolicyId] ASC
+	)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+END
 GO
 
 -- OTC-643 Update all idle policies (before payment/contribution) effective date from 1900-01-01 to NULL
@@ -3522,28 +3600,36 @@ ALTER INDEX  [missing_index_384] ON [dbo].[tblClaimServices] DISABLE
 GO
 
 --OTC 697
-DROP INDEX [missing_index_215] ON [dbo].[tblClaim]
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_215' AND object_id = OBJECT_ID('tblClaim'))
+	DROP INDEX [missing_index_215] ON [dbo].[tblClaim]
 GO
 
-DROP INDEX [missing_index_218] ON [dbo].[tblClaim]
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_218' AND object_id = OBJECT_ID('tblClaim'))
+	DROP INDEX [missing_index_218] ON [dbo].[tblClaim]
 GO
 
-DROP INDEX [missing_index_242] ON [dbo].[tblClaim]
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_242' AND object_id = OBJECT_ID('tblClaim'))
+	DROP INDEX [missing_index_242] ON [dbo].[tblClaim]
 GO
 
-DROP INDEX [missing_index_245] ON [dbo].[tblClaim]
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_245' AND object_id = OBJECT_ID('tblClaim'))
+	DROP INDEX [missing_index_245] ON [dbo].[tblClaim]
 GO
 
-DROP INDEX [missing_index_306] ON [dbo].[tblClaim]
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_306' AND object_id = OBJECT_ID('tblClaim'))
+	DROP INDEX [missing_index_306] ON [dbo].[tblClaim]
 GO
 
-DROP INDEX [missing_index_4896] ON [dbo].[tblClaim]
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_4896' AND object_id = OBJECT_ID('tblClaim'))
+	DROP INDEX [missing_index_4896] ON [dbo].[tblClaim]
 GO
 
-DROP INDEX [missing_index_50] ON [dbo].[tblClaim]
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_50' AND object_id = OBJECT_ID('tblClaim'))
+	DROP INDEX [missing_index_50] ON [dbo].[tblClaim]
 GO
 
-DROP INDEX [NCI_tblClaim_DateProcessed] ON [dbo].[tblClaim]
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'NCI_tblClaim_DateProcessed' AND object_id = OBJECT_ID('tblClaim'))
+	DROP INDEX [NCI_tblClaim_DateProcessed] ON [dbo].[tblClaim]
 GO
 
 IF COL_LENGTH(N'tblClaim', N'DateProcessed') IS NOT NULL
@@ -3551,74 +3637,81 @@ ALTER TABLE tbLClaim
 ALTER COLUMN DateProcessed DATE NULL
 GO
 
-CREATE NONCLUSTERED INDEX [missing_index_215] ON [dbo].[tblClaim]
-(
-	[ClaimStatus] ASC,
-	[ValidityTo] ASC,
-	[DateProcessed] ASC
-)
-INCLUDE([ClaimCode]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_215' AND object_id = OBJECT_ID('tblClaim'))
+	CREATE NONCLUSTERED INDEX [missing_index_215] ON [dbo].[tblClaim]
+	(
+		[ClaimStatus] ASC,
+		[ValidityTo] ASC,
+		[DateProcessed] ASC
+	)
+	INCLUDE([ClaimCode]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
 GO
 
-CREATE NONCLUSTERED INDEX [missing_index_218] ON [dbo].[tblClaim]
-(
-	[ClaimStatus] ASC,
-	[ReviewStatus] ASC,
-	[ValidityTo] ASC,
-	[DateProcessed] ASC
-)
-INCLUDE([ClaimCode]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_218' AND object_id = OBJECT_ID('tblClaim'))
+	CREATE NONCLUSTERED INDEX [missing_index_218] ON [dbo].[tblClaim]
+	(
+		[ClaimStatus] ASC,
+		[ReviewStatus] ASC,
+		[ValidityTo] ASC,
+		[DateProcessed] ASC
+	)
+	INCLUDE([ClaimCode]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
 GO
 
-CREATE NONCLUSTERED INDEX [missing_index_242] ON [dbo].[tblClaim]
-(
-	[ClaimStatus] ASC,
-	[ValidityTo] ASC,
-	[HFID] ASC,
-	[DateProcessed] ASC
-)
-INCLUDE([ClaimCode]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_242' AND object_id = OBJECT_ID('tblClaim'))
+	CREATE NONCLUSTERED INDEX [missing_index_242] ON [dbo].[tblClaim]
+	(
+		[ClaimStatus] ASC,
+		[ValidityTo] ASC,
+		[HFID] ASC,
+		[DateProcessed] ASC
+	)
+	INCLUDE([ClaimCode]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
 GO
 
-CREATE NONCLUSTERED INDEX [missing_index_245] ON [dbo].[tblClaim]
-(
-	[ClaimStatus] ASC,
-	[ValidityTo] ASC,
-	[HFID] ASC,
-	[DateProcessed] ASC
-)
-INCLUDE([ClaimCode],[Claimed]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_245' AND object_id = OBJECT_ID('tblClaim'))
+	CREATE NONCLUSTERED INDEX [missing_index_245] ON [dbo].[tblClaim]
+	(
+		[ClaimStatus] ASC,
+		[ValidityTo] ASC,
+		[HFID] ASC,
+		[DateProcessed] ASC
+	)
+	INCLUDE([ClaimCode],[Claimed]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
 GO
 
-/****** Object:  Index [missing_index_306]    Script Date: 16/09/2022 12:37:04 ******/
-CREATE NONCLUSTERED INDEX [missing_index_306] ON [dbo].[tblClaim]
-(
-	[ClaimStatus] ASC,
-	[ValidityTo] ASC,
-	[DateProcessed] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_306' AND object_id = OBJECT_ID('tblClaim'))
+	CREATE NONCLUSTERED INDEX [missing_index_306] ON [dbo].[tblClaim]
+	(
+		[ClaimStatus] ASC,
+		[ValidityTo] ASC,
+		[DateProcessed] ASC
+	)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
 GO
 
-CREATE NONCLUSTERED INDEX [missing_index_4896] ON [dbo].[tblClaim]
-(
-	[ClaimStatus] ASC,
-	[DateProcessed] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_4896' AND object_id = OBJECT_ID('tblClaim'))
+	CREATE NONCLUSTERED INDEX [missing_index_4896] ON [dbo].[tblClaim]
+	(
+		[ClaimStatus] ASC,
+		[DateProcessed] ASC
+	)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
 GO
 
-CREATE NONCLUSTERED INDEX [missing_index_50] ON [dbo].[tblClaim]
-(
-	[ClaimStatus] ASC,
-	[ValidityTo] ASC,
-	[DateProcessed] ASC
-)
-INCLUDE([ICDID]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'missing_index_50' AND object_id = OBJECT_ID('tblClaim'))
+	CREATE NONCLUSTERED INDEX [missing_index_50] ON [dbo].[tblClaim]
+	(
+		[ClaimStatus] ASC,
+		[ValidityTo] ASC,
+		[DateProcessed] ASC
+	)
+	INCLUDE([ICDID]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
 GO
 
-CREATE NONCLUSTERED INDEX [NCI_tblClaim_DateProcessed] ON [dbo].[tblClaim]
-(
-	[DateProcessed] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'NCI_tblClaim_DateProcessed' AND object_id = OBJECT_ID('tblClaim'))
+	CREATE NONCLUSTERED INDEX [NCI_tblClaim_DateProcessed] ON [dbo].[tblClaim]
+	(
+		[DateProcessed] ASC
+	)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
 GO
 
 --OTC-941

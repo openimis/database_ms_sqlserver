@@ -150,9 +150,7 @@ BEGIN
 END
 GO
 
-ALTER TABLE tblFamilySMS DROP CONSTRAINT IF EXISTS DF_tblFamilies_LanguageOfSMS;
-GO
-DROP FUNCTION IF EXISTS [dbo].[udfDefaultLanguageCode] 
+DROP FUNCTION IF EXISTS [dbo].[udfDefaultLanguageCode]
 GO
 
 CREATE FUNCTION [dbo].[udfDefaultLanguageCode]()
@@ -2472,7 +2470,7 @@ IF OBJECT_ID('[uspGetPolicyRenewals]', 'P') IS NOT NULL
     DROP PROCEDURE uspGetPolicyRenewals
 GO
 
-CREATE PROCEDURE [dbo].[uspGetPolicyRenewals] 
+CREATE PROCEDURE [dbo].[uspGetPolicyRenewals]
 (
 @OfficerCode NVARCHAR(8)
 )
@@ -3237,10 +3235,16 @@ IF OBJECT_ID('FK_tblPaymentDetails_tblPayment') IS NULL
 
 --OTC-511
 IF COL_LENGTH(N'tblPremium', N'CreatedDate') IS NULL
-	ALTER TABLE tblPremium 
-	ADD [CreatedDate] DATETIME NOT NULL DEFAULT GETDATE()
-    -- The where is useless but avoids an unsafe update warning
-	UPDATE tblPremium SET CreatedDate = ValidityFrom WHERE CreatedDate <> ValidityFrom
+	ALTER TABLE tblPremium
+	ADD [CreatedDate] DATETIME NULL DEFAULT GETDATE()
+	-- We cannot put the not null and update here because the alter will be defered and the update will fail
+GO
+
+UPDATE tblPremium SET [CreatedDate] = ValidityFrom WHERE [CreatedDate] is null
+GO
+
+ALTER TABLE tblPremium
+	ALTER COLUMN [CreatedDate] DATETIME NOT NULL
 GO
 
 --OTC-520
@@ -3532,7 +3536,7 @@ BEGIN
 		[EffectiveDate] ASC,
 		[ExpiryDate] ASC
 	)
-	INCLUDE([InsureeId],[PolicyId]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF)
+	INCLUDE([InsureeId],[PolicyId]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON)
 END
 GO
 

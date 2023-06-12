@@ -3185,10 +3185,16 @@ IF OBJECT_ID('FK_tblPaymentDetails_tblPayment') IS NULL
 
 --OTC-511
 IF COL_LENGTH(N'tblPremium', N'CreatedDate') IS NULL
-	ALTER TABLE tblPremium 
-	ADD [CreatedDate] DATETIME NOT NULL DEFAULT GETDATE()
-	-- The WHERE is useless here but avoids an unsafe update warning
-	UPDATE tblPremium SET CreatedDate = ValidityFrom WHERE CreatedDate <> ValidityFrom
+	ALTER TABLE tblPremium
+	ADD [CreatedDate] DATETIME NULL DEFAULT GETDATE()
+	-- We cannot put the not null and update here because the alter will be defered and the update will fail
+GO
+
+UPDATE tblPremium SET [CreatedDate] = ValidityFrom WHERE [CreatedDate] is null
+GO
+
+ALTER TABLE tblPremium
+	ALTER COLUMN [CreatedDate] DATETIME NOT NULL
 GO
 
 --OTC-520

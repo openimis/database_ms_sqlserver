@@ -150,9 +150,7 @@ BEGIN
 END
 GO
 
-ALTER TABLE tblFamilySMS DROP CONSTRAINT IF EXISTS DF_tblFamilies_LanguageOfSMS;
-GO
-DROP FUNCTION IF EXISTS [dbo].[udfDefaultLanguageCode] 
+DROP FUNCTION IF EXISTS [dbo].[udfDefaultLanguageCode]
 GO
 
 CREATE FUNCTION [dbo].[udfDefaultLanguageCode]()
@@ -3400,25 +3398,32 @@ END
 GO
 
 --OTC-568
-DROP INDEX [missing_index_181] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_181' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [missing_index_181] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [missing_index_250] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_250' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [missing_index_250] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [NCI_tblInsureePolicy_InsureeID] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'NCI_tblInsureePolicy_InsureeID' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [NCI_tblInsureePolicy_InsureeID] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [tblInsureePolicy_ValidityTo_EffectiveDate_ExpiryDate] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'tblInsureePolicy_ValidityTo_EffectiveDate_ExpiryDate' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [tblInsureePolicy_ValidityTo_EffectiveDate_ExpiryDate] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [missing_index_203] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_203' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [missing_index_203] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [missing_index_356] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_356' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [missing_index_356] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [NCI_tblInsureePolicy_PolicyID] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'NCI_tblInsureePolicy_PolicyID' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [NCI_tblInsureePolicy_PolicyID] ON [dbo].[tblInsureePolicy]
 GO
 
 --Delete all dirty data where InsureeId is null
@@ -3464,7 +3469,7 @@ CREATE NONCLUSTERED INDEX [tblInsureePolicy_ValidityTo_EffectiveDate_ExpiryDate]
 	[EffectiveDate] ASC,
 	[ExpiryDate] ASC
 )
-INCLUDE([InsureeId],[PolicyId]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF)
+INCLUDE([InsureeId],[PolicyId]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON)
 GO
 
 CREATE NONCLUSTERED INDEX [missing_index_203] ON [dbo].[tblInsureePolicy]

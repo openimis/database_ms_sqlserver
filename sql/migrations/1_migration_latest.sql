@@ -206,7 +206,10 @@ INSERT INTO tblControls(FieldName, Adjustibility, Usage)
 VALUES(N'Vulnerability', N'O', N'Insuree, Family')
 GO
 
-DROP PROCEDURE uspImportOffLineExtract4
+IF OBJECT_ID('uspImportOffLineExtract4') IS NOT NULL
+BEGIN
+    DROP PROCEDURE uspImportOffLineExtract4
+END
 GO
 
 DROP TYPE [dbo].[xInsuree]
@@ -1012,7 +1015,9 @@ BEGIN CATCH
 END CATCH  
 
 IF OBJECT_ID('uspIndexRebuild', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspIndexRebuild
+END
 GO
 
 SET ANSI_NULLS ON
@@ -1075,7 +1080,9 @@ GO
 
 -- OP-280: FIX MISSING DETAILS (ONLY REJECTED SHOWED) - otc-45 RELATED
 IF OBJECT_ID('uspSSRSPremiumCollection', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSPremiumCollection
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSPremiumCollection]
@@ -1119,7 +1126,9 @@ ALTER TABLE tblInsuree ALTER COLUMN [FamilyID] [int] NULL
 GO
 
 IF OBJECT_ID('uspSSRSProductSales', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSProductSales
+END
 GO
 
 	CREATE PROCEDURE [dbo].[uspSSRSProductSales]
@@ -1149,7 +1158,9 @@ GO
 GO
 
 IF OBJECT_ID('uspSSRSFeedbackPrompt', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSFeedbackPrompt
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSFeedbackPrompt]
@@ -1203,7 +1214,9 @@ GO
 
 
 IF OBJECT_ID('uspSSRSPrimaryIndicators1', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSPrimaryIndicators1
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSPrimaryIndicators1] 
@@ -1367,7 +1380,9 @@ END
 GO
 
 IF OBJECT_ID('uspSSRSPrimaryIndicators2', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSPrimaryIndicators2
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSPrimaryIndicators2]
@@ -1454,7 +1469,9 @@ END
 GO
 
 IF OBJECT_ID('uspSSRSDerivedIndicators1', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSDerivedIndicators1
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSDerivedIndicators1]
@@ -1563,7 +1580,9 @@ END
 GO
 
 IF OBJECT_ID('uspSSRSDerivedIndicators2', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSDerivedIndicators2
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSDerivedIndicators2]
@@ -1668,7 +1687,9 @@ END
 GO
 
 IF OBJECT_ID('uspSSRSUserLogReport', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSUserLogReport
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSUserLogReport]
@@ -2159,7 +2180,9 @@ CREATE PROCEDURE [dbo].[uspSSRSUserLogReport]
 GO
 
 IF OBJECT_ID('uspSSRSStatusRegister', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSStatusRegister
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSStatusRegister]
@@ -2328,7 +2351,9 @@ END
 GO
 
 IF OBJECT_ID('uspSSRSPaymentCategoryOverview', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSPaymentCategoryOverview
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSPaymentCategoryOverview]
@@ -2417,7 +2442,9 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 IF OBJECT_ID('[uspGetPolicyRenewals]', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspGetPolicyRenewals
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspGetPolicyRenewals] 
@@ -2474,7 +2501,9 @@ BEGIN
 GO
 
 IF OBJECT_ID('[uspLastDateForPayment]', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE [uspLastDateForPayment]
+END
 GO
 CREATE PROCEDURE [dbo].[uspLastDateForPayment]
 (
@@ -2538,7 +2567,9 @@ GO
 -- end of OTC-8
 
 IF OBJECT_ID('uspAddInsureePolicy', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE [uspAddInsureePolicy]
+END
 GO
 
 CREATE Procedure [dbo].[uspAddInsureePolicy]
@@ -2608,7 +2639,9 @@ GO
 
 
 IF OBJECT_ID('uspAcknowledgeControlNumberRequest', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspAcknowledgeControlNumberRequest
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspAcknowledgeControlNumberRequest]
@@ -2647,7 +2680,9 @@ END
 GO
 
 IF OBJECT_ID('uspPhoneExtract', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspPhoneExtract
+END
 GO
 CREATE PROCEDURE [dbo].[uspPhoneExtract]
 (
@@ -2888,7 +2923,9 @@ GO
 
 
 IF OBJECT_ID('uspExportOffLineExtract5', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspExportOffLineExtract5
+END
 GO
 CREATE PROCEDURE [dbo].[uspExportOffLineExtract5]
 	@RegionId INT = 0,
@@ -2928,7 +2965,9 @@ BEGIN
 END
 GO
 IF OBJECT_ID('uspCreateEnrolmentXML', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspCreateEnrolmentXML
+END
 GO
 CREATE PROCEDURE [dbo].[uspCreateEnrolmentXML]
 (
@@ -2993,7 +3032,9 @@ END
 GO
 
 IF OBJECT_ID('uspReceiveControlNumber', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspReceiveControlNumber
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspReceiveControlNumber]
@@ -3038,7 +3079,9 @@ END
 GO
 
 IF OBJECT_ID('uspPrepareBulkControlNumberRequests', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspPrepareBulkControlNumberRequests
+END
 GO
 
 
@@ -3639,7 +3682,9 @@ GO
 
 --OTC-941
 IF OBJECT_ID('uspCreateCapitationPaymentReportData') IS NOT NULL
+BEGIN
 	DROP PROCEDURE uspCreateCapitationPaymentReportData
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspCreateCapitationPaymentReportData]

@@ -150,9 +150,7 @@ BEGIN
 END
 GO
 
-ALTER TABLE tblFamilySMS DROP CONSTRAINT IF EXISTS DF_tblFamilies_LanguageOfSMS;
-GO
-DROP FUNCTION IF EXISTS [dbo].[udfDefaultLanguageCode] 
+DROP FUNCTION IF EXISTS [dbo].[udfDefaultLanguageCode]
 GO
 
 CREATE FUNCTION [dbo].[udfDefaultLanguageCode]()
@@ -208,7 +206,10 @@ INSERT INTO tblControls(FieldName, Adjustibility, Usage)
 VALUES(N'Vulnerability', N'O', N'Insuree, Family')
 GO
 
-DROP PROCEDURE uspImportOffLineExtract4
+IF OBJECT_ID('uspImportOffLineExtract4') IS NOT NULL
+BEGIN
+    DROP PROCEDURE uspImportOffLineExtract4
+END
 GO
 
 DROP TYPE [dbo].[xInsuree]
@@ -1014,7 +1015,9 @@ BEGIN CATCH
 END CATCH  
 
 IF OBJECT_ID('uspIndexRebuild', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspIndexRebuild
+END
 GO
 
 SET ANSI_NULLS ON
@@ -1077,7 +1080,9 @@ GO
 
 -- OP-280: FIX MISSING DETAILS (ONLY REJECTED SHOWED) - otc-45 RELATED
 IF OBJECT_ID('uspSSRSPremiumCollection', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSPremiumCollection
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSPremiumCollection]
@@ -1121,7 +1126,9 @@ ALTER TABLE tblInsuree ALTER COLUMN [FamilyID] [int] NULL
 GO
 
 IF OBJECT_ID('uspSSRSProductSales', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSProductSales
+END
 GO
 
 	CREATE PROCEDURE [dbo].[uspSSRSProductSales]
@@ -1151,7 +1158,9 @@ GO
 GO
 
 IF OBJECT_ID('uspSSRSFeedbackPrompt', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSFeedbackPrompt
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSFeedbackPrompt]
@@ -1205,7 +1214,9 @@ GO
 
 
 IF OBJECT_ID('uspSSRSPrimaryIndicators1', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSPrimaryIndicators1
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSPrimaryIndicators1] 
@@ -1369,7 +1380,9 @@ END
 GO
 
 IF OBJECT_ID('uspSSRSPrimaryIndicators2', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSPrimaryIndicators2
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSPrimaryIndicators2]
@@ -1456,7 +1469,9 @@ END
 GO
 
 IF OBJECT_ID('uspSSRSDerivedIndicators1', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSDerivedIndicators1
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSDerivedIndicators1]
@@ -1565,7 +1580,9 @@ END
 GO
 
 IF OBJECT_ID('uspSSRSDerivedIndicators2', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSDerivedIndicators2
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSDerivedIndicators2]
@@ -1670,7 +1687,9 @@ END
 GO
 
 IF OBJECT_ID('uspSSRSUserLogReport', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSUserLogReport
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSUserLogReport]
@@ -2161,7 +2180,9 @@ CREATE PROCEDURE [dbo].[uspSSRSUserLogReport]
 GO
 
 IF OBJECT_ID('uspSSRSStatusRegister', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSStatusRegister
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSStatusRegister]
@@ -2330,7 +2351,9 @@ END
 GO
 
 IF OBJECT_ID('uspSSRSPaymentCategoryOverview', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSPaymentCategoryOverview
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSPaymentCategoryOverview]
@@ -2419,7 +2442,9 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 IF OBJECT_ID('[uspGetPolicyRenewals]', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspGetPolicyRenewals
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspGetPolicyRenewals] 
@@ -2476,7 +2501,9 @@ BEGIN
 GO
 
 IF OBJECT_ID('[uspLastDateForPayment]', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE [uspLastDateForPayment]
+END
 GO
 CREATE PROCEDURE [dbo].[uspLastDateForPayment]
 (
@@ -2540,7 +2567,9 @@ GO
 -- end of OTC-8
 
 IF OBJECT_ID('uspAddInsureePolicy', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE [uspAddInsureePolicy]
+END
 GO
 
 CREATE Procedure [dbo].[uspAddInsureePolicy]
@@ -2610,7 +2639,9 @@ GO
 
 
 IF OBJECT_ID('uspAcknowledgeControlNumberRequest', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspAcknowledgeControlNumberRequest
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspAcknowledgeControlNumberRequest]
@@ -2649,7 +2680,9 @@ END
 GO
 
 IF OBJECT_ID('uspPhoneExtract', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspPhoneExtract
+END
 GO
 CREATE PROCEDURE [dbo].[uspPhoneExtract]
 (
@@ -2890,7 +2923,9 @@ GO
 
 
 IF OBJECT_ID('uspExportOffLineExtract5', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspExportOffLineExtract5
+END
 GO
 CREATE PROCEDURE [dbo].[uspExportOffLineExtract5]
 	@RegionId INT = 0,
@@ -2930,7 +2965,9 @@ BEGIN
 END
 GO
 IF OBJECT_ID('uspCreateEnrolmentXML', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspCreateEnrolmentXML
+END
 GO
 CREATE PROCEDURE [dbo].[uspCreateEnrolmentXML]
 (
@@ -2995,7 +3032,9 @@ END
 GO
 
 IF OBJECT_ID('uspReceiveControlNumber', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspReceiveControlNumber
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspReceiveControlNumber]
@@ -3040,7 +3079,9 @@ END
 GO
 
 IF OBJECT_ID('uspPrepareBulkControlNumberRequests', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspPrepareBulkControlNumberRequests
+END
 GO
 
 
@@ -3187,9 +3228,16 @@ IF OBJECT_ID('FK_tblPaymentDetails_tblPayment') IS NULL
 
 --OTC-511
 IF COL_LENGTH(N'tblPremium', N'CreatedDate') IS NULL
-	ALTER TABLE tblPremium 
-	ADD [CreatedDate] DATETIME NOT NULL DEFAULT GETDATE()
-	UPDATE tblPremium SET CreatedDate = ValidityFrom
+	ALTER TABLE tblPremium
+	ADD [CreatedDate] DATETIME NULL DEFAULT GETDATE()
+	-- We cannot put the not null and update here because the alter will be defered and the update will fail
+GO
+
+UPDATE tblPremium SET [CreatedDate] = ValidityFrom WHERE [CreatedDate] is null
+GO
+
+ALTER TABLE tblPremium
+	ALTER COLUMN [CreatedDate] DATETIME NOT NULL
 GO
 
 --OTC-520
@@ -3399,25 +3447,32 @@ END
 GO
 
 --OTC-568
-DROP INDEX [missing_index_181] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_181' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [missing_index_181] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [missing_index_250] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_250' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [missing_index_250] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [NCI_tblInsureePolicy_InsureeID] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'NCI_tblInsureePolicy_InsureeID' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [NCI_tblInsureePolicy_InsureeID] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [tblInsureePolicy_ValidityTo_EffectiveDate_ExpiryDate] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'tblInsureePolicy_ValidityTo_EffectiveDate_ExpiryDate' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [tblInsureePolicy_ValidityTo_EffectiveDate_ExpiryDate] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [missing_index_203] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_203' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [missing_index_203] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [missing_index_356] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_356' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [missing_index_356] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [NCI_tblInsureePolicy_PolicyID] ON [dbo].[tblInsureePolicy]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'NCI_tblInsureePolicy_PolicyID' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [NCI_tblInsureePolicy_PolicyID] ON [dbo].[tblInsureePolicy]
 GO
 
 --Delete all dirty data where InsureeId is null
@@ -3439,7 +3494,7 @@ CREATE NONCLUSTERED INDEX [missing_index_181] ON [dbo].[tblInsureePolicy]
 	[InsureeId] ASC,
 	[PolicyId] ASC
 )
-INCLUDE([EffectiveDate],[ExpiryDate],[ValidityTo]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+INCLUDE([EffectiveDate],[ExpiryDate],[ValidityTo]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80)
 GO
 
 CREATE NONCLUSTERED INDEX [missing_index_250] ON [dbo].[tblInsureePolicy]
@@ -3448,13 +3503,13 @@ CREATE NONCLUSTERED INDEX [missing_index_250] ON [dbo].[tblInsureePolicy]
 	[ValidityTo] ASC,
 	[EffectiveDate] ASC,
 	[ExpiryDate] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80)
 GO
 
 CREATE NONCLUSTERED INDEX [NCI_tblInsureePolicy_InsureeID] ON [dbo].[tblInsureePolicy]
 (
 	[InsureeId] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80)
 GO
 
 CREATE NONCLUSTERED INDEX [tblInsureePolicy_ValidityTo_EffectiveDate_ExpiryDate] ON [dbo].[tblInsureePolicy]
@@ -3463,7 +3518,7 @@ CREATE NONCLUSTERED INDEX [tblInsureePolicy_ValidityTo_EffectiveDate_ExpiryDate]
 	[EffectiveDate] ASC,
 	[ExpiryDate] ASC
 )
-INCLUDE([InsureeId],[PolicyId]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF)
+INCLUDE([InsureeId],[PolicyId]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON)
 GO
 
 CREATE NONCLUSTERED INDEX [missing_index_203] ON [dbo].[tblInsureePolicy]
@@ -3471,7 +3526,7 @@ CREATE NONCLUSTERED INDEX [missing_index_203] ON [dbo].[tblInsureePolicy]
 	[EffectiveDate] ASC,
 	[ValidityTo] ASC
 )
-INCLUDE([PolicyId]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+INCLUDE([PolicyId]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80)
 GO
 
 CREATE NONCLUSTERED INDEX [missing_index_356] ON [dbo].[tblInsureePolicy]
@@ -3480,13 +3535,13 @@ CREATE NONCLUSTERED INDEX [missing_index_356] ON [dbo].[tblInsureePolicy]
 	[ValidityTo] ASC,
 	[EffectiveDate] ASC,
 	[ExpiryDate] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80)
 GO
 
 CREATE NONCLUSTERED INDEX [NCI_tblInsureePolicy_PolicyID] ON [dbo].[tblInsureePolicy]
 (
 	[PolicyId] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80)
 GO
 
 -- OTC-643 Update all idle policies (before payment/contribution) effective date from 1900-01-01 to NULL
@@ -3522,28 +3577,32 @@ ALTER INDEX  [missing_index_384] ON [dbo].[tblClaimServices] DISABLE
 GO
 
 --OTC 697
-DROP INDEX [missing_index_215] ON [dbo].[tblClaim]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_181' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [missing_index_181] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [missing_index_218] ON [dbo].[tblClaim]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_250' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [missing_index_250] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [missing_index_242] ON [dbo].[tblClaim]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'NCI_tblInsureePolicy_InsureeID' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [NCI_tblInsureePolicy_InsureeID] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [missing_index_245] ON [dbo].[tblClaim]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'tblInsureePolicy_ValidityTo_EffectiveDate_ExpiryDate' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [tblInsureePolicy_ValidityTo_EffectiveDate_ExpiryDate] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [missing_index_306] ON [dbo].[tblClaim]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_203' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [missing_index_203] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [missing_index_4896] ON [dbo].[tblClaim]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'missing_index_356' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [missing_index_356] ON [dbo].[tblInsureePolicy]
 GO
 
-DROP INDEX [missing_index_50] ON [dbo].[tblClaim]
-GO
-
-DROP INDEX [NCI_tblClaim_DateProcessed] ON [dbo].[tblClaim]
+IF EXISTS(SELECT 1 FROM sys.indexes I WHERE I.name = 'NCI_tblInsureePolicy_PolicyID' AND I.object_id = OBJECT_ID('tblInsureePolicy'))
+	DROP INDEX [NCI_tblInsureePolicy_PolicyID] ON [dbo].[tblInsureePolicy]
 GO
 
 IF COL_LENGTH(N'tblClaim', N'DateProcessed') IS NOT NULL
@@ -3557,7 +3616,7 @@ CREATE NONCLUSTERED INDEX [missing_index_215] ON [dbo].[tblClaim]
 	[ValidityTo] ASC,
 	[DateProcessed] ASC
 )
-INCLUDE([ClaimCode]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+INCLUDE([ClaimCode]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80)
 GO
 
 CREATE NONCLUSTERED INDEX [missing_index_218] ON [dbo].[tblClaim]
@@ -3567,7 +3626,7 @@ CREATE NONCLUSTERED INDEX [missing_index_218] ON [dbo].[tblClaim]
 	[ValidityTo] ASC,
 	[DateProcessed] ASC
 )
-INCLUDE([ClaimCode]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+INCLUDE([ClaimCode]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80)
 GO
 
 CREATE NONCLUSTERED INDEX [missing_index_242] ON [dbo].[tblClaim]
@@ -3577,7 +3636,7 @@ CREATE NONCLUSTERED INDEX [missing_index_242] ON [dbo].[tblClaim]
 	[HFID] ASC,
 	[DateProcessed] ASC
 )
-INCLUDE([ClaimCode]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+INCLUDE([ClaimCode]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80)
 GO
 
 CREATE NONCLUSTERED INDEX [missing_index_245] ON [dbo].[tblClaim]
@@ -3587,7 +3646,7 @@ CREATE NONCLUSTERED INDEX [missing_index_245] ON [dbo].[tblClaim]
 	[HFID] ASC,
 	[DateProcessed] ASC
 )
-INCLUDE([ClaimCode],[Claimed]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+INCLUDE([ClaimCode],[Claimed]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80)
 GO
 
 /****** Object:  Index [missing_index_306]    Script Date: 16/09/2022 12:37:04 ******/
@@ -3596,14 +3655,14 @@ CREATE NONCLUSTERED INDEX [missing_index_306] ON [dbo].[tblClaim]
 	[ClaimStatus] ASC,
 	[ValidityTo] ASC,
 	[DateProcessed] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80)
 GO
 
 CREATE NONCLUSTERED INDEX [missing_index_4896] ON [dbo].[tblClaim]
 (
 	[ClaimStatus] ASC,
 	[DateProcessed] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80)
 GO
 
 CREATE NONCLUSTERED INDEX [missing_index_50] ON [dbo].[tblClaim]
@@ -3612,18 +3671,20 @@ CREATE NONCLUSTERED INDEX [missing_index_50] ON [dbo].[tblClaim]
 	[ValidityTo] ASC,
 	[DateProcessed] ASC
 )
-INCLUDE([ICDID]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+INCLUDE([ICDID]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80)
 GO
 
 CREATE NONCLUSTERED INDEX [NCI_tblClaim_DateProcessed] ON [dbo].[tblClaim]
 (
 	[DateProcessed] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [IndexesFG]
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80)
 GO
 
 --OTC-941
 IF OBJECT_ID('uspCreateCapitationPaymentReportData') IS NOT NULL
+BEGIN
 	DROP PROCEDURE uspCreateCapitationPaymentReportData
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspCreateCapitationPaymentReportData]

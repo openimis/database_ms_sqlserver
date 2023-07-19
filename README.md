@@ -26,11 +26,11 @@ git clone https://github.com/openimis/database_ms_sqlserver
 
 * create a new database (i.e. openIMIS.X.Y.Z where X.Y.Z is the openIMIS database version)
 
-* Execute the initial database creation script (from [Empty databases](./Empty%20databases/) folder) to your SQL Server using SSMS or shell. (The default empty database to create is openIMIS_ONLINE.sql)
+* Execute the initial database creation script; FullEmpytDatabase.sql or fullDemoDatabase.sql, see "creating SQL script" to get it
 
 ### Upgrading
 
-In order to upgrade from the previous version of openIMIS database (see [Versioning](#versioning) section), execute the migration script from [Migration script](./Migration%20script/) folder. We recommend that you create a backup of your openIMIS database before executing the migration script. 
+In order to upgrade from the previous version of openIMIS database (see [Versioning](#versioning) section), execute the migration script (fullMigrationSript), see "creating SQL script" to get it
 
 ## Deployment
 
@@ -40,6 +40,10 @@ For deployment please read the [installation manual](http://openimis.readthedocs
 
 Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
 -->
+
+### creating SQL script 
+
+ SQL files for initialisaiton or update are created using bash script concatenate_files.sh or by downloading the sql-file zip from the latest release https://github.com/openimis/database_ms_sqlserver/releases/latest 
 
 ## openIMIS dockerized database
 

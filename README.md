@@ -26,7 +26,7 @@ git clone https://github.com/openimis/database_ms_sqlserver
 
 * create a new database (i.e. openIMIS.X.Y.Z where X.Y.Z is the openIMIS database version)
 
-* Execute the initial database creation script; FullEmpytDatabase.sql or fullDemoDatabase.sql, see "creating SQL script" to get it
+* Execute the initial database creation script fullEmpytDatabase.sql or fullDemoDatabase.sql (see "creating SQL script" section on how to get them)
 
 ### Upgrading
 
@@ -41,7 +41,7 @@ For deployment please read the [installation manual](http://openimis.readthedocs
 Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
 -->
 
-### creating SQL script 
+### Creating SQL script 
 
  SQL files for initialisaiton or update are created using bash script concatenate_files.sh or by downloading the sql-file zip from the latest release https://github.com/openimis/database_ms_sqlserver/releases/latest 
 

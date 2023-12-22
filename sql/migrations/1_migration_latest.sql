@@ -206,7 +206,10 @@ INSERT INTO tblControls(FieldName, Adjustibility, Usage)
 VALUES(N'Vulnerability', N'O', N'Insuree, Family')
 GO
 
-DROP PROCEDURE uspImportOffLineExtract4
+IF OBJECT_ID('uspImportOffLineExtract4') IS NOT NULL
+BEGIN
+    DROP PROCEDURE uspImportOffLineExtract4
+END
 GO
 
 DROP TYPE [dbo].[xInsuree]
@@ -1056,7 +1059,9 @@ BEGIN CATCH
 END CATCH  
 
 IF OBJECT_ID('uspIndexRebuild', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspIndexRebuild
+END
 GO
 
 SET ANSI_NULLS ON
@@ -1125,7 +1130,9 @@ GO
 
 -- OP-280: FIX MISSING DETAILS (ONLY REJECTED SHOWED) - otc-45 RELATED
 IF OBJECT_ID('uspSSRSPremiumCollection', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSPremiumCollection
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSPremiumCollection]
@@ -1169,7 +1176,9 @@ ALTER TABLE tblInsuree ALTER COLUMN [FamilyID] [int] NULL
 GO
 
 IF OBJECT_ID('uspSSRSProductSales', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSProductSales
+END
 GO
 
 	CREATE PROCEDURE [dbo].[uspSSRSProductSales]
@@ -1199,7 +1208,9 @@ GO
 GO
 
 IF OBJECT_ID('uspSSRSFeedbackPrompt', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSFeedbackPrompt
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSFeedbackPrompt]
@@ -1253,7 +1264,9 @@ GO
 
 
 IF OBJECT_ID('uspSSRSPrimaryIndicators1', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSPrimaryIndicators1
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSPrimaryIndicators1] 
@@ -1417,7 +1430,9 @@ END
 GO
 
 IF OBJECT_ID('uspSSRSPrimaryIndicators2', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSPrimaryIndicators2
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSPrimaryIndicators2]
@@ -1504,7 +1519,9 @@ END
 GO
 
 IF OBJECT_ID('uspSSRSDerivedIndicators1', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSDerivedIndicators1
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSDerivedIndicators1]
@@ -1613,7 +1630,9 @@ END
 GO
 
 IF OBJECT_ID('uspSSRSDerivedIndicators2', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE uspSSRSDerivedIndicators2
+END
 GO
 
 CREATE PROCEDURE [dbo].[uspSSRSDerivedIndicators2]
@@ -2526,6 +2545,7 @@ GO
 IF OBJECT_ID('[uspLastDateForPayment]', 'P') IS NOT NULL
     DROP PROCEDURE [uspLastDateForPayment]
 GO
+
 CREATE PROCEDURE [dbo].[uspLastDateForPayment]
 (
 	@PolicyId INT
@@ -2699,6 +2719,7 @@ GO
 IF OBJECT_ID('uspPhoneExtract', 'P') IS NOT NULL
     DROP PROCEDURE uspPhoneExtract
 GO
+
 CREATE PROCEDURE [dbo].[uspPhoneExtract]
 (
 	@LocationId int =  0
@@ -2980,6 +3001,7 @@ GO
 IF OBJECT_ID('uspCreateEnrolmentXML', 'P') IS NOT NULL
     DROP PROCEDURE uspCreateEnrolmentXML
 GO
+
 CREATE PROCEDURE [dbo].[uspCreateEnrolmentXML]
 (
 	@FamilyExported INT = 0 OUTPUT,
@@ -3717,6 +3739,7 @@ IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE Name = N'NCI_tblClaim_DateProcesse
 	(
 		[DateProcessed] ASC
 	)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80)
+
 GO
 
 --OTC-941

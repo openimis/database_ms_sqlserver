@@ -96,175 +96,175 @@ VALUES (9, 'fr', 'Admin_Fr', 'Admin_Fr', '', 'Admin_Fr', 1023, 0, CURRENT_TIMEST
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT('admin123',CONVERT(varchar(max),HASHBYTES('SHA2_256', 'Admin_Fr'),2))),2), 
 	NULL, NULL)
 
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (17, N'en', N'Johilk', N'Kuna', N'', N'JHOS0011', 256, 1, CAST(N'2019-08-16T07:34:38.880' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (17, N'en', N'Johilk', N'Kuna', N'', N'JHOS0011', 256, 1, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'JHOS0011JHOS0011') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (18, N'en', N'Rushila', N'Dani', N'', N'JMDP0011', 256, 12, CAST(N'2019-08-16T07:34:58.960' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (18, N'en', N'Rushila', N'Dani', N'', N'JMDP0011', 256, 12, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'JMDP0011JMDP0011') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (21, N'en', N'Lobo', N'Jami', N'', N'JMHC0011', 256, 7, CAST(N'2019-08-16T07:35:12.370' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (21, N'en', N'Lobo', N'Jami', N'', N'JMHC0011', 256, 7, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'JMHC0011JMHC0011') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (22, N'en', N'Lathi', N'Ojha', N'', N'RADS0011', 256, 17, CAST(N'2019-08-16T07:35:29.860' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (22, N'en', N'Lathi', N'Ojha', N'', N'RADS0011', 256, 17, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'RADS0011RADS0011') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (23, N'en', N'Hino', N'Acti', N'', N'RADS0021', 256, 13, CAST(N'2019-08-16T07:35:42.893' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (23, N'en', N'Hino', N'Acti', N'', N'RADS0021', 256, 13, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'RADS0021RADS0021') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (24, N'en', N'Dias', N'Zuh', N'', N'RAHC0011', 256, 8, CAST(N'2019-08-16T07:35:55.597' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (24, N'en', N'Dias', N'Zuh', N'', N'RAHC0011', 256, 8, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'RAHC0011RAHC0011') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (25, N'en', N'Lawrence', N'Rijo', N'', N'RHOS0011', 256, 2, CAST(N'2019-08-16T07:36:10.337' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (25, N'en', N'Lawrence', N'Rijo', N'', N'RHOS0011', 256, 2, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'RHOS0011RHOS0011') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (26, N'en', N'Hunbaros', N'Rut', N'', N'RHOS0012', 256, 5, CAST(N'2019-08-16T07:36:26.790' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (26, N'en', N'Hunbaros', N'Rut', N'', N'RHOS0012', 256, 5, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'RHOS0012RHOS0012') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (27, N'en', N'Laidu', N'Jukl', N'', N'ROHC0011', 256, 10, CAST(N'2019-08-16T07:36:39.140' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (27, N'en', N'Laidu', N'Jukl', N'', N'ROHC0011', 256, 10, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'ROHC0011ROHC0011') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (28, N'en', N'Kamyuni', N'Loy', N'', N'UHOS0011', 256, 4, CAST(N'2019-08-16T07:36:54.563' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (28, N'en', N'Kamyuni', N'Loy', N'', N'UHOS0011', 256, 4, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'UHOS0011UHOS0011') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (29, N'en', N'Laden', N'Uith', N'', N'UPDS0011', 256, 16, CAST(N'2019-08-16T07:37:06.160' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (29, N'en', N'Laden', N'Uith', N'', N'UPDS0011', 256, 16, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'UPDS0011UPDS0011') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (30, N'en', N'Lidaen', N'Zut', N'', N'UPHC0011', 256, 9, CAST(N'2019-08-16T07:37:18.753' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (30, N'en', N'Lidaen', N'Zut', N'', N'UPHC0011', 256, 9, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'UPHC0011UPHC0011') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (31, N'en', N'Man', N'Roger', N'', N'VHOS0011', 256, 6, CAST(N'2019-08-16T07:37:38.853' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (31, N'en', N'Man', N'Roger', N'', N'VHOS0011', 256, 6, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'VHOS0011VHOS0011') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (32, N'en', N'Duikolau', N'Juolpio', N'', N'VIDS0011', 256, 18, CAST(N'2019-08-16T07:37:50.963' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (32, N'en', N'Duikolau', N'Juolpio', N'', N'VIDS0011', 256, 18, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'VIDS0011VIDS0011') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (33, N'en', N'Louios', N'Ioulo', N'', N'VIHC0011', 256, 11, CAST(N'2019-08-16T07:38:03.793' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (33, N'en', N'Louios', N'Ioulo', N'', N'VIHC0011', 256, 11, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'VIHC0011VIHC0011') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (34, N'en', N'Roberts', N'Jeb', N'', N'E00001', 1, NULL, CAST(N'2019-08-16T07:38:38.380' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (34, N'en', N'Roberts', N'Jeb', N'', N'E00001', 1, NULL, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'E00001E00001') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (35, N'en', N'Jack', N'Raga', N'', N'E00002', 1, NULL, CAST(N'2019-08-16T07:38:56.350' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (35, N'en', N'Jack', N'Raga', N'', N'E00002', 1, NULL, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'E00002E00002') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (36, N'en', N'Jono', N'Jombo', N'', N'E00003', 1, NULL, CAST(N'2019-08-16T07:39:11.247' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (36, N'en', N'Jono', N'Jombo', N'', N'E00003', 1, NULL, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'E00003E00003') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (37, N'en', N'Zombie', N'Romby', N'', N'E00004', 1, NULL, CAST(N'2019-08-16T07:39:24.357' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (37, N'en', N'Zombie', N'Romby', N'', N'E00004', 1, NULL, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'E00004E00004') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (38, N'en', N'sri', N'sid', N'', N'E00005', 1, NULL, CAST(N'2019-08-16T07:39:38.500' AS DateTime), NULL, NULL, 1, NULL, NULL, N'abc@abc.com', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (38, N'en', N'sri', N'sid', N'', N'E00005', 1, NULL, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'abc@abc.com', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'E00005E00005') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (39, N'en', N'Yabber', N'Uck', N'', N'E00006', 1, NULL, CAST(N'2019-08-16T07:39:52.660' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (39, N'en', N'Yabber', N'Uck', N'', N'E00006', 1, NULL, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'E00006E00006') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (40, N'en', N'Johnson', N'James', N'', N'E00007', 1, NULL, CAST(N'2019-08-16T07:40:05.113' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (40, N'en', N'Johnson', N'James', N'', N'E00007', 1, NULL, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'E00007E00007') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (41, N'en', N'Jones', N'Aby', N'', N'E00008', 1, NULL, CAST(N'2019-08-16T07:40:17.773' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (41, N'en', N'Jones', N'Aby', N'', N'E00008', 1, NULL, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'E00008E00008') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (42, N'en', N'Labil', N'Bulbao', N'', N'E00009', 1, NULL, CAST(N'2019-08-16T07:40:30.103' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (42, N'en', N'Labil', N'Bulbao', N'', N'E00009', 1, NULL, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'E00009E00009') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (43, N'en', N'Kachalo', N'Alo', N'', N'E00010', 1, NULL, CAST(N'2019-08-16T07:40:44.480' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (43, N'en', N'Kachalo', N'Alo', N'', N'E00010', 1, NULL, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'E00010E00010') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (44, N'en', N'Jones', N'Jack', N'', N'E00011', 1, NULL, CAST(N'2019-08-16T07:40:56.623' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (44, N'en', N'Jones', N'Jack', N'', N'E00011', 1, NULL, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'E00011E00011') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (45, N'en', N'Jony', N'Tanu', N'', N'E00012', 1, NULL, CAST(N'2019-08-16T07:41:09.783' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (45, N'en', N'Jony', N'Tanu', N'', N'E00012', 1, NULL, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'E00012E00012') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (46, N'en', N'Lambda', N'Bilo', N'', N'E00013', 1, NULL, CAST(N'2019-08-16T07:41:22.300' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (46, N'en', N'Lambda', N'Bilo', N'', N'E00013', 1, NULL, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'E00013E00013') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2)
 	, NULL, 1, NEWID())
-INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (47, N'en', N'Lastung', N'Jio', N'', N'E00014', 1, NULL, CAST(N'2019-08-16T07:41:34.803' AS DateTime), NULL, NULL, 1, NULL, NULL, N'', 
+INSERT [tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [StoredPassword], [PrivateKey], [PasswordValidity], [IsAssociated], [UserUUID]) VALUES (47, N'en', N'Lastung', N'Jio', N'', N'E00014', 1, NULL, CURRENT_TIMESTAMP, NULL, NULL, 1, NULL, NULL, N'', 
 -- [StoredPassword]
 	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(CAST(CONVERT(NVARCHAR(25), 'E00014E00014') COLLATE LATIN1_GENERAL_CS_AS AS VARCHAR(MAX)),CONVERT(varchar(max),HASHBYTES('SHA2_256',CAST(N'PrivateSecretKey' AS VARCHAR(MAX))),2))),2),
 -- PrivateKey
@@ -6110,477 +6110,6 @@ INSERT [tblFeedbackPrompt] ([FeedbackPromptID], [FeedbackPromptDate], [ClaimID],
 SET IDENTITY_INSERT [tblFeedbackPrompt] OFF
 GO
 
-SET IDENTITY_INSERT [tblLogins] ON 
-
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (1, 1, CAST(N'2018-03-08T04:32:35.970' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (2, 1, CAST(N'2018-03-08T04:32:52.760' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (3, 1, CAST(N'2018-03-09T02:42:08.573' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (4, 1, CAST(N'2018-03-09T02:43:17.543' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (5, 1, CAST(N'2018-03-09T04:10:25.280' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (6, 1, CAST(N'2018-03-09T04:16:08.993' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (7, 1, CAST(N'2018-03-09T04:21:50.917' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (8, 1, CAST(N'2018-03-09T04:27:44.130' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (9, 1, CAST(N'2018-03-09T04:30:15.407' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (10, 1, CAST(N'2018-03-09T04:38:08.457' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (11, 1, CAST(N'2018-03-09T05:15:42.127' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (12, 1, CAST(N'2018-03-09T05:15:48.410' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (13, 1, CAST(N'2018-03-09T05:15:50.187' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (14, 1, CAST(N'2018-03-09T05:24:20.920' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (15, 1, CAST(N'2018-03-09T05:33:46.313' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (16, 1, CAST(N'2018-03-09T05:39:46.723' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (17, 1, CAST(N'2018-03-09T05:46:17.980' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (18, 1, CAST(N'2018-03-09T05:52:09.580' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (19, 1, CAST(N'2018-03-14T08:26:07.383' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (20, 1, CAST(N'2018-03-14T08:38:26.890' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (21, 1, CAST(N'2018-03-15T23:59:42.140' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (22, 1, CAST(N'2018-03-16T00:05:34.810' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (23, 1, CAST(N'2018-03-16T00:15:41.253' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (24, 1, CAST(N'2018-03-16T00:23:16.657' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (25, 1, CAST(N'2018-03-16T00:36:37.823' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (26, 1, CAST(N'2018-03-16T00:45:15.737' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (27, 1, CAST(N'2018-03-16T01:00:26.087' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (28, 1, CAST(N'2018-03-16T01:08:23.900' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (29, 1, CAST(N'2018-03-19T02:36:01.320' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (30, 1, CAST(N'2018-03-19T02:41:03.060' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (31, 1, CAST(N'2018-03-19T02:41:06.367' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (34, 1, CAST(N'2018-03-19T02:47:39.657' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (37, 1, CAST(N'2018-03-19T05:47:43.033' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (38, 1, CAST(N'2018-03-19T05:53:41.540' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (39, 1, CAST(N'2018-03-19T05:57:48.937' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (40, 1, CAST(N'2018-03-19T05:57:53.107' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (47, 1, CAST(N'2018-03-19T07:03:06.593' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (48, 1, CAST(N'2018-03-19T07:27:41.120' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (49, 1, CAST(N'2018-03-19T07:29:47.080' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (50, 1, CAST(N'2018-03-19T08:01:22.243' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (52, 1, CAST(N'2018-03-19T08:06:35.273' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (53, 1, CAST(N'2018-03-19T08:19:29.820' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (54, 1, CAST(N'2018-03-19T08:48:13.683' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (57, 1, CAST(N'2018-03-19T14:12:35.393' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (58, 1, CAST(N'2018-03-19T14:18:17.240' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (59, 1, CAST(N'2018-03-20T00:00:36.593' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (60, 1, CAST(N'2018-03-20T00:06:28.307' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (61, 1, CAST(N'2018-03-20T00:13:39.423' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (62, 1, CAST(N'2018-03-20T00:13:45.860' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (65, 1, CAST(N'2018-03-20T01:48:57.820' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (66, 1, CAST(N'2018-03-20T01:54:51.610' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (67, 1, CAST(N'2018-03-20T03:14:52.577' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (68, 1, CAST(N'2018-03-20T03:20:45.717' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (80, 1, CAST(N'2018-03-20T08:25:39.760' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (81, 1, CAST(N'2018-03-20T08:45:40.790' AS DateTime), -1)
-GO
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (101, 1, CAST(N'2018-03-21T06:18:02.233' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (102, 1, CAST(N'2018-03-21T06:18:48.540' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (103, 1, CAST(N'2018-03-21T06:20:18.120' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (104, 1, CAST(N'2018-03-21T06:25:58.110' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (105, 1, CAST(N'2018-03-21T08:53:01.400' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (106, 1, CAST(N'2018-03-21T08:59:59.120' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (109, 1, CAST(N'2018-03-22T01:04:00.883' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (110, 1, CAST(N'2018-03-22T01:04:14.417' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (111, 1, CAST(N'2018-03-22T01:15:33.887' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (112, 1, CAST(N'2018-03-22T01:15:33.900' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (113, 1, CAST(N'2018-03-22T08:24:22.503' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (114, 1, CAST(N'2018-03-22T08:32:02.687' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (121, 1, CAST(N'2018-03-26T04:32:03.427' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (122, 1, CAST(N'2018-03-26T04:34:38.510' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (125, 1, CAST(N'2018-03-27T04:56:22.013' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (127, 1, CAST(N'2018-03-27T05:15:37.747' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (129, 1, CAST(N'2018-03-27T05:15:47.010' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (132, 1, CAST(N'2018-03-27T05:42:45.260' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (134, 1, CAST(N'2018-03-27T05:52:25.823' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (136, 1, CAST(N'2018-03-27T06:10:59.757' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (137, 1, CAST(N'2018-03-27T06:33:15.020' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (138, 1, CAST(N'2018-03-27T06:50:13.807' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (139, 1, CAST(N'2018-03-27T06:50:44.453' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (140, 1, CAST(N'2018-03-27T06:57:42.027' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (141, 1, CAST(N'2018-03-27T07:22:41.150' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (142, 1, CAST(N'2018-03-27T07:28:09.410' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (143, 1, CAST(N'2018-03-27T08:03:01.223' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (146, 1, CAST(N'2018-03-28T04:25:25.743' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (147, 1, CAST(N'2018-03-28T04:35:23.297' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (162, 1, CAST(N'2018-03-28T12:12:53.397' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (163, 1, CAST(N'2019-01-21T09:46:00.650' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (164, 1, CAST(N'2019-01-21T10:07:40.440' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (165, 1, CAST(N'2019-01-21T14:06:56.680' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (166, 1, CAST(N'2019-01-21T14:27:46.567' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (167, 1, CAST(N'2019-01-21T14:32:19.670' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (168, 1, CAST(N'2019-01-21T14:52:47.250' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (169, 1, CAST(N'2019-01-21T17:37:39.450' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (170, 1, CAST(N'2019-01-21T19:17:02.220' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (171, 1, CAST(N'2019-01-21T19:20:12.513' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (172, 1, CAST(N'2019-01-21T19:44:42.643' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (173, 1, CAST(N'2019-01-21T19:51:55.010' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (174, 1, CAST(N'2019-01-21T20:12:03.050' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (175, 1, CAST(N'2019-01-21T22:51:23.537' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (176, 1, CAST(N'2019-01-21T23:11:40.843' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (177, 1, CAST(N'2019-01-21T23:12:15.423' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (178, 1, CAST(N'2019-01-21T23:32:41.237' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (179, 1, CAST(N'2019-01-22T02:09:11.387' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (180, 1, CAST(N'2019-01-22T02:20:25.810' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (181, 1, CAST(N'2019-01-22T02:29:24.847' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (182, 1, CAST(N'2019-01-22T02:40:45.033' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (183, 1, CAST(N'2019-01-22T03:29:31.287' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (184, 1, CAST(N'2019-01-22T03:51:00.613' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (185, 1, CAST(N'2019-01-22T09:52:17.050' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (186, 1, CAST(N'2019-01-22T10:16:25.600' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (187, 1, CAST(N'2019-01-22T18:04:58.293' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (188, 1, CAST(N'2019-01-22T18:25:10.787' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (189, 1, CAST(N'2019-01-22T18:31:02.567' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (190, 1, CAST(N'2019-01-22T18:51:31.267' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (191, 1, CAST(N'2019-01-22T23:13:54.603' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (192, 1, CAST(N'2019-01-22T23:17:37.453' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (193, 1, CAST(N'2019-01-22T23:35:20.610' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (194, 1, CAST(N'2019-01-22T23:38:00.373' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (195, 1, CAST(N'2019-01-23T02:33:56.440' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (196, 1, CAST(N'2019-01-23T02:54:00.823' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (197, 1, CAST(N'2019-01-23T04:18:25.100' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (198, 1, CAST(N'2019-01-23T04:34:09.187' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (199, 1, CAST(N'2019-01-23T04:40:22.457' AS DateTime), 1)
-GO
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (200, 1, CAST(N'2019-01-23T04:41:57.177' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (201, 1, CAST(N'2019-01-23T04:54:11.490' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (202, 1, CAST(N'2019-01-23T04:54:11.490' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (203, 1, CAST(N'2019-01-23T05:10:44.260' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (204, 1, CAST(N'2019-01-23T05:31:21.803' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (205, 1, CAST(N'2019-01-23T20:43:46.397' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (206, 1, CAST(N'2019-01-23T20:48:29.053' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (207, 1, CAST(N'2019-01-24T00:17:17.203' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (208, 1, CAST(N'2019-01-24T00:43:46.933' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (209, 1, CAST(N'2019-01-24T00:44:50.883' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (210, 1, CAST(N'2019-01-24T01:07:27.857' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (211, 1, CAST(N'2019-01-24T01:51:27.693' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (212, 1, CAST(N'2019-01-24T02:11:48.093' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (213, 1, CAST(N'2019-01-24T04:09:34.753' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (214, 1, CAST(N'2019-01-24T04:34:50.237' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (215, 1, CAST(N'2019-01-25T02:02:30.303' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (216, 1, CAST(N'2019-01-25T02:23:01.113' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (217, 1, CAST(N'2019-01-25T07:22:53.670' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (218, 1, CAST(N'2019-01-25T07:27:21.263' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (219, 1, CAST(N'2019-01-25T07:29:21.787' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (220, 1, CAST(N'2019-01-25T07:30:28.407' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (221, 1, CAST(N'2019-01-25T07:30:46.130' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (222, 1, CAST(N'2019-01-25T07:49:42.763' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (223, 1, CAST(N'2019-01-25T07:50:41.180' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (224, 1, CAST(N'2019-01-25T07:51:01.183' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (225, 1, CAST(N'2019-01-25T08:02:21.540' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (226, 1, CAST(N'2019-01-25T08:51:58.950' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (227, 1, CAST(N'2019-01-25T08:58:38.300' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (228, 1, CAST(N'2019-01-25T09:18:22.413' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (229, 1, CAST(N'2019-01-25T09:21:57.893' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (230, 1, CAST(N'2019-01-25T09:42:03.057' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (231, 1, CAST(N'2019-01-25T10:00:43.540' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (232, 1, CAST(N'2019-01-26T00:02:22.930' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (233, 1, CAST(N'2019-01-26T00:24:42.040' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (234, 1, CAST(N'2019-01-27T22:01:27.130' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (235, 1, CAST(N'2019-01-27T22:22:45.760' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (236, 1, CAST(N'2019-01-28T01:24:41.973' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (237, 1, CAST(N'2019-01-28T01:36:24.887' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (238, 1, CAST(N'2019-01-28T01:56:49.943' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (239, 1, CAST(N'2019-01-28T02:54:11.073' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (240, 1, CAST(N'2019-01-28T03:06:15.293' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (241, 1, CAST(N'2019-01-28T03:26:51.740' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (242, 1, CAST(N'2019-01-28T04:50:26.520' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (243, 1, CAST(N'2019-01-28T05:06:41.927' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (244, 1, CAST(N'2019-01-28T05:23:05.077' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (245, 1, CAST(N'2019-01-28T05:43:20.570' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (246, 1, CAST(N'2019-01-28T05:55:29.170' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (247, 1, CAST(N'2019-01-28T05:55:36.390' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (248, 1, CAST(N'2019-01-28T05:55:46.400' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (249, 1, CAST(N'2019-01-28T06:02:38.623' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (250, 1, CAST(N'2019-01-28T06:07:38.293' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (251, 1, CAST(N'2019-01-28T06:13:01.983' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (253, 1, CAST(N'2019-01-28T06:45:26.290' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (254, 1, CAST(N'2019-01-28T07:02:51.597' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (259, 1, CAST(N'2019-01-28T07:22:17.453' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (260, 1, CAST(N'2019-01-28T08:36:17.873' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (261, 1, CAST(N'2019-01-28T09:22:47.997' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (262, 1, CAST(N'2019-01-28T09:25:03.770' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (263, 1, CAST(N'2019-01-28T09:47:24.330' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (264, 1, CAST(N'2019-01-28T10:54:07.223' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (265, 1, CAST(N'2019-01-28T11:14:26.230' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (266, 1, CAST(N'2019-01-29T00:12:45.930' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (267, 1, CAST(N'2019-01-29T00:34:23.200' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (268, 1, CAST(N'2019-01-29T01:34:20.493' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (269, 1, CAST(N'2019-01-29T02:03:45.183' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (270, 1, CAST(N'2019-01-29T03:22:10.817' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (271, 1, CAST(N'2019-01-29T04:04:36.753' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (272, 1, CAST(N'2019-01-29T06:05:13.070' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (273, 1, CAST(N'2019-01-29T06:25:43.310' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (274, 1, CAST(N'2019-01-29T07:15:15.133' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (275, 1, CAST(N'2019-01-29T07:35:24.560' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (276, 1, CAST(N'2019-01-29T16:19:09.633' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (277, 1, CAST(N'2019-01-29T16:39:41.400' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (278, 1, CAST(N'2019-01-29T23:35:20.850' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (279, 1, CAST(N'2019-01-29T23:58:40.913' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (280, 1, CAST(N'2019-01-30T01:57:35.437' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (281, 1, CAST(N'2019-01-30T02:18:23.480' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (282, 1, CAST(N'2019-01-30T04:45:52.960' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (283, 1, CAST(N'2019-01-30T05:09:02.103' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (284, 1, CAST(N'2019-01-30T05:23:05.233' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (285, 1, CAST(N'2019-01-30T05:44:02.603' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (286, 1, CAST(N'2019-01-30T07:25:41.767' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (287, 1, CAST(N'2019-01-30T07:25:41.937' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (288, 1, CAST(N'2019-01-30T08:32:25.543' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (289, 1, CAST(N'2019-01-30T08:34:55.403' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (290, 1, CAST(N'2019-01-30T08:42:52.890' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (291, 1, CAST(N'2019-01-30T08:42:53.167' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (292, 1, CAST(N'2019-01-30T08:44:45.550' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (293, 1, CAST(N'2019-01-30T08:56:53.670' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (294, 1, CAST(N'2019-01-30T09:02:06.020' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (295, 1, CAST(N'2019-01-30T09:05:06.053' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (296, 1, CAST(N'2019-01-30T09:05:46.053' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (297, 1, CAST(N'2019-01-30T09:05:51.800' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (298, 1, CAST(N'2019-01-30T09:24:46.403' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (299, 1, CAST(N'2019-03-07T06:27:51.320' AS DateTime), 1)
-GO
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (300, 1, CAST(N'2019-03-07T06:31:34.207' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (301, 9, CAST(N'2019-03-07T06:31:54.280' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (302, 1, CAST(N'2019-04-21T01:20:44.537' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (303, 1, CAST(N'2019-04-21T03:50:37.603' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (304, 1, CAST(N'2019-04-21T05:49:42.490' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (305, 1, CAST(N'2019-04-22T02:33:58.300' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (306, 1, CAST(N'2019-04-22T03:28:41.323' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (307, 1, CAST(N'2019-04-22T03:34:46.610' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (308, 1, CAST(N'2019-04-22T03:58:58.797' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (309, 1, CAST(N'2019-04-22T04:25:35.607' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (310, 1, CAST(N'2019-04-22T04:50:02.390' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (311, 1, CAST(N'2019-04-22T04:57:15.030' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (312, 1, CAST(N'2019-04-22T05:00:03.830' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (313, 1, CAST(N'2019-04-22T05:05:51.453' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (314, 1, CAST(N'2019-04-22T05:07:51.693' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (315, 1, CAST(N'2019-04-22T05:38:23.047' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (316, 1, CAST(N'2019-04-22T05:57:23.117' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (317, 1, CAST(N'2019-04-22T06:00:04.990' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (318, 1, CAST(N'2019-04-22T06:02:37.437' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (319, 1, CAST(N'2019-04-22T06:20:40.497' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (320, 1, CAST(N'2019-04-22T06:27:43.370' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (321, 1, CAST(N'2019-04-22T06:44:05.130' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (322, 1, CAST(N'2019-04-22T07:18:21.397' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (323, 1, CAST(N'2019-04-22T07:20:14.090' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (324, 1, CAST(N'2019-04-22T07:40:42.093' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (325, 1, CAST(N'2019-04-22T10:06:12.740' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (326, 1, CAST(N'2019-04-22T10:20:21.100' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (327, 1, CAST(N'2019-04-22T17:21:40.327' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (328, 1, CAST(N'2019-04-22T17:42:01.033' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (329, 1, CAST(N'2019-04-22T19:40:28.447' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (330, 1, CAST(N'2019-04-22T20:01:01.097' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (331, 1, CAST(N'2019-04-22T22:01:07.337' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (332, 1, CAST(N'2019-04-22T22:22:00.693' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (333, 1, CAST(N'2019-04-22T22:23:04.377' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (334, 1, CAST(N'2019-04-22T22:48:00.917' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (335, 1, CAST(N'2019-04-23T00:30:43.750' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (336, 1, CAST(N'2019-04-23T01:01:22.633' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (337, 1, CAST(N'2019-04-23T01:08:57.797' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (338, 1, CAST(N'2019-04-23T01:14:55.970' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (339, 1, CAST(N'2019-04-23T01:15:37.477' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (340, 1, CAST(N'2019-04-23T01:18:25.510' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (341, 1, CAST(N'2019-04-23T01:22:37.197' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (342, 1, CAST(N'2019-04-23T01:31:58.237' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (343, 1, CAST(N'2019-04-23T01:42:52.717' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (344, 1, CAST(N'2019-04-23T02:39:20.257' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (345, 1, CAST(N'2019-04-23T02:43:44.557' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (346, 1, CAST(N'2019-04-23T02:44:35.503' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (347, 1, CAST(N'2019-04-23T03:05:57.440' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (348, 1, CAST(N'2019-04-23T03:06:33.777' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (349, 1, CAST(N'2019-04-23T03:26:44.420' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (350, 1, CAST(N'2019-04-23T03:28:24.063' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (351, 1, CAST(N'2019-04-23T04:40:13.163' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (352, 1, CAST(N'2019-04-23T04:51:31.963' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (353, 1, CAST(N'2019-04-23T05:00:45.313' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (354, 1, CAST(N'2019-04-23T05:11:45.480' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (355, 1, CAST(N'2019-04-23T05:14:58.407' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (356, 1, CAST(N'2019-04-23T05:15:19.817' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (357, 1, CAST(N'2019-04-23T05:35:45.883' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (358, 1, CAST(N'2019-04-23T05:36:25.627' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (359, 1, CAST(N'2019-04-23T05:59:20.410' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (360, 1, CAST(N'2019-04-23T06:07:56.083' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (361, 1, CAST(N'2019-04-23T06:10:43.457' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (362, 1, CAST(N'2019-04-23T06:10:53.130' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (363, 1, CAST(N'2019-04-23T06:14:22.810' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (364, 1, CAST(N'2019-04-23T06:15:07.710' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (365, 1, CAST(N'2019-04-23T06:18:29.497' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (366, 1, CAST(N'2019-04-23T06:19:06.830' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (367, 1, CAST(N'2019-04-23T06:26:40.540' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (368, 1, CAST(N'2019-04-23T06:27:15.590' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (369, 1, CAST(N'2019-04-23T06:31:06.307' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (370, 1, CAST(N'2019-04-23T06:31:08.697' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (371, 1, CAST(N'2019-04-23T06:32:13.943' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (372, 1, CAST(N'2019-04-23T07:14:12.450' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (373, 1, CAST(N'2019-04-23T07:21:39.127' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (374, 1, CAST(N'2019-04-23T08:46:39.063' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (375, 1, CAST(N'2019-04-23T08:58:35.083' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (376, 1, CAST(N'2019-04-23T09:07:00.787' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (377, 1, CAST(N'2019-04-23T09:19:00.823' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (378, 1, CAST(N'2019-04-23T16:01:55.130' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (379, 1, CAST(N'2019-04-23T16:22:21.683' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (380, 1, CAST(N'2019-04-23T23:10:15.640' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (381, 1, CAST(N'2019-04-23T23:43:20.830' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (382, 1, CAST(N'2019-04-23T23:52:28.760' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (383, 1, CAST(N'2019-04-24T00:00:42.820' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (384, 1, CAST(N'2019-04-24T00:03:40.303' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (385, 1, CAST(N'2019-04-24T00:11:09.183' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (386, 1, CAST(N'2019-04-24T00:12:40.403' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (387, 1, CAST(N'2019-04-24T00:14:11.983' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (388, 1, CAST(N'2019-04-24T00:15:28.480' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (389, 1, CAST(N'2019-04-24T00:32:18.557' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (390, 1, CAST(N'2019-04-24T00:33:29.850' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (391, 1, CAST(N'2019-04-24T00:35:00.680' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (392, 1, CAST(N'2019-04-24T00:45:02.383' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (393, 1, CAST(N'2019-04-24T00:45:44.127' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (394, 1, CAST(N'2019-04-24T00:55:37.470' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (395, 1, CAST(N'2019-04-24T00:56:25.010' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (396, 1, CAST(N'2019-04-24T00:58:02.713' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (397, 1, CAST(N'2019-04-24T00:58:53.570' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (398, 1, CAST(N'2019-04-24T01:11:54.913' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (399, 1, CAST(N'2019-04-24T01:22:48.503' AS DateTime), -1)
-GO
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (400, 1, CAST(N'2019-04-24T01:28:49.473' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (401, 1, CAST(N'2019-04-24T01:32:20.357' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (402, 1, CAST(N'2019-04-24T01:49:09.713' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (403, 1, CAST(N'2019-04-24T02:00:00.570' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (404, 1, CAST(N'2019-04-24T02:01:47.900' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (405, 1, CAST(N'2019-04-24T02:01:54.683' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (406, 1, CAST(N'2019-04-24T02:14:19.960' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (407, 1, CAST(N'2019-04-24T02:16:06.073' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (408, 1, CAST(N'2019-04-24T02:18:15.690' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (409, 1, CAST(N'2019-04-24T02:19:01.917' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (410, 1, CAST(N'2019-04-24T02:22:11.470' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (411, 1, CAST(N'2019-04-24T02:22:52.647' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (412, 1, CAST(N'2019-04-24T02:46:49.660' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (413, 1, CAST(N'2019-04-24T03:33:10.093' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (414, 1, CAST(N'2019-04-24T03:50:56.133' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (415, 1, CAST(N'2019-04-24T04:01:10.980' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (416, 1, CAST(N'2019-04-24T04:29:10.740' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (417, 1, CAST(N'2019-04-24T04:56:58.967' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (418, 1, CAST(N'2019-04-24T05:14:54.320' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (419, 1, CAST(N'2019-04-24T05:58:18.487' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (420, 1, CAST(N'2019-04-24T06:05:58.430' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (421, 1, CAST(N'2019-04-24T06:26:21.387' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (422, 1, CAST(N'2019-04-24T06:47:11.977' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (423, 1, CAST(N'2019-04-24T07:02:01.797' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (424, 1, CAST(N'2019-04-24T07:04:59.437' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (425, 1, CAST(N'2019-04-24T07:07:59.457' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (426, 1, CAST(N'2019-04-24T07:28:32.213' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (427, 1, CAST(N'2019-04-24T08:05:18.850' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (428, 1, CAST(N'2019-04-24T23:29:21.033' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (429, 1, CAST(N'2019-04-25T00:55:57.393' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (430, 1, CAST(N'2019-04-25T01:16:01.537' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (431, 1, CAST(N'2019-04-25T02:18:31.880' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (432, 1, CAST(N'2019-04-25T02:33:17.230' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (433, 1, CAST(N'2019-04-25T03:05:48.383' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (434, 1, CAST(N'2019-04-25T03:26:06.293' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (435, 1, CAST(N'2019-05-10T05:12:48.623' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (436, 1, CAST(N'2019-05-12T02:51:46.120' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (437, 1, CAST(N'2019-05-12T03:01:20.733' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (438, 1, CAST(N'2019-05-12T03:32:12.500' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (439, 1, CAST(N'2019-05-12T03:40:59.443' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (440, 1, CAST(N'2019-05-12T20:06:23.183' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (441, 1, CAST(N'2019-05-12T20:29:01.003' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (442, 1, CAST(N'2019-05-12T21:17:06.870' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (443, 1, CAST(N'2019-05-12T21:39:42.883' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (444, 1, CAST(N'2019-05-13T02:05:32.737' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (445, 1, CAST(N'2019-05-13T02:15:30.107' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (446, 1, CAST(N'2019-05-13T02:25:43.313' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (447, 1, CAST(N'2019-05-13T02:35:43.453' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (448, 1, CAST(N'2019-05-13T04:16:46.057' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (449, 1, CAST(N'2019-05-13T04:38:06.220' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (450, 1, CAST(N'2019-05-13T05:43:42.333' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (451, 1, CAST(N'2019-05-13T05:57:56.523' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (452, 1, CAST(N'2019-05-13T07:01:16.053' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (453, 1, CAST(N'2019-05-13T07:24:01.440' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (454, 1, CAST(N'2019-05-13T11:55:49.270' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (455, 1, CAST(N'2019-05-13T12:21:22.943' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (456, 1, CAST(N'2019-05-13T21:04:31.533' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (457, 1, CAST(N'2019-05-13T21:35:55.273' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (458, 1, CAST(N'2019-05-13T21:40:01.287' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (459, 1, CAST(N'2019-05-13T21:41:00.297' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (460, 1, CAST(N'2019-05-13T21:56:21.807' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (461, 1, CAST(N'2019-05-13T22:02:21.920' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (462, 1, CAST(N'2019-05-13T22:03:35.237' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (463, 1, CAST(N'2019-05-13T22:23:42.277' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (464, 1, CAST(N'2019-05-14T00:03:35.540' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (465, 1, CAST(N'2019-05-14T00:32:44.890' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (466, 1, CAST(N'2019-05-14T00:39:30.920' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (467, 1, CAST(N'2019-05-14T00:49:37.843' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (468, 1, CAST(N'2019-05-14T01:03:25.267' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (469, 1, CAST(N'2019-05-14T01:30:45.673' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (470, 1, CAST(N'2019-05-14T03:01:24.873' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (471, 1, CAST(N'2019-05-14T03:41:08.193' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (472, 1, CAST(N'2019-05-14T22:52:13.233' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (473, 1, CAST(N'2019-05-14T23:10:34.217' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (474, 1, CAST(N'2019-05-14T23:12:29.083' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (475, 1, CAST(N'2019-05-14T23:30:49.643' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (476, 1, CAST(N'2019-05-14T23:52:10.547' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (477, 1, CAST(N'2019-05-15T00:14:50.520' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (478, 1, CAST(N'2019-05-15T03:18:45.020' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (479, 1, CAST(N'2019-05-15T03:40:44.173' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (480, 1, CAST(N'2019-05-15T03:50:29.077' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (481, 1, CAST(N'2019-05-15T04:05:02.947' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (482, 1, CAST(N'2019-05-15T04:07:48.657' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (483, 1, CAST(N'2019-05-15T04:28:23.090' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (484, 1, CAST(N'2019-05-15T06:27:15.957' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (485, 1, CAST(N'2019-05-15T06:48:26.147' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (486, 1, CAST(N'2019-05-15T08:46:03.207' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (487, 1, CAST(N'2019-05-15T09:24:49.513' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (488, 1, CAST(N'2019-05-15T09:27:56.420' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (489, 1, CAST(N'2019-05-15T09:35:06.357' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (490, 1, CAST(N'2019-05-15T09:36:03.993' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (491, 1, CAST(N'2019-05-15T09:42:48.100' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (492, 1, CAST(N'2019-05-15T23:28:39.493' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (493, 1, CAST(N'2019-05-15T23:56:02.510' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (494, 1, CAST(N'2019-05-16T01:08:18.217' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (495, 1, CAST(N'2019-05-16T01:29:01.290' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (496, 1, CAST(N'2019-05-16T01:46:37.967' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (497, 1, CAST(N'2019-05-16T02:19:21.870' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (498, 1, CAST(N'2019-05-16T02:34:28.060' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (499, 1, CAST(N'2019-05-16T03:20:25.477' AS DateTime), 1)
-GO
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (500, 1, CAST(N'2019-05-16T03:43:03.200' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (501, 1, CAST(N'2019-05-16T03:43:22.813' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (502, 1, CAST(N'2019-05-16T03:47:57.777' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (503, 1, CAST(N'2019-05-16T04:08:43.620' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (504, 1, CAST(N'2019-08-06T07:41:54.643' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (505, 1, CAST(N'2019-08-06T07:50:52.070' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (506, 1, CAST(N'2019-08-12T07:03:20.087' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (507, 1, CAST(N'2019-08-12T07:14:44.297' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (508, 1, CAST(N'2019-08-12T07:21:51.253' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (509, 1, CAST(N'2019-08-12T07:28:42.880' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (510, 1, CAST(N'2019-08-12T07:46:26.523' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (511, 1, CAST(N'2019-08-12T08:00:22.983' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (512, 1, CAST(N'2019-08-12T08:08:44.890' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (513, 1, CAST(N'2019-08-12T08:34:38.207' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (514, 1, CAST(N'2019-08-13T00:35:56.640' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (515, 1, CAST(N'2019-08-13T00:53:53.770' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (516, 1, CAST(N'2019-08-13T01:09:54.410' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (517, 1, CAST(N'2019-08-13T01:35:42.177' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (518, 1, CAST(N'2019-08-16T07:30:02.890' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (519, 1, CAST(N'2019-08-16T07:52:57.467' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (520, 1, CAST(N'2019-08-27T03:22:30.300' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (521, 1, CAST(N'2019-08-27T03:37:02.653' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (522, 1, CAST(N'2019-08-27T03:38:42.647' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (523, 1, CAST(N'2019-08-27T03:49:41.287' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (524, 1, CAST(N'2019-08-27T03:51:08.100' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (525, 1, CAST(N'2019-08-27T03:58:04.983' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (526, 1, CAST(N'2019-08-27T07:36:08.283' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (527, 1, CAST(N'2019-08-27T07:42:03.737' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (528, 1, CAST(N'2019-08-27T07:47:43.877' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (529, 1, CAST(N'2019-08-27T07:54:41.003' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (530, 1, CAST(N'2019-08-27T07:55:22.590' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (531, 1, CAST(N'2019-08-27T08:01:15.750' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (532, 1, CAST(N'2019-08-27T08:34:22.783' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (533, 1, CAST(N'2019-08-27T08:41:20.680' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (534, 1, CAST(N'2019-08-29T06:12:44.040' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (535, 1, CAST(N'2019-08-29T06:15:52.823' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (536, 1, CAST(N'2019-08-29T06:22:31.830' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (537, 1, CAST(N'2019-08-29T06:22:31.830' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (538, 1, CAST(N'2019-08-29T06:28:32.333' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (539, 1, CAST(N'2019-08-29T06:34:30.610' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (540, 1, CAST(N'2019-08-29T06:47:54.643' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (541, 1, CAST(N'2019-08-29T06:53:53.033' AS DateTime), -1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (542, 1, CAST(N'2019-08-29T07:46:41.883' AS DateTime), 1)
-INSERT [tblLogins] ([LoginId], [UserId], [LogTime], [LogAction]) VALUES (543, 1, CAST(N'2019-10-08T11:08:42.910' AS DateTime), -1)
-SET IDENTITY_INSERT [tblLogins] OFF
-GO
-
 SET IDENTITY_INSERT [tblRelDistr] ON 
 
 INSERT [tblRelDistr] ([DistrID], [DistrType], [DistrCareType], [ProdID], [Period], [DistrPerc], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID]) VALUES (1, 1, N'B', 4, 1, CAST(0.00 AS Decimal(18, 2)), CAST(N'2018-03-20T05:14:15.577' AS DateTime), NULL, NULL, 2)
@@ -6790,12 +6319,6 @@ INSERT [tblRelDistr] ([DistrID], [DistrType], [DistrCareType], [ProdID], [Period
 INSERT [tblRelDistr] ([DistrID], [DistrType], [DistrCareType], [ProdID], [Period], [DistrPerc], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID]) VALUES (203, 12, N'I', 11, 12, CAST(0.00 AS Decimal(18, 2)), CAST(N'2018-03-27T05:56:56.650' AS DateTime), NULL, NULL, 2)
 INSERT [tblRelDistr] ([DistrID], [DistrType], [DistrCareType], [ProdID], [Period], [DistrPerc], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID]) VALUES (204, 12, N'O', 11, 12, CAST(0.00 AS Decimal(18, 2)), CAST(N'2018-03-27T05:56:56.663' AS DateTime), NULL, NULL, 2)
 SET IDENTITY_INSERT [tblRelDistr] OFF
-GO
-
-SET IDENTITY_INSERT [tblSubmittedPhotos] ON 
-
-INSERT [tblSubmittedPhotos] ([PhotoId], [ImageName], [CHFID], [OfficerCode], [PhotoDate], [RegisterDate]) VALUES (191, N'190000012_E00001_20180327_0.0_0.0.jpg', N'190000012', N'E00001', CAST(N'2018-03-27' AS Date), CAST(N'2019-08-29T06:52:01.937' AS DateTime))
-SET IDENTITY_INSERT [tblSubmittedPhotos] OFF
 GO
 
 SET ANSI_NULLS ON

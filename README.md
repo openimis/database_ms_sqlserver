@@ -26,11 +26,11 @@ git clone https://github.com/openimis/database_ms_sqlserver
 
 * create a new database (i.e. openIMIS.X.Y.Z where X.Y.Z is the openIMIS database version)
 
-* Execute the initial database creation script fullEmpytDatabase.sql or fullDemoDatabase.sql (see "creating SQL script" section on how to get them)
+* Execute the initial database creation script fullEmptyDatabase.sql or fullDemoDatabase.sql (see "creating SQL script" section on how to get them)
 
 ### Upgrading
 
-In order to upgrade from the previous version of openIMIS database (see [Versioning](#versioning) section), execute the migration script (fullMigrationSript), see "creating SQL script" to get it
+In order to upgrade from the previous version of openIMIS database (see [Versioning](#versioning) section), execute the migration script (fullMigrationScript), see "creating SQL script" to get it
 
 ## Deployment
 
@@ -43,7 +43,7 @@ Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c6
 
 ### Creating SQL script 
 
- SQL files for initialisaiton or update are created using bash script concatenate_files.sh or by downloading the sql-file zip from the latest release https://github.com/openimis/database_ms_sqlserver/releases/latest 
+ SQL files for initialisation or update are created using bash script concatenate_files.sh or by downloading the sql-file zip from the latest release https://github.com/openimis/database_ms_sqlserver/releases/latest 
 
 ## openIMIS dockerized database
 
@@ -56,13 +56,13 @@ Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c6
 
 ### ENV
 
-- INIT_MODE if set to demo will init the database to demo (works only if not yet init)
+- DEMO_DATASET if set to true will init the database to demo (works only if not yet init) otherwise comment it out 
 - SQL_SCRIPT_URL url to init scripts
 - **ACCEPT_EULA** must be set to Y to accept MS SQL EULA
 - SA_PASSWORD default: IMISuserP@s
-- DB_USER_PASSWORD defautl: IMISuserP@s
-- DB_NAMEdefautl: IMIS
-- DB_USER defautl: IMISUser
+- DB_USER_PASSWORD default: IMISuserP@s
+- DB_NAME default: IMIS
+- DB_USER default: IMISUser
 
 
 ### gettingstarted
@@ -79,7 +79,7 @@ docker build \
   -t openimis-db
 ```
 
-optinnaly 
+optional 
 ```
 --build-arg SQL_SCRIPT_URL=<url to the sql script to create the database> \
   --build-arg DB_USER_PASSWORD=StrongPassword
@@ -87,7 +87,7 @@ optinnaly
   --build-arg DB_NAME=IMIS
 ```
 ***Notes***:
-* by setting the ACCEPT_EULA=Y, you explicitely accept [Microsoft EULA](https://go.microsoft.com/fwlink/?linkid=857698) for the dockerized SQL Server 2017. Please ensure you read it and use the provided software according to the terms of that license.
+* by setting the ACCEPT_EULA=Y, you explicitly accept [Microsoft EULA](https://go.microsoft.com/fwlink/?linkid=857698) for the dockerized SQL Server 2017. Please ensure you read it and use the provided software according to the terms of that license.
 * choose a strong password (at least 8 chars,...)... or SQL Server will complain
 
 
@@ -97,13 +97,13 @@ To restore the backup inside the container:
 
 
 ***Note:***
-the container will check if the database exist, if it doesnot it will take the latest demo release version and deploy it , SQL_SCRIPT_URL is per defautl set to "https://github.com/openimis/database_ms_sqlserver/releases/latest/download/sql-files.zip"
-to have data retention when container are recreated volums need to be configured as microsoft docs suggest
+The container will check if the database exist. If it does not, it will take the latest demo release version and deploy it, SQL_SCRIPT_URL is by default set to "https://github.com/openimis/database_ms_sqlserver/releases/latest/download/sql-files.zip"
+To ensure data retention when containers are recreated, volumes need to be configured as suggested in the Microsoft documentation.
 * <host directory>/data:/var/opt/mssql/data : database files
 * <host directory>/log:/var/opt/mssql/log : logs files
 * <host directory>/secrets:/var/opt/mssql/secrets : secrets
 
-The database is writen within the container. If you want to keep your data between container execution, stop/start the container via `docker stop <CONTAINER ID>` / `docker start <CONTAINER ID>` (using `docker run ... ` recreates a new container from the image... thus without any data)
+The database is written within the container. If you want to keep your data between container execution, stop/start the container via `docker stop <CONTAINER ID>` / `docker start <CONTAINER ID>` (using `docker run ... ` recreates a new container from the image, thus without any data)
 
 
 

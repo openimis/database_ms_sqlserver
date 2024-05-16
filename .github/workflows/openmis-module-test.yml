@@ -54,7 +54,7 @@ jobs:
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'DROP DATABASE IF EXISTS imis_1_4_2'
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'CREATE DATABASE imis_1_4_2'
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_1_4_2 -i 1.42/openIMIS_ONLINE.sql | grep . | uniq -c
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_1_4_2 -i "new/output/fullMigrationScipt.sql" | grep . | uniq -c           
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_1_4_2 -i "new/output/fullMigrationScript.sql" | grep . | uniq -c           
         env:
             SA_PASSWORD: GitHub999
             ACCEPT_EULA: Y
@@ -73,7 +73,7 @@ jobs:
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'DROP DATABASE IF EXISTS imis_main'
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -Q 'CREATE DATABASE imis_main'
             /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_main -i "oldMain/output/fullDemoDatabase.sql" | grep . | uniq -cc
-            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_main -i "new/output/fullMigrationScipt.sql" | grep . | uniq -c
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1433 -U SA -P $SA_PASSWORD -d imis_main -i "new/output/fullMigrationScript.sql" | grep . | uniq -c
 
 
         env:

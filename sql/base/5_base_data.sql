@@ -341,8 +341,16 @@ INSERT [dbo].[tblRoleRight] ([RoleRightID], [RoleID], [RightID], [ValidityFrom],
 INSERT [dbo].[tblRoleRight] ([RoleRightID], [RoleID], [RightID], [ValidityFrom], [ValidityTo], [AuditUserId], [LegacyID]) VALUES (193, 6, 131107, CURRENT_TIMESTAMP, NULL, NULL, NULL)
 SET IDENTITY_INSERT [dbo].[tblRoleRight] OFF
 SET IDENTITY_INSERT [dbo].[tblUsers] ON 
-
-INSERT [dbo].[tblUsers] ([UserID], [UserUUID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom], [ValidityTo], [LegacyID], [AuditUserID], [password], [DummyPwd], [EmailId], [PrivateKey], [StoredPassword], [PasswordValidity], [IsAssociated]) VALUES (1, newid(), N'en', N'Admin', N'Admin', N'', N'Admin', 1023, 0, CURRENT_TIMESTAMP, NULL, NULL, 0, 0x001699E55A06FA79F4CA0D06EF15096C02000000DF691E2CE66AA7ABDF65B3E6210C1C04CAAE1A3B1FEE5E266B5FAF4F7D4E95109C92E3205F0145CC, NULL, NULL, N'C1C224B03CD9BC7B6A86D77F5DACE40191766C485CD55DC48CAF9AC873335D6F', N'59E66831C680C19E8736751D5480A7C3291BD8775DF47C19C4D0361FBC1C3438', NULL, NULL)
+DECLARE @AdminPassword VARCHAR(MAX) = 'admin123'
+DECLARE @AdminPrivateKey VARCHAR(MAX) = 'Admin'
+INSERT [dbo].[tblUsers] ([UserID], [LanguageID], [LastName], [OtherNames], [Phone], [LoginName], [RoleID], [HFID], [ValidityFrom],
+	[ValidityTo], [LegacyID], [AuditUserID], [PrivateKey], [StoredPassword], [PasswordValidity], [IsAssociated]) 
+VALUES (1, N'en', N'Admin', N'Admin', N'', N'Admin', 1023, 0, CURRENT_TIMESTAMP, NULL, NULL, 0,  
+	-- PrivateKey
+	CONVERT(varchar(max),HASHBYTES('SHA2_256', @AdminPrivateKey),2), 
+	-- [StoredPassword]
+	CONVERT(varchar(max),HASHBYTES('SHA2_256',CONCAT(@AdminPassword,CONVERT(varchar(max),HASHBYTES('SHA2_256',@AdminPrivateKey),2))),2), 
+	NULL, NULL)  
 SET IDENTITY_INSERT [dbo].[tblUsers] OFF
 SET IDENTITY_INSERT [dbo].[tblUserRole] ON 
 

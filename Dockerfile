@@ -1,4 +1,4 @@
-FROM  mcr.microsoft.com/mssql/server:2017-latest
+FROM  mcr.microsoft.com/mssql/server:2022-latest
 ARG ACCEPT_EULA=Y
 ENV ACCEPT_EULA=N
 ARG SA_PASSWORD=IMISuserP@s

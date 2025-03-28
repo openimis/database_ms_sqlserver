@@ -1,5 +1,5 @@
 FROM  mcr.microsoft.com/mssql/server:2022-latest
-RUN START_USER=$(whoiam)
+RUN START_USER=$(whoami)
 USER root
 ARG ACCEPT_EULA=Y
 ENV ACCEPT_EULA=N

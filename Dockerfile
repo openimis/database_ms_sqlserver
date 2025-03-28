@@ -1,4 +1,6 @@
 FROM  mcr.microsoft.com/mssql/server:2022-latest
+RUN START_USER=$(whoiam)
+USER root
 ARG ACCEPT_EULA=Y
 ENV ACCEPT_EULA=N
 ARG SA_PASSWORD=IMISuserP@s
